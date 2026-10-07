@@ -2,7 +2,7 @@
 
 ## Product
 
-rumbo is a multi-agent app that supports a tech job search end to end: it extracts a structured profile (with evidence per skill) from a LinkedIn PDF or CV, surveys real job postings from public sources, computes prioritized gaps, proposes a target role and a roadmap where every gap has a verifiable way to close it (practice project, new work experience or education), drafts LinkedIn/CV changes the user approves one by one, and tracks progress — including analysis of every push to the roadmap's repos via a GitHub App. It is also the author's portfolio piece for AI engineering roles, so engineering decisions (routing, evals, observability, cost) matter as much as features.
+rumbo is a multi-agent app that supports a job search end to end (built tech-first, open to any field): it extracts a structured profile (with evidence per skill) from a LinkedIn PDF or CV, surveys real job postings from public sources, computes prioritized gaps, helps the user choose a target role (suggested paths + questionnaire + comparison) and a roadmap where every gap has a verifiable way to close it (practice project, new work experience or education), drafts LinkedIn/CV changes the user approves one by one, and tracks progress — including analysis of every push to the roadmap's repos via a GitHub App. It is also the author's portfolio piece for AI engineering roles, so engineering decisions (routing, evals, observability, cost) matter as much as features.
 
 Product docs: `docs/product/`. Decisions: `docs/adr/`. Specs per slice: `docs/specs/`. Backlog: `docs/backlog.md`.
 
