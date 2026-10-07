@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+**/generated/**
+**/.next/**
+**/dist/**
+coverage/
+playwright-report/
+test-results/
