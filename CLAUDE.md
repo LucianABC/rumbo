@@ -14,18 +14,19 @@ Product docs: `docs/product/`. Decisions: `docs/adr/`. Specs per slice: `docs/sp
 
 ## Commands
 
-> Phase 0: no code yet. Fill in as the walking skeleton lands.
+> Commands marked *(planned)* land during the local walking skeleton; update this list as they do.
 
 ```bash
-corepack enable          # pnpm via corepack
+npm install -g pnpm      # once; the exact version is pinned in package.json (packageManager)
 pnpm install
-pnpm dev                 # web + api + worker locally (Docker Compose for Postgres)
 pnpm lint
 pnpm typecheck
 pnpm test                # unit + integration; never calls the Anthropic API
-pnpm test:e2e            # Playwright against a production build
-pnpm eval                # real model calls; costs money; see evals/
-pnpm db:migrate          # Prisma migrations
+pnpm build
+pnpm dev                 # (planned) web + api + worker locally
+pnpm test:e2e            # (planned) Playwright against the prod-like Docker Compose stack
+pnpm db:migrate          # (planned) Prisma migrations
+pnpm eval                # (planned) real model calls; costs money; see evals/
 ```
 
 ## Structure
