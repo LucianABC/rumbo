@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+.turbo/
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Test and coverage
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Evals: keep golden sets, ignore local run outputs
+evals/runs/
+
+# Infra
+cdk.out/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# User uploads in local dev (CVs contain personal data)
+uploads/
