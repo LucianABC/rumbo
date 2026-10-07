@@ -1,6 +1,6 @@
 # ADR 0005 — Job queue and run ledger
 
-- **Status:** Proposed
+- **Status:** Accepted (2026-10-07)
 - **Date:** 2026-10-07
 
 ## Context
@@ -21,6 +21,7 @@ Every agent run and every GitHub webhook goes through a queue, so HTTP requests 
 - **Webhooks are enqueue-only:** verify signature, store `deliveryId` with a unique constraint (idempotency), enqueue, return 202.
 - Job handlers are idempotent and step-based: a retried run resumes from the last completed step.
 - Queues: `run.execute`, `push.analyze`, `market.refresh` (cron), `weekly.recalculate` (cron), `system.heartbeat`.
+- **Missed schedules are caught up.** pg-boss does not backfill cron runs that fired while no worker was up, and until the Production launch rumbo runs only on the owner's machine. Each scheduled job records its last successful run (`ScheduledJobRun(name, lastSucceededAt)`); on startup the worker enqueues any job whose last success is older than its interval, using a singleton key so a catch-up and a regular firing never run twice. This also covers restarts in production.
 
 **Run ledger** (owned by `packages/router`, written for every call):
 

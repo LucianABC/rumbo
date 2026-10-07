@@ -12,7 +12,7 @@ The board lives in **GitHub Issues** (repo `rumbo`) and the GitHub Project linke
 
 ## Milestones, in order
 
-1. **Phase 0 — Decisions** — ADRs. Auth (ADR 0003) is deferred to Production launch; embeddings (ADR pending) to the F2 spec.
+1. **Phase 0 — Decisions** — closed: ADRs 0001, 0002, 0004, 0005 accepted. Auth (ADR 0003) is deferred to Production launch; embeddings (ADR pending) to the F2 spec.
 2. **Walking skeleton (local)** — tooling, CI, prod-like Docker Compose, healthz, worker heartbeat, local smoke test.
 3. **API skeleton** — config, helmet/CORS, error envelope, validation, Swagger, logging with PII redaction, contracts, coverage gate.
 4. **Ownership** — `User` + ownership scoping, identity port with local single-owner adapter, `DELETE /me`.
