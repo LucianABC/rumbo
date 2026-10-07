@@ -32,8 +32,8 @@ pnpm db:migrate          # Prisma migrations
 
 ```
 apps/web            Next.js (App Router) — Vercel
-apps/api            NestJS (HTTP + webhooks) — AWS ECS
-apps/worker         pg-boss consumer: agent runs, push analysis, crons — AWS ECS
+apps/api            NestJS (HTTP + webhooks) — AWS ECS on EC2, behind CloudFront
+apps/worker         pg-boss consumer: agent runs, push analysis, crons — AWS ECS on EC2
 packages/contracts  Zod schemas and shared types (web + api, nestjs-zod)
 packages/agents     agent definitions, versioned prompts, tools
 packages/router     routing table, model capability profiles, cascade, budget, cost ledger
@@ -66,7 +66,7 @@ Project order (non-negotiable): Phase 0 docs/ADRs → walking skeleton (tooling,
 - Search before creating a task; edit or link existing ones, never duplicate.
 - Definition of Ready: what, why, verifiable acceptance criterion.
 - Each discussed decision is its own ticket, linkable from commits.
-- If Jira is available via MCP, propose tickets and wait for the user's OK before creating them; otherwise keep them in `docs/backlog.md`.
+- The board is **GitHub Issues + a GitHub Project** in the `rumbo` repo. Labels: `area:*` (ARCH, INFRA, BE, FE, AI, QA, DOCS), `epic`, `decision`, `standby`. Milestones = epics in progress. Reference issues from commits/PRs (`Refs #12`, `Closes #12`). Propose new issues to the user before creating them in bulk.
 
 ## Git and PRs
 

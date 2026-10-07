@@ -8,12 +8,12 @@ The thinnest vertical slice that crosses the whole stack and runs in production.
 
 ```
 Browser ──▶ web (Next.js, Vercel)
-              │  GET /api/v1/healthz
+              │  GET /api/v1/healthz  (proxied by Next rewrite)
               ▼
-            api (NestJS, ECS) ──▶ Postgres (RDS, pgvector enabled)
+            CloudFront ──▶ api (NestJS, ECS on EC2) ──▶ Postgres (RDS, pgvector enabled)
               │  enqueue "ping" job          ▲
               ▼                              │
-            worker (pg-boss consumer, ECS) ──┘  writes heartbeat row
+            worker (pg-boss consumer, ECS on EC2) ──┘  writes heartbeat row
 ```
 
 | Layer | What exists |
