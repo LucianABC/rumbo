@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
     }
   },
   "files": [
@@ -14,7 +18,7 @@
     "prisma"
   ],
   "scripts": {
-    "postinstall": "prisma generate",
+    "postinstall": "pnpm run build",
     "generate": "prisma generate",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "typecheck": "prisma generate && tsc -p tsconfig.json",
