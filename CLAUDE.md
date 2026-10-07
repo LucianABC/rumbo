@@ -14,7 +14,7 @@ Product docs: `docs/product/`. Decisions: `docs/adr/`. Specs per slice: `docs/sp
 
 ## Commands
 
-> Commands marked *(planned)* land during the local walking skeleton; update this list as they do.
+> Commands marked _(planned)_ land during the local walking skeleton; update this list as they do.
 
 ```bash
 npm install -g pnpm      # once; the exact version is pinned in package.json (packageManager)
@@ -75,7 +75,7 @@ Project order: Phase 0 docs/ADRs → local walking skeleton (tooling, CI, prod-l
 
 - Conventional Commits in English: `type(scope): description` — imperative, lowercase, no trailing period, ≤ 50 chars (hard limit 72). Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert. Use the `commit-conventions` skill.
 - One task, one PR. Small PRs with what changed, why, and how it was tested.
-- Code comments only explain *why*, with a ticket reference.
+- Code comments only explain _why_, with a ticket reference.
 - Commit or push only when the user asks.
 
 ## AI rules (whole project)

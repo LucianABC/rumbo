@@ -8,7 +8,7 @@ A senior developer who wants to move into a new kind of role (here: customer-fac
 2. **How far am I from it, with evidence?** Self-assessment is biased in both directions. A CV lists skills; it rarely says where and how each one was used, so it is hard to tell a real gap from a skill that is simply not written down.
 3. **What exactly should I do next, and am I making progress?** Generic advice ("learn RAG", "build a portfolio") is not a plan. Learning without a concrete project produces nothing a recruiter can see, and progress is invisible unless someone tracks it.
 
-Existing tools cover pieces: job boards (search), CV builders (wording), course platforms (learning), LinkedIn (presence). None closes the loop from *market* → *gaps* → *projects* → *visible evidence* → *updated profile*.
+Existing tools cover pieces: job boards (search), CV builders (wording), course platforms (learning), LinkedIn (presence). None closes the loop from _market_ → _gaps_ → _projects_ → _visible evidence_ → _updated profile_.
 
 ## For whom (MVP persona)
 
