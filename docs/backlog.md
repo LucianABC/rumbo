@@ -6,8 +6,8 @@ Convention: `AREA — Verb + object`. Only the next 2–3 weeks are broken into 
 
 | ID | Title | Acceptance |
 | --- | --- | --- |
-| D1 | ARCH — ADR agent orchestration | ADR 0001 approved or amended |
-| D2 | ARCH — ADR deployment | ADR 0002 approved or amended; domain chosen |
+| D1 | ARCH — ADR agent orchestration | Accepted |
+| D2 | ARCH — ADR deployment | Accepted: option B on the AWS free plan (revision 3) |
 | D3 | ARCH — ADR authentication | ADR 0003 approved or amended |
 | D4 | ARCH — ADR skill taxonomy and evidence model | ADR 0004 approved or amended |
 | D5 | ARCH — ADR job queue and run ledger | ADR 0005 approved or amended |
@@ -28,9 +28,12 @@ Why: surface deploy, CORS, migrations and secrets issues before any feature. See
 | WS7 | BE — Add Prisma with first migration and pgvector | Migration creates `heartbeat` table and `vector` extension; runs in CI against Testcontainers |
 | WS8 | BE — Scaffold worker with pg-boss heartbeat job | Worker consumes `system.heartbeat` and writes a row; integration test |
 | WS9 | FE — Scaffold Next.js app with status page | Page shows API health, DB status and last heartbeat; API URL from env |
-| WS10 | INFRA — Provision AWS stack with CDK | VPC (no NAT), RDS Postgres 16 private, ECS cluster on one t4g.micro (ASG of 1) with api/worker services, CloudFront in front of the API, SSM parameters, S3 bucket, ECR, budget alarms at $20/$35; `cdk deploy` reproducible |
+| WS10 | INFRA — Provision AWS stack with CDK | VPC (no NAT), RDS Postgres 16 private, ECS cluster on one t4g.micro (ASG of 1) with api/worker services, CloudFront in front of the API, SSM parameters, S3 bucket, ECR, budget alarms on cost before credits ($25/$35) and remaining credits (< $50); `cdk deploy` reproducible |
 | WS11 | INFRA — Deploy backend on merge to main via OIDC | Merge to main builds images, runs migrations as a one-off task, updates services; no long-lived AWS keys |
 | WS12 | INFRA — Deploy web to Vercel with API proxy | Web live on Vercel; `/api/*` rewritten to the CloudFront API URL; API rejects requests without the CloudFront origin header |
+| WS15 | INFRA — Create AWS account on the free plan | Owner creates it on the free plan; root MFA; Identity Center admin + SSO CLI; Budget created; start date recorded |
+| WS16 | INFRA — Earn remaining AWS bonus credits | Lambda and Bedrock activities done; all five shown as completed |
+| WS17 | INFRA — Review hosting before AWS free plan ends (standby) | At month 5: upgrade or move, decided with real data; ADR 0002 updated |
 | WS14 | INFRA — Register domain in Route 53 (standby) | Bought only when it becomes necessary; ACM cert, `api.<domain>` on CloudFront, `app.<domain>` on Vercel, cookies scoped to parent domain |
 | WS13 | QA — Add Playwright smoke test against production | Test passes against the production URL after deploy |
 
