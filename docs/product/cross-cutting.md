@@ -6,19 +6,21 @@ What is not a feature but every feature depends on, and **when** each piece land
 
 | When | Concern | What lands |
 | --- | --- | --- |
-| Walking skeleton | Tooling & CI | Lint, format, commit hooks, CI (lint + test + build), Dependabot, deploy on merge. |
+| Walking skeleton | Tooling & CI | Lint, format, commit hooks, CI (lint + test + build + Docker images), Dependabot, prod-like Docker Compose environment. |
 | Walking skeleton | Health | `/api/v1/healthz` with DB ping; worker heartbeat. |
 | API skeleton | HTTP baseline | `/api/v1` prefix, helmet, CORS per environment, global error filter with standard envelope, global Zod validation pipe (nestjs-zod), Swagger at `/api/docs`, env validated with Zod at boot. |
 | API skeleton | Logging | Structured JSON logs (pino) with request id and **PII redaction** by default. |
 | API skeleton | Contracts | `packages/contracts` consumed by web and API; contract test harness. |
-| Auth | Identity & ownership | Register, login, guard, `GET /me`, protected routes, demo user. Every domain table has `userId`; every query is scoped by it (repository-level helper + tests that prove cross-user access fails). |
-| Auth | Rate limiting | On auth endpoints first (they are the first public, unauthenticated mutations). Extended to every public endpoint as it appears. |
-| Auth | Privacy | `DELETE /api/v1/me` deletes all user data (cascade, plus stored files). Built with auth so every later table must honor it. |
+| Ownership | Identity port & ownership | `User` table, `IdentityProvider` port + global guard, local single-owner adapter (dev only). Every domain table has `userId`; every query is scoped by it (repository-level helper + tests that prove cross-user access fails). |
+| Ownership | Privacy | `DELETE /api/v1/me` deletes all user data (cascade, plus stored files). Built first so every later table must honor it. |
+| Production launch | Auth mechanism | Real `IdentityProvider` adapter per ADR 0003 (decided then), login screens, demo user. **Nothing is deployed before this.** |
+| Production launch | Rate limiting | On auth endpoints first, then every public endpoint. |
+| Production launch | Deploy | AWS (CDK) + Vercel, deploy on merge, smoke test against production (ADR 0002). |
 | F1 | Router v0 | `packages/router`: routing table in versioned config, one call path, Zod-validated structured output, retry-with-error then escalate, per-call cost ledger, per-run budget. |
 | F1 | Run model & tracing v0 | `Run` and `LlmCall` tables; every LLM call belongs to a run. OpenTelemetry spans exported to Langfuse; PII stripped before export. |
 | F1 | Evals v0 | `evals/` runner + first golden set (profile extraction). `pnpm eval` calls the real API; CI runs it when prompts, tools or routing change. |
 | F1 | Fixtures | Recorded model responses for tests; tests never call Anthropic. |
-| F1 | File storage | CV uploads in object storage (S3), private, deleted with the user. |
+| F1 | File storage | CV uploads through the S3 API (MinIO container locally, S3 in production), private, deleted with the user. |
 | F2 | Prompt-injection defenses | Postings are untrusted data; injection test set with malicious postings; no write tool reachable from posting content. |
 | F2 | MCP | `packages/mcp-jobs` server exposing posting search; the market agent consumes it. |
 | F2 | Embeddings | pgvector columns + index for postings and skills. |

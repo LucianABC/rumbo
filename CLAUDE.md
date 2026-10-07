@@ -47,7 +47,9 @@ docs/specs          one spec per vertical slice
 
 ## How we work
 
-Project order (non-negotiable): Phase 0 docs/ADRs → walking skeleton (tooling, CI, production deploy, `/healthz`) → API skeleton → auth end to end → features F1 → F5 as vertical slices. "Done" means deployed to production, not merged.
+Project order: Phase 0 docs/ADRs → local walking skeleton (tooling, CI, prod-like Docker Compose, `/healthz`) → API skeleton → ownership (identity port, local single-owner adapter, `DELETE /me`) → features F1 → F5 as vertical slices. **Production launch** (real auth mechanism per ADR 0003 + AWS/Vercel deploy) happens when the owner decides, and slices continue after it.
+
+**Hard limit: nothing is deployed to production — or exposed publicly in any way — until the real auth mechanism exists.** Until then rumbo runs only on the owner's machine. "Done" means merged and passing in the prod-like local environment; after the Production launch it means deployed to production. For GitHub webhooks in local dev, use a forwarder (`gh webhook forward` / smee), never a public tunnel to the app.
 
 **Spec before code.** For each vertical slice:
 

@@ -28,6 +28,8 @@ Facts checked on 2026-10-07:
 
 ## Decision
 
+> **Timing:** this setup is built at the **Production launch** milestone, which is gated by auth (ADR 0003). Until then rumbo runs only locally, and the AWS account is created at the start of that milestone so the free plan's 6-month clock is not spent idle.
+
 **Option B on a new AWS account using the free plan: Vercel for the web; ECS on a single EC2 instance (API + worker) behind CloudFront; RDS PostgreSQL 16; S3.** Infrastructure as code with **AWS CDK in TypeScript** (`infra/`). Region **us-east-1**.
 
 - **ECS on EC2**: one ECS cluster with a single `t4g.micro` in an Auto Scaling group of size 1. API and worker are separate ECS services (independent deploys and restarts).
