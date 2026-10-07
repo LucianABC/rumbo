@@ -1,6 +1,6 @@
 # ADR 0004 — Skill taxonomy and evidence model
 
-- **Status:** Accepted (2026-10-07, revision 2)
+- **Status:** Accepted (2026-10-07, revision 3: role families as a catalog)
 - **Date:** 2026-10-07
 
 ## Context
@@ -22,14 +22,15 @@ A gap can be closed in more than one way. The owner's rule: **no loose learning*
 ```
 -- Global, shared by all users (public data, no userId)
 Skill            id, slug, name, category, aliases[], embedding(vector)?, status(canonical|candidate)
-JobPosting       id, source, sourceId, url, company, title, roleFamily, region, postedAt, raw(jsonb), embedding?
+RoleFamily       id, slug, name, description, aliases[], status(canonical|candidate)
+JobPosting       id, source, sourceId, url, company, title, roleFamilyId, region, postedAt, raw(jsonb), embedding?
 Requirement      id, postingId, skillId, importance(must|nice), rawText
 
 -- Owned by a user (userId on every row, every query scoped)
 ProfileSkill     id, userId, skillId, selfLevel?, assessedLevel?
 Evidence         id, userId, profileSkillId, roadmapItemId?, sourceType(experience|project|commit|education|manual),
                  sourceRef, excerpt, occurredAt?, confidence, createdBy(agent|user), approvedAt?
-MarketSnapshot   id, userId, roleFamily, region, createdAt  +  SnapshotSkillFreq(snapshotId, skillId, frequency)
+MarketSnapshot   id, userId, roleFamilyId, region, createdAt  +  SnapshotSkillFreq(snapshotId, skillId, frequency)
 Gap              id, userId, skillId, snapshotId, priority, rationale, status(open|in_progress|closed)
 RoadmapItem      id, userId, milestoneId, type(project|work_experience|education), title, doneWhen, status
                    + ProjectDetail(itemId, repo?, tasks…)          -- type = project (F5 push analysis)
@@ -40,7 +41,7 @@ RoadmapItemGap   (roadmapItemId, gapId)                            -- the F3 rul
 
 - **Ownership boundary:** the catalog, postings and requirements are public, global data; everything derived from a user's profile, searches or plans carries `userId`. Postings are never duplicated per user.
 - **Normalization:** extraction agents (Haiku route) output free-text skill mentions; a normalizer maps them to `Skill` by **alias match** → **LLM choice among catalog candidates** → (from F2, once embeddings exist) **embedding nearest-neighbor** above a threshold → otherwise a `candidate` skill. F1 does not depend on embeddings. Candidates are reviewed (by the user for profile skills; by a curation process for the catalog) before they count in frequencies.
-- **Seed catalog** of ~150 skills for the five role families, versioned in the repo, so evals and tests are deterministic.
+- **Seed catalogs** versioned in the repo, so evals and tests are deterministic: a **role family catalog** covering tech roles broadly (`RoleFamily` id, slug, name, description, aliases[], status(canonical|candidate)) and a **skill catalog** sized to those families. Neither is tied to the owner's own targets; evals cover several role families, not only the persona's.
 - **Evidence is one table for all sources.** A commit that completes a project task (F5), a certificate for a finished course, or a new experience added to the profile all create `Evidence` linked to the roadmap item that produced it. The weekly recalculation reads it the same way; no special cases.
 - **F3 rule (hard, in code):** every gap in a persisted roadmap has **at least one `RoadmapItem` of any type** that addresses it, and every item has a verifiable `doneWhen`. Enforced in the domain service that persists a roadmap, inside a transaction, with tests; it returns a readable error ("gap _Evals_ has no roadmap item") so the roadmap agent can retry. Not a DB trigger.
 - **Closing a gap requires evidence**, not just ticking a box: a roadmap item becomes `done` only with an approved `Evidence` row (commit, certificate link/file, or new experience entry). Agent-created evidence needs user approval (AI rule 2).
