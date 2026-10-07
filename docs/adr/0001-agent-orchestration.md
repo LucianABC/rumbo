@@ -15,15 +15,15 @@ Current API facts that shape the choice (verified 2026-10-07):
 
 ## Options
 
-| | A. Own loop on `@anthropic-ai/sdk` | B. Claude Agent SDK | C. Mastra |
-| --- | --- | --- | --- |
-| What it is | Thin orchestrator + manual tool loop we write (~200–300 lines) | Claude Code packaged as a library: built-in Read/Write/Bash/Grep/Web tools, subagents, hooks, sessions | TS agent framework: provider-agnostic agents, workflows, memory, evals, tracing |
-| Per-call routing & escalation | Native: every call goes through `router.call(task, req)` | Subagent model is an alias (`haiku`/`sonnet`/`opus`/`inherit`); per-call escalation on Zod failure is not a first-class hook | Possible via model config per agent/step; escalation is custom code around the framework |
-| Own tools | Zod-defined tools, our executor | In-process custom tools and MCP; built-in filesystem/bash tools are surface we don't want next to untrusted content | Good tool API |
-| In a queue worker | Plain async function | Designed around a long-lived agent session with a workspace; heavier per run | Fine, but its workflow engine/storage overlaps with pg-boss + our `Run` table |
-| Testability | Inject the client; replay recorded responses by request hash | Harder to record/replay at the message level | Medium; extra abstraction between our tests and the wire |
-| Portfolio signal | High: routing, budget, ledger are visible code | Shows "used the SDK", hides the decisions | Shows framework fluency; routing becomes framework config |
-| Lock-in / churn | Only the Anthropic SDK | Tied to Claude Code harness evolution | Fast-moving framework, multi-provider abstraction we don't need |
+|                               | A. Own loop on `@anthropic-ai/sdk`                             | B. Claude Agent SDK                                                                                                          | C. Mastra                                                                                |
+| ----------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| What it is                    | Thin orchestrator + manual tool loop we write (~200–300 lines) | Claude Code packaged as a library: built-in Read/Write/Bash/Grep/Web tools, subagents, hooks, sessions                       | TS agent framework: provider-agnostic agents, workflows, memory, evals, tracing          |
+| Per-call routing & escalation | Native: every call goes through `router.call(task, req)`       | Subagent model is an alias (`haiku`/`sonnet`/`opus`/`inherit`); per-call escalation on Zod failure is not a first-class hook | Possible via model config per agent/step; escalation is custom code around the framework |
+| Own tools                     | Zod-defined tools, our executor                                | In-process custom tools and MCP; built-in filesystem/bash tools are surface we don't want next to untrusted content          | Good tool API                                                                            |
+| In a queue worker             | Plain async function                                           | Designed around a long-lived agent session with a workspace; heavier per run                                                 | Fine, but its workflow engine/storage overlaps with pg-boss + our `Run` table            |
+| Testability                   | Inject the client; replay recorded responses by request hash   | Harder to record/replay at the message level                                                                                 | Medium; extra abstraction between our tests and the wire                                 |
+| Portfolio signal              | High: routing, budget, ledger are visible code                 | Shows "used the SDK", hides the decisions                                                                                    | Shows framework fluency; routing becomes framework config                                |
+| Lock-in / churn               | Only the Anthropic SDK                                         | Tied to Claude Code harness evolution                                                                                        | Fast-moving framework, multi-provider abstraction we don't need                          |
 
 ## Decision
 

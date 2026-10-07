@@ -8,11 +8,13 @@
 Production needs: Next.js web, NestJS API (public, receives GitHub webhooks), a **long-running worker** (pg-boss consumer — not a fit for serverless functions), Postgres with **pgvector**, private object storage for CVs, secrets, and deploy on merge. Load is tiny (one real user plus evaluators).
 
 Constraints from the author:
+
 - **Zero cost** is the default; a paid option needs a big technical or learning advantage.
 - **Practice AWS** for the Solutions Architect Associate.
 - No custom domain yet (Route 53 purchase deferred until needed).
 
 Facts checked on 2026-10-07:
+
 - No managed PaaS runs an always-on worker for free: Railway's free plan has $1/month of credit (Hobby is $5), Render's free tier has no background workers and sleeps web services after 15 min, Koyeb's single free service cannot be a worker, and Neon's free compute hours would be exhausted by pg-boss polling.
 - **AWS Free Tier for new accounts** (since 2025-07): free account plan with $100 credit at sign-up plus up to $100 more for five activities (EC2, RDS, Lambda, Bedrock, Budgets). The plan ends after **6 months** or when credits run out; nothing is charged until the account is upgraded to paid.
 - AWS App Runner is closed to new customers (2026-04-30); its successor, ECS Express Mode, always provisions an ALB (~$16–18/month).
@@ -20,11 +22,11 @@ Facts checked on 2026-10-07:
 
 ## Options
 
-| | A. ECS Express (Fargate + ALB) + RDS | B. ECS on one EC2 + CloudFront + RDS | C. Vercel + PaaS (Railway/Neon) | D. Free PaaS with keep-alive (Render + Supabase) |
-| --- | --- | --- | --- | --- |
-| Cost now | ~$45–65/mo, mostly covered by credits for ~3–4 months | **$0 for ~6 months** (credits), then ~$25–28/mo | ~$5–10/mo | $0 |
-| AWS practice | High | **High** | None | None |
-| Technical drawbacks | None relevant | Single instance, no HA | Small | Sleeps: lost GitHub webhooks (cold start > 10 s timeout, no auto-retry), missed crons; no DB backups on free plan |
+|                     | A. ECS Express (Fargate + ALB) + RDS                  | B. ECS on one EC2 + CloudFront + RDS            | C. Vercel + PaaS (Railway/Neon) | D. Free PaaS with keep-alive (Render + Supabase)                                                                  |
+| ------------------- | ----------------------------------------------------- | ----------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Cost now            | ~$45–65/mo, mostly covered by credits for ~3–4 months | **$0 for ~6 months** (credits), then ~$25–28/mo | ~$5–10/mo                       | $0                                                                                                                |
+| AWS practice        | High                                                  | **High**                                        | None                            | None                                                                                                              |
+| Technical drawbacks | None relevant                                         | Single instance, no HA                          | Small                           | Sleeps: lost GitHub webhooks (cold start > 10 s timeout, no auto-retry), missed crons; no DB backups on free plan |
 
 ## Decision
 
@@ -38,7 +40,7 @@ Facts checked on 2026-10-07:
 - **Secrets** in SSM Parameter Store (SecureString) instead of Secrets Manager.
 - **Deploys**: GitHub Actions via OIDC (no long-lived keys) → ECR → migrations as a one-off ECS task → service update. `minimumHealthyPercent: 0` (seconds of downtime per deploy).
 - **Domain (deferred)**: until it exists the web proxies `/api/*` to CloudFront through a Next.js rewrite, so cookies stay first-party. Later: Route 53 + ACM, `api.<domain>` on CloudFront, `app.<domain>` on Vercel.
-- **Credit guardrails**: AWS Budgets alarms on the monthly cost *before credits* at $25 and $35, plus an alarm when remaining credits drop below $50. Do the five bonus activities early (EC2 and RDS happen in the walking skeleton; Lambda, Bedrock and Budgets are small one-offs).
+- **Credit guardrails**: AWS Budgets alarms on the monthly cost _before credits_ at $25 and $35, plus an alarm when remaining credits drop below $50. Do the five bonus activities early (EC2 and RDS happen in the walking skeleton; Lambda, Bedrock and Budgets are small one-offs).
 
 ### Portability rules (keep the exit cheap)
 

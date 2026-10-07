@@ -21,16 +21,16 @@ Browser ──▶ web (Next.js production build, container)
             worker (pg-boss consumer image) ─┘  writes heartbeat row
 ```
 
-| Layer | What exists |
-| --- | --- |
-| Repo | pnpm workspace, strict TS, ESLint + Prettier, husky + commitlint + lint-staged, `.nvmrc`, `.gitattributes`. |
-| CI | On every PR: lint, typecheck, unit tests, build, **Docker image build** for api, worker and web. Actions pinned by SHA, minimal permissions, timeouts, concurrency. |
-| DB | Prisma schema with one table (`heartbeat`); first migration also runs `CREATE EXTENSION vector`. Migrations run as a separate one-off step, not at app boot. |
-| API | `GET /api/v1/healthz` → `{ status, db: "up" \| "down", version, commit }`, pinging the DB. 503 if the DB is down. |
-| Worker | Consumes a `system.heartbeat` job from pg-boss and writes a row. |
-| Web | One page showing API health, DB status and the last worker heartbeat; calls the API through the same `/api/*` rewrite production will use. |
-| Local prod-like env | `docker compose up` starts postgres, a migrate one-off, api, worker and web from production images, with env from `.env` (validated at boot). |
-| E2E | One Playwright smoke test against the local production build: page loads and shows `db: up`. Runs in CI too. |
+| Layer               | What exists                                                                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repo                | pnpm workspace, strict TS, ESLint + Prettier, husky + commitlint + lint-staged, `.nvmrc`, `.gitattributes`.                                                         |
+| CI                  | On every PR: lint, typecheck, unit tests, build, **Docker image build** for api, worker and web. Actions pinned by SHA, minimal permissions, timeouts, concurrency. |
+| DB                  | Prisma schema with one table (`heartbeat`); first migration also runs `CREATE EXTENSION vector`. Migrations run as a separate one-off step, not at app boot.        |
+| API                 | `GET /api/v1/healthz` → `{ status, db: "up" \| "down", version, commit }`, pinging the DB. 503 if the DB is down.                                                   |
+| Worker              | Consumes a `system.heartbeat` job from pg-boss and writes a row.                                                                                                    |
+| Web                 | One page showing API health, DB status and the last worker heartbeat; calls the API through the same `/api/*` rewrite production will use.                          |
+| Local prod-like env | `docker compose up` starts postgres, a migrate one-off, api, worker and web from production images, with env from `.env` (validated at boot).                       |
+| E2E                 | One Playwright smoke test against the local production build: page loads and shows `db: up`. Runs in CI too.                                                        |
 
 ### Done when
 
