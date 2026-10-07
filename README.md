@@ -31,7 +31,7 @@ docs/               product docs, ADRs, specs
 
 ## Requirements
 
-Node 22 (see `.nvmrc`) and pnpm. Install pnpm once with `npm install -g pnpm`; the exact version is pinned in `package.json` (`packageManager`) and pnpm switches to it automatically.
+Node 24 (see `.nvmrc`) and pnpm. A version manager that reads `.nvmrc` is recommended, e.g. [fnm](https://github.com/Schniz/fnm) with `--use-on-cd`. Enable pnpm with `corepack enable pnpm` (it uses the exact version pinned in `package.json` → `packageManager`); `npm install -g pnpm` also works.
 
 ```bash
 pnpm install
