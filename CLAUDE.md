@@ -25,7 +25,7 @@ pnpm test                # unit + integration; never calls the Anthropic API
 pnpm build
 pnpm dev                 # (planned) web + api + worker locally
 pnpm test:e2e            # (planned) Playwright against the prod-like Docker Compose stack
-pnpm db:migrate          # (planned) Prisma migrations
+pnpm db:migrate          # apply Prisma migrations (needs DATABASE_URL; reads the repo-root .env)
 pnpm eval                # (planned) real model calls; costs money; see evals/
 ```
 
@@ -35,6 +35,7 @@ pnpm eval                # (planned) real model calls; costs money; see evals/
 apps/web            Next.js (App Router) — Vercel
 apps/api            NestJS (HTTP + webhooks) — AWS ECS on EC2, behind CloudFront
 apps/worker         pg-boss consumer: agent runs, push analysis, crons — AWS ECS on EC2
+packages/db         Prisma 7 schema, migrations and createPrisma() (shared by api and worker)
 packages/contracts  Zod schemas and shared types (web + api, nestjs-zod)
 packages/agents     agent definitions, versioned prompts, tools
 packages/router     routing table, model capability profiles, cascade, budget, cost ledger
@@ -92,7 +93,7 @@ Model IDs live only in `packages/router` config, never in logic. Current routes:
 ## Testing
 
 - **Tests never call the real Anthropic API.** Use recorded responses as fixtures (injected client). Real calls live only in `pnpm eval`.
-- Unit: Vitest. Integration and API e2e: Testcontainers (real Postgres + pgvector). Web e2e: Playwright, black-box against the production build.
+- Unit: Vitest. Integration and API e2e: Testcontainers (real Postgres + pgvector, image `pgvector/pgvector:pg16`); Docker must be running. Web e2e: Playwright, black-box against the production build.
 - Contract tests between web and API on `packages/contracts`.
 - Coverage threshold breaks CI. Every endpoint has a test proving another user's data is not reachable.
 - Dependabot on; no open high vulnerabilities.

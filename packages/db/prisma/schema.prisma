@@ -1,0 +1,22 @@
+// Prisma 7: the connection URL lives in prisma.config.ts, the client is generated into src/.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  // Match the repo's NodeNext ESM setup: compiled output imports ./x.js.
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Written by the worker's system.heartbeat job; read by GET /api/v1/healthz (#14, #12).
+model Heartbeat {
+  id        String   @id @default(uuid()) @db.Uuid
+  source    String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@map("heartbeat")
+}
