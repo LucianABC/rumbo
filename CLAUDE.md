@@ -17,7 +17,7 @@ Product docs: `docs/product/`. Decisions: `docs/adr/`. Specs per slice: `docs/sp
 > Commands marked _(planned)_ land during the local walking skeleton; update this list as they do.
 
 ```bash
-npm install -g pnpm      # once; the exact version is pinned in package.json (packageManager)
+corepack enable pnpm     # once per Node install; uses the version pinned in package.json (packageManager)
 pnpm install
 pnpm lint
 pnpm typecheck
