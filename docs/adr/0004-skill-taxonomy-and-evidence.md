@@ -1,6 +1,6 @@
 # ADR 0004 — Skill taxonomy and evidence model
 
-- **Status:** Accepted (2026-10-07, revision 3: role families as a catalog)
+- **Status:** Accepted (2026-10-07, revision 4: role families as a catalog; up to three parallel targets)
 - **Date:** 2026-10-07
 
 ## Context
@@ -30,8 +30,10 @@ Requirement      id, postingId, skillId, importance(must|nice), rawText
 ProfileSkill     id, userId, skillId, selfLevel?, assessedLevel?
 Evidence         id, userId, profileSkillId, roadmapItemId?, sourceType(experience|project|commit|education|manual),
                  sourceRef, excerpt, occurredAt?, confidence, createdBy(agent|user), approvedAt?
+Target           id, userId, roleFamilyId, seniority?, workMode?, region?, isPrimary, status(active|archived)   -- max 3 active
 MarketSnapshot   id, userId, roleFamilyId, region, createdAt  +  SnapshotSkillFreq(snapshotId, skillId, frequency)
-Gap              id, userId, skillId, snapshotId, priority, rationale, status(open|in_progress|closed)
+Gap              id, userId, skillId, priority, rationale, status(open|in_progress|closed)
+                   + GapTarget(gapId, targetId, snapshotId)     -- which targets need it, per market snapshot
 RoadmapItem      id, userId, milestoneId, type(project|work_experience|education), title, doneWhen, status
                    + ProjectDetail(itemId, repo?, tasks…)          -- type = project (F5 push analysis)
                    + EducationDetail(itemId, kind(course|workshop|degree|certification), provider, url?, expectedEnd?)
@@ -40,6 +42,7 @@ RoadmapItemGap   (roadmapItemId, gapId)                            -- the F3 rul
 ```
 
 - **Ownership boundary:** the catalog, postings and requirements are public, global data; everything derived from a user's profile, searches or plans carries `userId`. Postings are never duplicated per user.
+- **Targets:** a user has up to three active targets (one primary). Gaps are computed per active target against its market snapshot and merged into one `Gap` per skill; `GapTarget` keeps which targets need it, so shared gaps rank higher and progress is reported per target. Job matching for the inbox uses the user's **current** evidence, not the targets (see `docs/product/mvp-scope.md`).
 - **Normalization:** extraction agents (Haiku route) output free-text skill mentions; a normalizer maps them to `Skill` by **alias match** → **LLM choice among catalog candidates** → (from F2, once embeddings exist) **embedding nearest-neighbor** above a threshold → otherwise a `candidate` skill. F1 does not depend on embeddings. Candidates are reviewed (by the user for profile skills; by a curation process for the catalog) before they count in frequencies.
 - **Seed catalogs** versioned in the repo, so evals and tests are deterministic: a **role family catalog** spanning any field (`RoleFamily` with a `field` attribute; seeded tech-first for the MVP) and a **skill catalog** sized to those families. Neither is tied to the owner's own targets; evals cover several role families, not only the persona's.
 - **Evidence is one table for all sources.** A commit that completes a project task (F5), a certificate for a finished course, or a new experience added to the profile all create `Evidence` linked to the roadmap item that produced it. The weekly recalculation reads it the same way; no special cases.

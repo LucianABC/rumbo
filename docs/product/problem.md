@@ -25,8 +25,8 @@ The app is multi-user and secure from day one, and has a demo user with sample d
 
 1. **Upload** the LinkedIn PDF export (or a CV). rumbo extracts a structured profile: experiences, skills and, per skill, the evidence of where and how it was used. The user reviews and corrects it.
 2. **Survey the market** for the chosen role families and region. rumbo collects real postings from public sources, normalizes their requirements and builds a snapshot with frequencies per role family.
-3. **Choose a target**: rumbo suggests 3–5 career paths inferred from the profile, asks a short questionnaire about preferences the CV does not show, and compares the paths (pros and cons for this person, real market data, time to ready). The user chooses and can change it later.
-4. **See the gaps**: profile vs. the chosen target and its market, prioritized and justified ("asked in 62% of AI Solutions Engineer postings; no evidence in your profile").
+3. **Choose a target**: rumbo suggests 3–5 career paths inferred from the profile, asks a short questionnaire about preferences the CV does not show, and compares the paths (pros and cons for this person, real market data, time to ready). The user chooses one to three targets to pursue in parallel and can change them later.
+4. **See the gaps**: profile vs. the chosen targets and their market, with gaps shared by several targets first, prioritized and justified ("asked in 62% of AI Solutions Engineer postings; no evidence in your profile").
 5. **Get a roadmap**: milestones with concrete ways to close each gap: a practice project, a new work experience or education (course, workshop, degree). No loose learning: every gap has at least one, and it only counts as closed with verifiable proof.
 6. **Approve profile changes**: proposed headline, summary and bullets shown as a diff; each change is approved or rejected individually. Export the approved CV.
 7. **Follow the roadmap weekly**: assign a repo to each project; every push is analyzed and tasks are completed with the commit as evidence (or flagged for review). Gaps and progress are recalculated weekly; applications are logged.
