@@ -1,6 +1,6 @@
 # rumbo
 
-A multi-agent assistant for a tech job search, end to end: it reads your professional profile, surveys the market with real job postings from public sources, measures your skills against them with evidence, proposes a target role and a roadmap where every gap has a verifiable way to close it (a project, a work experience or a course), drafts LinkedIn/CV changes you approve, and tracks progress — including automatic analysis of every push to the roadmap's project repos.
+A multi-agent assistant for a job search, end to end (built tech-first, open to any field): it reads your professional profile, surveys the market with real job postings from public sources, measures your skills against them with evidence, helps you choose a target role and a roadmap where every gap has a verifiable way to close it (a project, a work experience or a course), drafts LinkedIn/CV changes you approve, and tracks progress — including automatic analysis of every push to the roadmap's project repos.
 
 > **Status:** Phase 0 complete (product docs and ADRs). Next: local walking skeleton. Runs locally only until auth exists.
 
