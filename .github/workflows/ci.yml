@@ -37,11 +37,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # Squash merges use the PR title as the commit message on main.
+      # Dependabot titles are generated and can exceed the 72-char header limit.
       - name: Lint PR title
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
 
       - name: Format
         run: pnpm format:check
