@@ -16,10 +16,20 @@ Role families for the MVP: AI Engineer, AI Solutions Engineer, Forward Deployed 
 
 Cross-cutting work (orchestrator, model routing, observability, evals, auth, privacy) grows inside every slice — see [cross-cutting.md](cross-cutting.md).
 
+### After F4: job matches inbox and assisted apply
+
+Built once F2 (postings), F4 (drafting) and F5 (application log) exist, since it reuses all three.
+
+- **Periodic scan** of postings from the legitimate sources of F2, at a frequency set by the user (default weekly), with the startup catch-up of ADR 0005.
+- **Inbox** of new postings ranked by fit against the profile and target, each with the reason ("7 of 9 must-have requirements; missing: Evals") and filters.
+- Per posting: **Open posting** (original page) and **Apply**, which drafts a CV tailored to that posting (and an optional cover letter) for the user to approve, opens the official application form, and logs the application when the user confirms they submitted it.
+- **Search on LinkedIn**: a link that opens LinkedIn's own job search with the role, region and work mode prefilled. rumbo reads nothing from LinkedIn.
+
+The user always submits the application; rumbo never sends one on their behalf (see non-goals).
+
 ## Out — epic "Later" (not broken down into tasks)
 
 - Billing and a public SaaS offering.
-- Automatic applications to postings.
 - Any integration that requires scraping. **LinkedIn is never scraped.**
 - LinkedIn API integration (writing to the profile directly).
 - Email notifications.
@@ -28,6 +38,8 @@ Cross-cutting work (orchestrator, model routing, observability, evals, auth, pri
 - Multi-language UI (the UI ships in one language).
 
 ## Explicit non-goals and constraints
+
+- **No automatic applications, ever** (not "later"). LinkedIn's User Agreement (section 8.2) forbids bots acting on the service and has no public apply API; Greenhouse and Lever only accept applications with a key issued by the hiring company for its own careers site; Remotive links out. Beyond feasibility: it would act on the user's behalf without approval, and unreviewed mass applications perform poorly. Assisted apply covers the value instead.
 
 - **No silent writes.** Nothing that visibly changes user data (profile, LinkedIn/CV text, doubtful task completions) is applied without the user's approval.
 - **Sources must allow the use.** Each job source's terms are checked before integration and recorded in its slice spec. If a source's terms forbid storage or reuse, it is dropped, not worked around.
