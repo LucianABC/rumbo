@@ -1,6 +1,6 @@
 # MVP scope
 
-Each feature is a vertical slice (backend, frontend, tests) that is only "done" when deployed to production. Slices are built in order F1 → F5, after the walking skeleton, the API skeleton and auth.
+Each feature is a vertical slice (backend, frontend, tests). Until the Production launch (gated by auth, ADR 0003) "done" means merged and passing in the prod-like local environment; afterwards it means deployed to production. Slices are built in order F1 → F5, after the local walking skeleton, the API skeleton and ownership.
 
 ## In
 
@@ -8,7 +8,7 @@ Each feature is a vertical slice (backend, frontend, tests) that is only "done" 
 | --- | --- | --- |
 | F1 | **Profile** | Upload LinkedIn PDF or CV → structured profile (experiences, skills, evidence per skill) → review/correct screen. |
 | F2 | **Market** | Search postings by role family and region from Greenhouse Job Board API, Lever Postings API, Remotive and Anthropic web search; normalized requirements per posting; snapshot with frequencies per role family; semantic search over saved postings. |
-| F3 | **Gaps, target and roadmap** | Prioritized, justified gaps; editable target (role, seniority, work mode); roadmap with milestones and practice projects; **hard rule validated in code: every gap has at least one project that practices it**; graphical path view (horizontal on desktop, vertical on mobile) with progress % and last-activity date per milestone. |
+| F3 | **Gaps, target and roadmap** | Prioritized, justified gaps; editable target (role, seniority, work mode); roadmap with milestones and items of three types — practice project, new work experience, education (course, workshop, degree, certification); **hard rule validated in code: every gap has at least one roadmap item, and an item is done only with verifiable evidence** (commit, certificate, new experience); graphical path view (horizontal on desktop, vertical on mobile) with progress % and last-activity date per milestone. |
 | F4 | **Drafting with human approval** | Proposed headline, summary and per-position bullets for LinkedIn and CV, shown as a diff; per-change approve/reject; export approved CV to PDF and DOCX. |
 | F5 | **Tracking and GitHub** | Roadmap checklist with change dates; repo and last commit per project; push-analysis agent (webhook → queue → cheap filter → stronger decision against "done when" criteria → auto-complete with evidence or "needs review"); application log; weekly recalculation. |
 
