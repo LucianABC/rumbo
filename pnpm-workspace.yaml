@@ -3,3 +3,11 @@ packages:
   - packages/*
 
 engineStrict: true
+
+# Dependency install scripts are blocked unless listed here (supply-chain hygiene).
+allowBuilds:
+  '@prisma/engines': true # downloads the schema engine used by prisma migrate
+  prisma: true
+  cpu-features: false # optional native speedup for ssh2 (via testcontainers), not needed
+  ssh2: false
+  protobufjs: false

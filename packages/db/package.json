@@ -1,0 +1,36 @@
+{
+  "name": "@rumbo/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "prisma"
+  ],
+  "scripts": {
+    "postinstall": "prisma generate",
+    "generate": "prisma generate",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "typecheck": "prisma generate && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.0",
+    "@types/pg": "^8.23.1",
+    "prisma": "7.10.0",
+    "vitest": "^5.0.3"
+  }
+}
