@@ -3,6 +3,7 @@ import eslint from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
@@ -40,6 +41,12 @@ export default defineConfig(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
     },
+  },
+  {
+    // No eslint-config-next: it bundles eslint-plugin-react/import, which lag behind ESLint 10.
+    // No @next/eslint-plugin-next yet: it pulls braces with an unpatched high advisory (GHSA-vfj7-8cjw-p6xm).
+    files: ['apps/web/**/*.{ts,tsx}'],
+    extends: [reactHooks.configs.flat['recommended-latest']],
   },
   {
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],

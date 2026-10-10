@@ -13,7 +13,7 @@ The thinnest vertical slice that crosses the whole stack. It contains no product
 
 ```
 Browser ──▶ web (Next.js production build, container)
-              │  GET /api/v1/healthz  (proxied by Next rewrite)
+              │  GET /api/v1/healthz  (proxied by Next.js proxy)
               ▼
             api (NestJS image) ──▶ Postgres 16 + pgvector (container)
               reads last heartbeat           ▲
@@ -28,7 +28,7 @@ Browser ──▶ web (Next.js production build, container)
 | DB                  | Prisma schema with one table (`heartbeat`); first migration also runs `CREATE EXTENSION vector`. Migrations run as a separate one-off step, not at app boot.        |
 | API                 | `GET /api/v1/healthz` → `{ status, db: "up" \| "down", version, commit }`, pinging the DB. 503 if the DB is down.                                                   |
 | Worker              | Schedules `system.heartbeat` every minute with pg-boss cron, consumes it and writes a row.                                                                          |
-| Web                 | One page showing API health, DB status and the last worker heartbeat; calls the API through the same `/api/*` rewrite production will use.                          |
+| Web                 | One page showing API health, DB status and the last worker heartbeat; proxies `/api/*` to the API (Next.js proxy, target from `API_INTERNAL_URL` at runtime).       |
 | Local prod-like env | `docker compose up` starts postgres, a migrate one-off, api, worker and web from production images, with env from `.env` (validated at boot).                       |
 | E2E                 | One Playwright smoke test against the local production build: page loads and shows `db: up`. Runs in CI too.                                                        |
 
