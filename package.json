@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "prepare": "husky",
     "test": "pnpm -r --if-present run test",
+    "test:e2e": "pnpm --filter @rumbo/e2e test:e2e",
     "typecheck": "pnpm -r --if-present run typecheck"
   },
   "devDependencies": {
