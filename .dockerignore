@@ -1,0 +1,19 @@
+# Build context for Dockerfile: sources only, the image installs and builds everything itself.
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/*.tsbuildinfo
+**/next-env.d.ts
+packages/db/src/generated
+.git
+.github
+.husky
+.claude
+.env
+.env.*
+docs
+evals
+infra
+playwright-report
+test-results
