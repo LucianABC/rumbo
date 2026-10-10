@@ -51,6 +51,26 @@ describe('HealthService', () => {
     await expect(service.check()).resolves.toMatchObject({ db: 'up', lastHeartbeatAt: null });
   });
 
+  it('returns without a heartbeat when its query does not answer in time', async () => {
+    vi.useFakeTimers();
+    const service = new HealthService(
+      fakePrisma({
+        ping: () => Promise.resolve([1]),
+        latest: () => new Promise(() => undefined),
+      }),
+      config,
+    );
+
+    const result = service.check();
+    await vi.advanceTimersByTimeAsync(DB_PING_TIMEOUT_MS);
+
+    await expect(result).resolves.toMatchObject({
+      status: 'ok',
+      db: 'up',
+      lastHeartbeatAt: null,
+    });
+  });
+
   it('reports degraded when the database refuses the query', async () => {
     const latest = vi.fn();
     const service = new HealthService(

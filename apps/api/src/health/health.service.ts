@@ -46,10 +46,13 @@ export class HealthService {
 
   private async lastHeartbeatAt(): Promise<string | null> {
     try {
-      const latest = await this.prisma.heartbeat.findFirst({
-        orderBy: { createdAt: 'desc' },
-        select: { createdAt: true },
-      });
+      const latest = await withTimeout(
+        this.prisma.heartbeat.findFirst({
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+        }),
+        DB_PING_TIMEOUT_MS,
+      );
       return latest?.createdAt.toISOString() ?? null;
     } catch {
       return null;
