@@ -29,3 +29,26 @@ updates:
     groups:
       actions:
         patterns: ['*']
+
+  # Base images in Dockerfile (node) and docker-compose.yml (pgvector/pgvector).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 5
+    commit-message:
+      prefix: build
+      include: scope
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 5
+    commit-message:
+      prefix: build
+      include: scope

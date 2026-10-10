@@ -1,0 +1,98 @@
+# Prod-like local environment (#53): the same images production will run, wired the same way.
+# Local only: every published port binds to 127.0.0.1 (nothing is exposed until auth exists).
+#   docker compose up --build --wait
+# Variables come from .env (see .env.example); every one has a local default.
+
+name: rumbo
+
+x-build: &build
+  context: .
+  args:
+    APP_VERSION: ${APP_VERSION:-dev}
+    GIT_COMMIT: ${GIT_COMMIT:-unknown}
+
+x-database-url: &database-url postgresql://${POSTGRES_USER:-rumbo}:${POSTGRES_PASSWORD:-rumbo}@postgres:5432/${POSTGRES_DB:-rumbo}
+
+services:
+  postgres:
+    # Same major as RDS in ADR 0002, with pgvector.
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rumbo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rumbo}
+      POSTGRES_DB: ${POSTGRES_DB:-rumbo}
+    ports:
+      # For host-side tools (pnpm db:migrate, psql). 5433 by default so it does not clash with a local Postgres on 5432.
+      - 127.0.0.1:${POSTGRES_PORT:-5433}:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      <<: *build
+      target: migrate
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      <<: *build
+      target: api
+    environment:
+      DATABASE_URL: *database-url
+      PORT: 3001
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    init: true
+    restart: unless-stopped
+
+  worker:
+    build:
+      <<: *build
+      target: worker
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    init: true
+    restart: unless-stopped
+
+  web:
+    build:
+      <<: *build
+      target: web
+    environment:
+      API_INTERNAL_URL: http://api:3001
+    ports:
+      - 127.0.0.1:${WEB_PORT:-3000}:3000
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    init: true
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

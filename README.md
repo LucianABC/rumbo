@@ -37,3 +37,13 @@ Node 24 (see `.nvmrc`) and pnpm. A version manager that reads `.nvmrc` is recomm
 pnpm install
 pnpm typecheck
 ```
+
+## Run it locally (prod-like)
+
+Requires Docker. Builds the production images and starts Postgres + pgvector, a one-off migration step, the API, the worker and the web app. Everything binds to `127.0.0.1` only.
+
+```bash
+docker compose up --build --wait
+```
+
+Open http://localhost:3000 for the status page (API, database, last worker heartbeat). Every variable has a default; copy `.env.example` to `.env` to change ports or credentials.
