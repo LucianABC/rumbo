@@ -1,0 +1,20 @@
+{
+  "name": "@rumbo/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@rumbo/db": "workspace:*",
+    "pg-boss": "^12.37.1"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^12.2.0",
+    "vitest": "^5.0.3"
+  }
+}
