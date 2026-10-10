@@ -1,38 +1,20 @@
-import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
-
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createPrisma, type PrismaClient } from '../src/index.js';
-
-// Same image family as production (RDS PostgreSQL 16 + pgvector, ADR 0002).
-const IMAGE = 'pgvector/pgvector:pg16';
-const packageDir = fileURLToPath(new URL('..', import.meta.url));
-const prismaCli = createRequire(import.meta.url).resolve('prisma/build/index.js');
+import { startTestDatabase, type TestDatabase } from '../src/testing.js';
 
 describe('database migrations', () => {
-  let container: StartedPostgreSqlContainer;
+  let db: TestDatabase;
   let prisma: PrismaClient;
 
   beforeAll(async () => {
-    container = await new PostgreSqlContainer(IMAGE).start();
-    const databaseUrl = container.getConnectionUri();
-
-    // Apply migrations exactly as the deploy step does: `prisma migrate deploy`.
-    execFileSync(process.execPath, [prismaCli, 'migrate', 'deploy'], {
-      cwd: packageDir,
-      env: { ...process.env, DATABASE_URL: databaseUrl, PRISMA_HIDE_UPDATE_MESSAGE: '1' },
-      stdio: 'pipe',
-    });
-
-    prisma = createPrisma(databaseUrl);
+    db = await startTestDatabase();
+    prisma = createPrisma(db.url);
   });
 
   afterAll(async () => {
     await prisma.$disconnect();
-    await container.stop();
+    await db.stop();
   });
 
   it('installs the pgvector extension', async () => {

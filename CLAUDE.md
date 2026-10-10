@@ -94,6 +94,8 @@ Model IDs live only in `packages/router` config, never in logic. Current routes:
 
 - **Tests never call the real Anthropic API.** Use recorded responses as fixtures (injected client). Real calls live only in `pnpm eval`.
 - Unit: Vitest. Integration and API e2e: Testcontainers (real Postgres + pgvector, image `pgvector/pgvector:pg16`); Docker must be running. Web e2e: Playwright, black-box against the production build.
+- NestJS tests run on Vitest's default Oxc transform, which reads `emitDecoratorMetadata` from tsconfig. Don't add SWC: its native addon rejects the `%LOCALAPPDATA%` permissions on the owner's machine.
+- Integration tests get a migrated database from `startTestDatabase()` in `@rumbo/db/testing`.
 - Contract tests between web and API on `packages/contracts`.
 - Coverage threshold breaks CI. Every endpoint has a test proving another user's data is not reachable.
 - Dependabot on; no open high vulnerabilities.
