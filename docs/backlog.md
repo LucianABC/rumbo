@@ -16,8 +16,14 @@ The board lives in **GitHub Issues** (repo `rumbo`) and the GitHub Project linke
 2. **Walking skeleton (local)** — tooling, CI, prod-like Docker Compose, healthz, worker heartbeat, local smoke test.
 3. **API skeleton** — config, helmet/CORS, error envelope, validation, Swagger, logging with PII redaction, contracts, coverage gate.
 4. **Ownership** — `User` + ownership scoping, identity port with local single-owner adapter, `DELETE /me`.
-5. **Features F1 → F5** — one epic each; broken down when they enter the 2–3 week horizon, starting with a spec in `docs/specs/`.
-6. **Production launch** — auth mechanism (ADR 0003) + AWS account, CDK stack, deploy pipelines, Vercel, production smoke test. **Hard limit: nothing is deployed before auth exists.** Timing is the owner's call; features can continue after it.
+5. **Features F1 → F2 → F2b → F3** — one epic each; broken down when they enter the 2–3 week horizon, starting with a spec in `docs/specs/`.
+6. **Production launch** — after F3 (owner decision, 2026-10-11): auth mechanism (ADR 0003) + AWS account, CDK stack, deploy pipelines, Vercel, production smoke test, logs/alarms/backups. **Hard limit: nothing is deployed before auth exists.**
+7. **Features F4 → F5**, then assisted apply, router tuning and the portfolio write-up.
+8. **MVP acceptance** — one month of real weekly use.
+
+## Timeline
+
+Execution order, estimates (hours) and dates live on the GitHub Project: fields `Order`, `Estimate`, `Start`, `Target`, plus a due date per milestone. Planning capacity: 8–10 h per week (owner, 2026-10-11). Tasks are estimated when broken down; epics carry a rough estimate (±50%) until their spec.
 
 ## Parked (`standby`)
 
