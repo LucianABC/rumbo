@@ -58,6 +58,29 @@ describe('parseEnv', () => {
     expect(message).toContain('DATABASE_URL');
     expect(message).not.toContain('s3cret');
   });
+
+  it('never echoes values even when a schema message interpolates the input', () => {
+    const custom = z.object({
+      API_KEY: z.string().refine((v) => v.startsWith('sk-'), {
+        error: (issue) => `bad key ${String(issue.input)}`,
+      }),
+    });
+
+    const message = errorMessage(() => parseEnv(custom, { API_KEY: 's3cret' }));
+
+    expect(message).toContain('API_KEY');
+    expect(message).not.toContain('s3cret');
+  });
+
+  it('says whether a variable is missing or invalid', () => {
+    const message = errorMessage(() =>
+      parseEnv(schema, { DATABASE_URL: 'mysql://db/rumbo', PORT: 'abc' }),
+    );
+
+    expect(message).toContain('- API_URL: missing');
+    expect(message).toContain('- DATABASE_URL: invalid url');
+    expect(message).toContain('- PORT: expected number');
+  });
 });
 
 describe('databaseUrl', () => {

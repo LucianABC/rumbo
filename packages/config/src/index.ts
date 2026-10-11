@@ -2,10 +2,8 @@ import { z } from 'zod';
 
 export type Env = Readonly<Record<string, string | undefined>>;
 
-/** Postgres connection string, as Prisma and pg-boss expect it. */
 export const databaseUrl = () => z.url({ protocol: /^postgres(ql)?$/ });
 
-/** http(s) base URL, e.g. where one service reaches another. */
 export const httpUrl = () => z.url({ protocol: /^https?$/ });
 
 /**
@@ -19,7 +17,26 @@ export function parseEnv<T extends z.ZodType>(schema: T, env: Env = process.env)
   const present = Object.fromEntries(Object.entries(env).filter(([, value]) => value !== ''));
   const result = schema.safeParse(present);
   if (!result.success) {
-    throw new Error(`Invalid environment configuration:\n${z.prettifyError(result.error)}`);
+    const lines = result.error.issues.map(
+      (issue) =>
+        `- ${issue.path.join('.')}: ${String(issue.path[0]) in present ? describe(issue) : 'missing'}`,
+    );
+    throw new Error(`Invalid environment configuration:\n${lines.join('\n')}`);
   }
   return result.data;
+}
+
+// Built from issue metadata only, never issue.message: custom messages may interpolate the input (#21).
+function describe(issue: z.core.$ZodIssue): string {
+  switch (issue.code) {
+    case 'invalid_type':
+      return `expected ${issue.expected}`;
+    case 'invalid_format':
+      return `invalid ${issue.format}`;
+    case 'too_small':
+    case 'too_big':
+      return 'out of range';
+    default:
+      return issue.code.replaceAll('_', ' ');
+  }
 }

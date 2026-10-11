@@ -8,15 +8,16 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "build:packages": "pnpm -r --filter \"./packages/**\" --if-present run build",
     "build": "pnpm -r --if-present run build",
     "db:migrate": "pnpm --filter @rumbo/db db:migrate",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "prepare": "husky",
-    "test": "pnpm -r --if-present run test",
+    "test": "pnpm build:packages && pnpm -r --if-present run test",
     "test:e2e": "pnpm --filter @rumbo/e2e test:e2e",
-    "typecheck": "pnpm -r --if-present run typecheck"
+    "typecheck": "pnpm build:packages && pnpm -r --if-present run typecheck"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
