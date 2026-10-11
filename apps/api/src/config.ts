@@ -1,3 +1,14 @@
+import { databaseUrl, type Env, parseEnv } from '@rumbo/config';
+import { z } from 'zod';
+
+const envSchema = z.object({
+  DATABASE_URL: databaseUrl(),
+  PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
+  // Set at image build time (Dockerfile build args); local runs report dev/unknown.
+  APP_VERSION: z.string().default('dev'),
+  GIT_COMMIT: z.string().default('unknown'),
+});
+
 export interface AppConfig {
   readonly port: number;
   readonly databaseUrl: string;
@@ -7,27 +18,13 @@ export interface AppConfig {
 
 export const APP_CONFIG = Symbol('APP_CONFIG');
 
-/**
- * Minimal boot-time config: fails fast on missing or invalid values.
- * Replaced by a Zod-validated config module in #21.
- */
-export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const databaseUrl = env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error('Missing required environment variable DATABASE_URL');
-  }
-
-  const rawPort = env.PORT ?? '3001';
-  const port = Number(rawPort);
-  if (!Number.isInteger(port) || port <= 0 || port > 65_535) {
-    throw new Error(`Invalid PORT: ${rawPort}`);
-  }
-
+/** Validates the environment once at boot; throws naming every invalid variable (#21). */
+export function loadConfig(env: Env = process.env): AppConfig {
+  const parsed = parseEnv(envSchema, env);
   return {
-    port,
-    databaseUrl,
-    // Set at image build time (#53); local runs report dev/unknown.
-    version: env.APP_VERSION ?? 'dev',
-    commit: env.GIT_COMMIT ?? 'unknown',
+    port: parsed.PORT,
+    databaseUrl: parsed.DATABASE_URL,
+    version: parsed.APP_VERSION,
+    commit: parsed.GIT_COMMIT,
   };
 }
