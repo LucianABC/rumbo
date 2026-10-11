@@ -2,7 +2,7 @@ import { Writable } from 'node:stream';
 
 import { describe, expect, it } from 'vitest';
 
-import { createLogger, REDACTED } from '../src/index.js';
+import { createLogger, type Logger, REDACTED } from '../src/index.js';
 
 function capture() {
   const lines: Record<string, unknown>[] = [];
@@ -52,25 +52,54 @@ describe('createLogger', () => {
     expect(JSON.stringify(lines[0])).not.toContain('ana@example.com');
   });
 
-  it('redacts errors logged under err', () => {
+  it('logs errors by type, code and stack frames, never by message', () => {
     const { lines, destination } = capture();
+    const error = Object.assign(new TypeError('job Ana Perez failed'), { code: 'ECONNREFUSED' });
 
-    createLogger({ service: 'worker', destination }).error(
-      { err: new Error('connect postgresql://rumbo:s3cret@db/rumbo') },
-      'job failed',
-    );
+    createLogger({ service: 'worker', destination }).error({ err: error }, 'pg-boss error');
 
-    expect(JSON.stringify(lines[0])).not.toContain('s3cret');
-    expect(lines[0]).toMatchObject({ err: { type: 'Error' } });
+    const line = lines[0] as { msg: string; err: { type: string; code: string; stack: string } };
+    expect(line.msg).toBe('pg-boss error');
+    expect(line.err).toMatchObject({ type: 'TypeError', code: 'ECONNREFUSED' });
+    expect(line.err.stack).toMatch(/^at /);
+    expect(JSON.stringify(line)).not.toMatch(/Ana|Perez/);
   });
 
-  it('redacts the message pino takes from an error logged directly', () => {
+  it.each([
+    [
+      'an error logged directly',
+      (logger: Logger, err: Error) => {
+        logger.error(err);
+      },
+    ],
+    [
+      'an error under err without a message',
+      (logger: Logger, err: Error) => {
+        logger.error({ err });
+      },
+    ],
+  ])('uses the error type as message for %s', (_label, log) => {
     const { lines, destination } = capture();
 
-    createLogger({ service: 'api', destination }).error(new Error('no user ana@example.com'));
+    log(createLogger({ service: 'api', destination }), new RangeError('no user Ana Perez'));
 
-    expect(lines[0]).toMatchObject({ msg: 'no user [EMAIL]', err: { type: 'Error' } });
-    expect(JSON.stringify(lines[0])).not.toContain('ana@example.com');
+    expect(lines[0]).toMatchObject({ msg: 'RangeError', err: { type: 'RangeError' } });
+    expect(JSON.stringify(lines[0])).not.toMatch(/Ana|Perez/);
+  });
+
+  it('keeps safe fields of the cause chain', () => {
+    const { lines, destination } = capture();
+    const cause = Object.assign(new Error('row for Ana Perez'), { code: 'P2002' });
+
+    createLogger({ service: 'api', destination }).error(
+      { err: new Error('save failed for Ana Perez', { cause }) },
+      'save failed',
+    );
+
+    expect(lines[0]).toMatchObject({
+      err: { type: 'Error', cause: { type: 'Error', code: 'P2002' } },
+    });
+    expect(JSON.stringify(lines[0])).not.toMatch(/Ana|Perez/);
   });
 
   it('respects the level', () => {

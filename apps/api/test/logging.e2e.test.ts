@@ -14,6 +14,11 @@ class PeopleTestController {
   greet(@Param('name') name: string): { length: number } {
     return { length: name.length };
   }
+
+  @Get(':name/fail')
+  fail(@Param('name') name: string): never {
+    throw new Error(`could not greet ${name}`);
+  }
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -132,6 +137,17 @@ describe('request logging', () => {
       route: '/api/v1/healthz',
       res: { statusCode: 503 },
     });
+  });
+
+  it('logs unhandled errors without their message, which may carry user data', async () => {
+    await request(app.getHttpServer()).get('/api/v1/people/Ana%20Perez/fail').expect(500);
+
+    const errorLines = logs.lines.filter((line) => line.level === 'error');
+    expect(errorLines.length).toBeGreaterThan(0);
+    for (const line of errorLines) {
+      expect(line).toMatchObject({ err: { type: 'Error' } });
+    }
+    expect(JSON.stringify(logs.lines)).not.toMatch(/Ana|Perez/);
   });
 
   it('does not log request headers such as cookies or authorization', async () => {

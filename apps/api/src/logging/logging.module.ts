@@ -7,7 +7,7 @@ import {
   type ExecutionContext,
   Injectable,
 } from '@nestjs/common';
-import { createLogger } from '@rumbo/logger';
+import { createLogger, serializeError } from '@rumbo/logger';
 import { LoggerModule } from 'nestjs-pino';
 import type { DestinationStream } from 'pino';
 
@@ -77,6 +77,8 @@ export function loggingModule(config: AppConfig, destination?: DestinationStream
       serializers: {
         req: (req: IncomingMessage) => ({ method: req.method }),
         res: (res: ServerResponse) => ({ statusCode: res.statusCode }),
+        // pino-http brings its own err serializer, which would log the message (#26).
+        err: serializeError,
       },
       customSuccessObject: (req, _res, value: object) => ({ ...value, route: routePattern(req) }),
       customErrorObject: (req, _res, _error, value: object) => ({
