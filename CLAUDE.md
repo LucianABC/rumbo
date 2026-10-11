@@ -24,7 +24,7 @@ pnpm typecheck
 pnpm test                # unit + integration; never calls the Anthropic API
 pnpm build
 pnpm dev                 # (planned) web + api + worker locally
-pnpm test:e2e            # (planned) Playwright against the prod-like Docker Compose stack
+pnpm test:e2e            # Playwright smoke against a running stack (docker compose up first; once: pnpm --filter @rumbo/e2e exec playwright install chromium)
 pnpm db:migrate          # apply Prisma migrations (needs DATABASE_URL; reads the repo-root .env)
 docker compose up --build --wait   # prod-like stack (postgres, migrate, api, worker, web) on 127.0.0.1:3000; config in .env.example
 pnpm eval                # (planned) real model calls; costs money; see evals/
