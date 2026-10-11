@@ -1,6 +1,6 @@
 # MVP scope
 
-Each feature is a vertical slice (backend, frontend, tests). Until the Production launch (gated by auth, ADR 0003) "done" means merged and passing in the prod-like local environment; afterwards it means deployed to production. Slices are built in order F1 → F2 → F2b → F3 → F4 → F5, after the local walking skeleton, the API skeleton and ownership.
+Each feature is a vertical slice (backend, frontend, tests). Until the Production launch (gated by auth, ADR 0003) "done" means merged and passing in the prod-like local environment; afterwards it means deployed to production. Slices are built in order F1 → F2 → F2b → F3 → F4 → F5, after the local walking skeleton, the API skeleton and ownership; the Production launch happens between F3 and F4.
 
 ## In
 
