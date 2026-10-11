@@ -72,18 +72,20 @@ describe('request logging', () => {
     ]);
   });
 
-  it('keeps a valid incoming request id', async () => {
+  it('keeps an incoming request id that is a UUID', async () => {
+    const incoming = '3f2c9a1e-7b4d-4c8e-9a6f-1d2e3f4a5b6c';
+
     const res = await request(app.getHttpServer())
       .get('/api/v1/missing')
-      .set('x-request-id', 'web-abc.123_x')
+      .set('x-request-id', incoming)
       .expect(404);
 
-    expect(res.headers['x-request-id']).toBe('web-abc.123_x');
-    expect(requestLines()[0]).toMatchObject({ reqId: 'web-abc.123_x' });
+    expect(res.headers['x-request-id']).toBe(incoming);
+    expect(requestLines()[0]).toMatchObject({ reqId: incoming });
   });
 
-  it.each(['has spaces', 'x'.repeat(129), 'ana@example.com'])(
-    'replaces an unsafe incoming request id (%s)',
+  it.each(['AnaPerez', 'web-abc.123_x', 'has spaces', 'ana@example.com', 'x'.repeat(129)])(
+    'replaces any other incoming request id, which could carry a name (%s)',
     async (incoming) => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/missing')
@@ -91,6 +93,7 @@ describe('request logging', () => {
         .expect(404);
 
       expect(res.headers['x-request-id']).toMatch(UUID);
+      expect(JSON.stringify(logs.lines)).not.toContain(incoming);
     },
   );
 

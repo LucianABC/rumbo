@@ -14,8 +14,9 @@ import type { DestinationStream } from 'pino';
 import type { AppConfig } from '../config.js';
 
 export const REQUEST_ID_HEADER = 'x-request-id';
-// Accept a caller's id (e.g. from the web proxy) only if it cannot smuggle data or break log lines.
-const VALID_REQUEST_ID = /^[A-Za-z0-9._-]{1,128}$/;
+// A caller's id (e.g. the web proxy's) is kept only if it is a canonical UUID: free-form ids are
+// client-chosen text and could carry a name into every log line, which redaction cannot catch (#26).
+const VALID_REQUEST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEALTHZ_PATH = '/api/v1/healthz';
 
 export function requestId(req: IncomingMessage, res: ServerResponse): string {
