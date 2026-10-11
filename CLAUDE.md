@@ -38,6 +38,7 @@ apps/api            NestJS (HTTP + webhooks) — AWS ECS on EC2, behind CloudFro
 apps/worker         pg-boss consumer: agent runs, push analysis, crons — AWS ECS on EC2
 packages/db         Prisma 7 schema, migrations and createPrisma() (shared by api and worker)
 packages/config     parseEnv(): Zod env validation at boot, shared by api, worker and web
+packages/logger     createLogger(): pino JSON logs with PII redaction on every line (api, worker)
 packages/contracts  Zod schemas and shared types (web + api, nestjs-zod)
 packages/agents     agent definitions, versioned prompts, tools
 packages/router     routing table, model capability profiles, cascade, budget, cost ledger

@@ -12,13 +12,26 @@ describe('loadConfig', () => {
       databaseUrl: DATABASE_URL,
       version: 'dev',
       commit: 'unknown',
+      logLevel: 'info',
     });
   });
 
   it('reads every variable', () => {
     expect(
-      loadConfig({ DATABASE_URL, PORT: '8080', APP_VERSION: '1.2.3', GIT_COMMIT: 'abc123' }),
-    ).toEqual({ port: 8080, databaseUrl: DATABASE_URL, version: '1.2.3', commit: 'abc123' });
+      loadConfig({
+        DATABASE_URL,
+        PORT: '8080',
+        APP_VERSION: '1.2.3',
+        GIT_COMMIT: 'abc123',
+        LOG_LEVEL: 'debug',
+      }),
+    ).toEqual({
+      port: 8080,
+      databaseUrl: DATABASE_URL,
+      version: '1.2.3',
+      commit: 'abc123',
+      logLevel: 'debug',
+    });
   });
 
   it('fails fast and names DATABASE_URL when it is missing', () => {
@@ -31,5 +44,9 @@ describe('loadConfig', () => {
 
   it.each(['0', '70000', 'abc', '30.5'])('rejects PORT=%s', (port) => {
     expect(() => loadConfig({ DATABASE_URL, PORT: port })).toThrow(/PORT/);
+  });
+
+  it('rejects an unknown LOG_LEVEL', () => {
+    expect(() => loadConfig({ DATABASE_URL, LOG_LEVEL: 'verbose' })).toThrow(/LOG_LEVEL/);
   });
 });

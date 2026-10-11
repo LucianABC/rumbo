@@ -14,6 +14,7 @@ describe('loadConfig', () => {
   it('reads DATABASE_URL', () => {
     expect(loadConfig({ DATABASE_URL: 'postgresql://db/rumbo' })).toEqual({
       databaseUrl: 'postgresql://db/rumbo',
+      logLevel: 'info',
     });
   });
 });

@@ -23,6 +23,7 @@ apps/api            NestJS (HTTP + webhooks)
 apps/worker         queue consumer: agent runs and push analysis
 packages/db         Prisma schema, migrations and client
 packages/config     environment validation shared by every service
+packages/logger     JSON logging with PII redaction
 packages/contracts  shared Zod schemas and types
 packages/agents     agent definitions, versioned prompts and tools
 packages/router     routing policy, cascade, budget and cost ledger
