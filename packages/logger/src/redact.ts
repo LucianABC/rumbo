@@ -1,12 +1,15 @@
+import { isErrorLike, serializeError } from './errors.js';
+
 /**
- * PII and secret redaction for logs (#26, CLAUDE.md AI rule 5).
+ * PII and secret redaction for logs and, later, trace exports (#26, CLAUDE.md AI rule 5).
  *
- * Two layers, because neither alone is enough:
+ * Three layers, because none alone is enough:
+ * - Errors: reduced to safe fields (errors.ts), never their message or payload.
  * - Keys: values under personal or secret keys (email, name, token, password…) are replaced whole.
  *   Names cannot be detected reliably in free text, so the rule is to log them only under such keys
  *   (or not at all).
  * - Patterns: emails, bearer tokens, JWTs, API keys and URL credentials are masked inside any
- *   string, including error messages and stacks.
+ *   other string.
  */
 
 export const REDACTED = '[REDACTED]';
@@ -50,12 +53,12 @@ export function isSensitiveKey(key: string): boolean {
 }
 
 const PATTERNS: readonly (readonly [RegExp, string])[] = [
-  // scheme://user:password@host → keep scheme and host, drop the credentials.
+  // scheme://user:password@host → keep scheme and host, drop the credentials (#26).
   [/\b([a-z][a-z0-9+.-]*:\/\/)[^\s/:@]+:[^\s/@]+@/gi, `$1${REDACTED}@`],
   [/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, `Bearer ${REDACTED}`],
-  // JWT: three base64url segments, the first one a JSON header.
+  // JWT: three base64url segments, the first one a JSON header (#26).
   [/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, REDACTED],
-  // Anthropic / OpenAI-style, GitHub and AWS access keys.
+  // Anthropic / OpenAI-style, GitHub and AWS access keys (#26).
   [/\bsk-[A-Za-z0-9_-]{16,}/g, REDACTED],
   [/\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g, REDACTED],
   [/\bAKIA[0-9A-Z]{16}\b/g, REDACTED],
@@ -68,7 +71,7 @@ export function redactString(value: string): string {
 
 const MAX_DEPTH = 8;
 
-/** Returns a redacted deep copy; never mutates the input. Errors become plain objects. */
+/** Returns a redacted deep copy; never mutates the input. Errors become their safe fields. */
 export function redact(value: unknown): unknown {
   return walk(value, 0, new WeakSet());
 }
@@ -82,17 +85,9 @@ function walk(value: unknown, depth: number, seen: WeakSet<object>): unknown {
 
   if (Array.isArray(value)) return value.map((item) => walk(item, depth + 1, seen));
   if (value instanceof Date) return value;
-
-  // An error's name ("TypeError") is not personal data, so it moves to `type`, out of the `name` key rule.
-  const source: Record<string, unknown> =
-    value instanceof Error
-      ? {
-          ...(value as unknown as Record<string, unknown>),
-          type: value.name,
-          message: value.message,
-          stack: value.stack,
-        }
-      : (value as Record<string, unknown>);
+  // Errors keep only safe fields, never their message or payload (#26).
+  if (isErrorLike(value)) return serializeError(value);
+  const source = value as Record<string, unknown>;
 
   const out: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(source)) {

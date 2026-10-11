@@ -16,7 +16,8 @@ export async function startWorker(config: WorkerConfig, logger: Logger): Promise
   const prisma = createPrisma(config.databaseUrl);
   const boss = new PgBoss({ connectionString: config.databaseUrl, instanceName: 'worker' });
   // Background failures (polling, maintenance) are emitted here; an unhandled 'error' event would
-  // crash the process. The logger redacts personal data that job errors may carry (#26).
+  // crash the process. The logger keeps only safe fields of errors, never the job data they may
+  // carry (#26).
   boss.on('error', (error) => {
     logger.error({ err: error }, 'pg-boss error');
   });

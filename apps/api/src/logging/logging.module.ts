@@ -73,7 +73,7 @@ export function loggingModule(config: AppConfig, destination?: DestinationStream
       quietReqLogger: true,
       customAttributeKeys: { reqId: 'reqId' },
       // pino-http serializes `req` when the request starts, before routing, so the route
-      // pattern is added to the completion line instead (customSuccessObject/customErrorObject).
+      // pattern is added to the completion line instead (customSuccessObject/customErrorObject) (#26).
       serializers: {
         req: (req: IncomingMessage) => ({ method: req.method }),
         res: (res: ServerResponse) => ({ statusCode: res.statusCode }),

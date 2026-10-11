@@ -87,6 +87,36 @@ describe('createLogger', () => {
     expect(JSON.stringify(lines[0])).not.toMatch(/Ana|Perez/);
   });
 
+  it('logs errors under any key and at any depth by their safe fields only', () => {
+    const { lines, destination } = capture();
+    const error = Object.assign(new Error('failed for Ana Perez'), {
+      payload: { cvText: 'Ana Perez, Buenos Aires' },
+    });
+
+    createLogger({ service: 'worker', destination }).error(
+      {
+        error,
+        job: { lastError: error },
+        attempts: [error],
+        // Same shape pg-boss emits: own properties plus message and stack.
+        copied: {
+          ...Object.fromEntries(Object.entries(error)),
+          message: error.message,
+          stack: error.stack,
+        },
+      },
+      'job failed',
+    );
+
+    expect(lines[0]).toMatchObject({
+      error: { type: 'Error' },
+      job: { lastError: { type: 'Error' } },
+      attempts: [{ type: 'Error' }],
+      copied: { type: 'Error' },
+    });
+    expect(JSON.stringify(lines[0])).not.toMatch(/Ana|Perez|Buenos/);
+  });
+
   it('keeps safe fields of the cause chain', () => {
     const { lines, destination } = capture();
     const cause = Object.assign(new Error('row for Ana Perez'), { code: 'P2002' });

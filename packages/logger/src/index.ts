@@ -1,6 +1,6 @@
 import { type DestinationStream, type LogFn, type Logger, pino } from 'pino';
 
-import { serializeError } from './errors.js';
+import { isErrorLike, serializeError } from './errors.js';
 import { redact, redactString } from './redact.js';
 
 export { type SerializedError, serializeError } from './errors.js';
@@ -21,7 +21,8 @@ export interface CreateLoggerOptions {
 /**
  * JSON logger with PII redaction applied to every line (#26).
  *
- * - Errors under `err` keep only safe fields (see errors.ts), never their message.
+ * - Errors, under any key and at any depth, keep only safe fields (errors.ts), never their message
+ *   or payload.
  * - Redaction runs on the final JSON, just before it is written: that single point sees messages,
  *   child bindings and serializer output alike. Earlier pino hooks each miss something
  *   (formatters skip bindings and run before serializers).
@@ -36,7 +37,7 @@ export function createLogger({
       level,
       base: { service },
       timestamp: pino.stdTimeFunctions.isoTime,
-      formatters: { level: (label) => ({ level: label }) },
+      formatters: { level: (label) => ({ level: label }), log: errorsToSafeFields },
       serializers: { err: serializeError },
       hooks: { logMethod: errorTypeAsDefaultMessage, streamWrite: redactLine },
     },
@@ -63,6 +64,36 @@ function errorUnder(value: unknown): Error | undefined {
   if (typeof value !== 'object' || value === null) return undefined;
   const err = (value as { err?: unknown }).err;
   return err instanceof Error ? err : undefined;
+}
+
+const MAX_DEPTH = 8;
+
+/**
+ * Replaces errors anywhere in the log object (`{ error }`, `{ job: { lastError } }`) with their safe
+ * fields before serialization: JSON.stringify would otherwise dump their enumerable properties,
+ * where payloads live (#26). Only plain objects and arrays are walked; pino-http's raw req/res and
+ * other class instances are left to their serializers. Top-level `err` is left to the err serializer.
+ */
+function errorsToSafeFields(object: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(object)) {
+    out[key] = key === 'err' ? value : replaceErrors(value, 0, new WeakSet());
+  }
+  return out;
+}
+
+function replaceErrors(value: unknown, depth: number, seen: WeakSet<object>): unknown {
+  if (isErrorLike(value)) return serializeError(value);
+  if (typeof value !== 'object' || value === null || depth >= MAX_DEPTH || seen.has(value)) {
+    return value;
+  }
+  seen.add(value);
+  if (Array.isArray(value)) return value.map((item) => replaceErrors(item, depth + 1, seen));
+  const proto: unknown = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) return value;
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, replaceErrors(item, depth + 1, seen)]),
+  );
 }
 
 export function redactLine(line: string): string {

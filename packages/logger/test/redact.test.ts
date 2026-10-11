@@ -68,14 +68,13 @@ describe('redact', () => {
     expect(redact({ note: 'reply to ana@example.com' })).toEqual({ note: 'reply to [EMAIL]' });
   });
 
-  it('turns errors into plain objects, keeping the type and masking message and stack', () => {
-    const error = new TypeError('no user ana@example.com');
+  it('reduces errors to their safe fields, without message or payload', () => {
+    const error = Object.assign(new TypeError('no user Ana Perez'), { payload: { name: 'Ana' } });
 
     const out = redact({ err: error }) as { err: Record<string, unknown> };
 
-    expect(out.err.type).toBe('TypeError');
-    expect(out.err.message).toBe('no user [EMAIL]');
-    expect(String(out.err.stack)).not.toContain('ana@example.com');
+    expect(out.err).toMatchObject({ type: 'TypeError' });
+    expect(JSON.stringify(out)).not.toMatch(/Ana|Perez/);
   });
 
   it('does not mutate the input', () => {

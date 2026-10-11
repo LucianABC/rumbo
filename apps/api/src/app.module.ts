@@ -23,7 +23,7 @@ export class AppModule {
       imports: [loggingModule(config, options.logDestination), DbModule, HealthModule],
       providers: [
         { provide: APP_CONFIG, useValue: config },
-        // First global guard, so the route is recorded even for requests other guards reject.
+        // First global guard, so the route is recorded even for requests other guards reject (#26).
         { provide: APP_GUARD, useClass: RoutePatternGuard },
       ],
       exports: [APP_CONFIG],
