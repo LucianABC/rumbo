@@ -1,4 +1,5 @@
 import { databaseUrl, type Env, parseEnv } from '@rumbo/config';
+import { LOG_LEVELS } from '@rumbo/logger';
 import { z } from 'zod';
 
 const envSchema = z
@@ -8,12 +9,14 @@ const envSchema = z
     // Defaults for local runs; images get real values from Dockerfile build args (#53).
     APP_VERSION: z.string().default('dev'),
     GIT_COMMIT: z.string().default('unknown'),
+    LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   })
   .transform((env) => ({
     port: env.PORT,
     databaseUrl: env.DATABASE_URL,
     version: env.APP_VERSION,
     commit: env.GIT_COMMIT,
+    logLevel: env.LOG_LEVEL,
   }));
 
 export type AppConfig = Readonly<z.output<typeof envSchema>>;

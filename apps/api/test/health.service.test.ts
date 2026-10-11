@@ -9,6 +9,7 @@ const config: AppConfig = {
   databaseUrl: 'postgresql://unused',
   version: '1.2.3',
   commit: 'abc1234',
+  logLevel: 'silent',
 };
 
 function fakePrisma(options: {

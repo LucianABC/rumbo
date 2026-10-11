@@ -1,4 +1,5 @@
 import { createPrisma } from '@rumbo/db';
+import type { Logger } from '@rumbo/logger';
 import { PgBoss } from 'pg-boss';
 
 import type { WorkerConfig } from './config.js';
@@ -11,13 +12,14 @@ export interface Worker {
 }
 
 /** Starts pg-boss (installing or upgrading its own `pgboss` schema) and registers every job. */
-export async function startWorker(config: WorkerConfig): Promise<Worker> {
+export async function startWorker(config: WorkerConfig, logger: Logger): Promise<Worker> {
   const prisma = createPrisma(config.databaseUrl);
   const boss = new PgBoss({ connectionString: config.databaseUrl, instanceName: 'worker' });
   // Background failures (polling, maintenance) are emitted here; an unhandled 'error' event would
-  // crash the process. Only the message is logged: job data may carry personal data (CLAUDE.md, rule 5).
+  // crash the process. The logger keeps only safe fields of errors, never the job data they may
+  // carry (#26).
   boss.on('error', (error) => {
-    console.error(`pg-boss error: ${error.message}`);
+    logger.error({ err: error }, 'pg-boss error');
   });
 
   try {

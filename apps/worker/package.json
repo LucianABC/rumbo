@@ -12,6 +12,7 @@
   "dependencies": {
     "@rumbo/config": "workspace:*",
     "@rumbo/db": "workspace:*",
+    "@rumbo/logger": "workspace:*",
     "pg-boss": "^12.37.1",
     "zod": "^4.6.5"
   },

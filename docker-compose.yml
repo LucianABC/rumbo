@@ -50,6 +50,7 @@ services:
     environment:
       DATABASE_URL: *database-url
       PORT: 3001
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -62,6 +63,7 @@ services:
       target: worker
     environment:
       DATABASE_URL: *database-url
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       migrate:
         condition: service_completed_successfully

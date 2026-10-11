@@ -6,17 +6,23 @@ import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { captureLogs } from './log-capture.js';
+
 import { AppModule, configureApp } from '../src/app.module.js';
 
 describe('GET /api/v1/healthz', () => {
   let db: TestDatabase;
   let app: INestApplication<App>;
+  const logs = captureLogs();
 
   beforeAll(async () => {
     db = await startTestDatabase();
     const moduleRef = await Test.createTestingModule({
       imports: [
-        AppModule.forRoot({ port: 0, databaseUrl: db.url, version: 'test', commit: 'test' }),
+        AppModule.forRoot(
+          { port: 0, databaseUrl: db.url, version: 'test', commit: 'test', logLevel: 'info' },
+          { logDestination: logs.destination },
+        ),
       ],
     }).compile();
     app = configureApp(moduleRef.createNestApplication<INestApplication<App>>());
@@ -37,6 +43,14 @@ describe('GET /api/v1/healthz', () => {
       commit: 'test',
       lastHeartbeatAt: null,
     });
+  });
+
+  it('does not log successful health checks, which Docker polls every few seconds', async () => {
+    logs.lines.length = 0;
+
+    await request(app.getHttpServer()).get('/api/v1/healthz').expect(200);
+
+    expect(logs.lines.filter((line) => 'res' in line)).toEqual([]);
   });
 
   it('reports the latest heartbeat written by the worker', async () => {
