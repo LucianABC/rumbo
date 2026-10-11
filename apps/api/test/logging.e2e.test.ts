@@ -1,4 +1,4 @@
-import type { INestApplication } from '@nestjs/common';
+import { Controller, Get, type INestApplication, Param } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
@@ -6,6 +6,15 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { AppModule, configureApp } from '../src/app.module.js';
 import { captureLogs } from './log-capture.js';
+
+// Stands in for future endpoints whose path carries client data.
+@Controller('people')
+class PeopleTestController {
+  @Get(':name')
+  greet(@Param('name') name: string): { length: number } {
+    return { length: name.length };
+  }
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -28,6 +37,7 @@ describe('request logging', () => {
           { logDestination: logs.destination },
         ),
       ],
+      controllers: [PeopleTestController],
     }).compile();
     app = configureApp(moduleRef.createNestApplication<INestApplication<App>>());
     await app.init();
@@ -55,7 +65,8 @@ describe('request logging', () => {
         service: 'api',
         level: 'warn',
         reqId: id,
-        req: { method: 'GET', url: '/api/v1/missing' },
+        req: { method: 'GET' },
+        route: null,
         res: { statusCode: 404 },
       }),
     ]);
@@ -83,15 +94,41 @@ describe('request logging', () => {
     },
   );
 
-  it('logs query keys but never query values', async () => {
+  it('logs the route pattern, never path segments or query sent by the client', async () => {
     await request(app.getHttpServer())
-      .get('/api/v1/missing?email=ana@example.com&token=abc')
-      .expect(404);
+      .get('/api/v1/people/Ana%20Perez?email=ana@example.com&Juan=1')
+      .expect(200);
+
+    expect(requestLines()).toEqual([
+      expect.objectContaining({
+        level: 'info',
+        req: { method: 'GET' },
+        route: '/api/v1/people/:name',
+        res: { statusCode: 200 },
+      }),
+    ]);
+    const output = JSON.stringify(logs.lines);
+    for (const leaked of ['Ana', 'Perez', 'ana@example.com', 'Juan']) {
+      expect(output).not.toContain(leaked);
+    }
+  });
+
+  it('logs unmatched routes without their path', async () => {
+    await request(app.getHttpServer()).get('/api/v1/missing/Ana%20Perez').expect(404);
+
+    expect(requestLines()[0]).toMatchObject({ req: { method: 'GET' }, route: null });
+    expect(JSON.stringify(logs.lines)).not.toContain('Ana');
+  });
+
+  it('logs server errors at error level with their route', async () => {
+    // The database in this test is unreachable, so healthz answers 503.
+    await request(app.getHttpServer()).get('/api/v1/healthz').expect(503);
 
     expect(requestLines()[0]).toMatchObject({
-      req: { url: '/api/v1/missing?email=[REDACTED]&token=[REDACTED]' },
+      level: 'error',
+      route: '/api/v1/healthz',
+      res: { statusCode: 503 },
     });
-    expect(JSON.stringify(logs.lines)).not.toContain('ana@example.com');
   });
 
   it('does not log request headers such as cookies or authorization', async () => {

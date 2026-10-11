@@ -1,8 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { DynamicModule } from '@nestjs/common';
-import { createLogger, REDACTED } from '@rumbo/logger';
+import {
+  type CanActivate,
+  type DynamicModule,
+  type ExecutionContext,
+  Injectable,
+} from '@nestjs/common';
+import { createLogger } from '@rumbo/logger';
 import { LoggerModule } from 'nestjs-pino';
 import type { DestinationStream } from 'pino';
 
@@ -21,13 +26,33 @@ export function requestId(req: IncomingMessage, res: ServerResponse): string {
   return id;
 }
 
-/** Path plus query keys only: query values may carry emails or tokens (#26). */
-export function safeUrl(url: string | undefined): string {
-  if (!url) return '';
-  const [path = '', query] = url.split('?', 2);
-  if (!query) return path;
-  const keys = [...new URLSearchParams(query).keys()];
-  return `${path}?${keys.map((key) => `${key}=${REDACTED}`).join('&')}`;
+const ROUTE_PATTERN = Symbol('routePattern');
+
+interface RoutedRequest extends IncomingMessage {
+  route?: { readonly path?: unknown };
+  [ROUTE_PATTERN]?: string;
+}
+
+/**
+ * Records the matched route pattern (`/api/v1/people/:name`) on the request so the request log can
+ * use it instead of the URL the client sent: path segments and query come from the client and may
+ * carry names, which no pattern can detect (#26). It must run inside the handler: by the time the
+ * response is logged, Express has moved `req.route` back to the logger middleware's route.
+ * Registered as the first global guard so it also covers requests later rejected by auth guards.
+ */
+@Injectable()
+export class RoutePatternGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const req = context.switchToHttp().getRequest<RoutedRequest>();
+    const path = req.route?.path;
+    if (typeof path === 'string') req[ROUTE_PATTERN] = path;
+    return true;
+  }
+}
+
+/** Requests that match no route (404) log `null`. */
+export function routePattern(req: RoutedRequest): string | null {
+  return req[ROUTE_PATTERN] ?? null;
 }
 
 /**
@@ -46,10 +71,17 @@ export function loggingModule(config: AppConfig, destination?: DestinationStream
       genReqId: requestId,
       quietReqLogger: true,
       customAttributeKeys: { reqId: 'reqId' },
+      // pino-http serializes `req` when the request starts, before routing, so the route
+      // pattern is added to the completion line instead (customSuccessObject/customErrorObject).
       serializers: {
-        req: (req: IncomingMessage) => ({ method: req.method, url: safeUrl(req.url) }),
+        req: (req: IncomingMessage) => ({ method: req.method }),
         res: (res: ServerResponse) => ({ statusCode: res.statusCode }),
       },
+      customSuccessObject: (req, _res, value: object) => ({ ...value, route: routePattern(req) }),
+      customErrorObject: (req, _res, _error, value: object) => ({
+        ...value,
+        route: routePattern(req),
+      }),
       customLogLevel: (req, res, error) => {
         if (error || res.statusCode >= 500) return 'error';
         if (res.statusCode >= 400) return 'warn';

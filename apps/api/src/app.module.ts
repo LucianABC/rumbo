@@ -1,11 +1,12 @@
 import { type DynamicModule, type INestApplication, Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import type { DestinationStream } from 'pino';
 
 import { APP_CONFIG, type AppConfig } from './config.js';
 import { DbModule } from './db/db.module.js';
 import { HealthModule } from './health/health.module.js';
-import { loggingModule } from './logging/logging.module.js';
+import { loggingModule, RoutePatternGuard } from './logging/logging.module.js';
 
 export interface AppModuleOptions {
   /** Where logs go; tests pass a stream to assert on them. Defaults to stdout. */
@@ -20,7 +21,11 @@ export class AppModule {
       module: AppModule,
       global: true,
       imports: [loggingModule(config, options.logDestination), DbModule, HealthModule],
-      providers: [{ provide: APP_CONFIG, useValue: config }],
+      providers: [
+        { provide: APP_CONFIG, useValue: config },
+        // First global guard, so the route is recorded even for requests other guards reject.
+        { provide: APP_GUARD, useClass: RoutePatternGuard },
+      ],
       exports: [APP_CONFIG],
     };
   }
