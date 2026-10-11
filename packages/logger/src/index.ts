@@ -48,22 +48,29 @@ export function createLogger({
 /**
  * Without a message, pino copies `err.message` into `msg`, bypassing the err serializer. That is how
  * `logger.error(err)` and Nest's unhandled-exception logs call it, so the error's type is used instead.
+ * Errors logged directly, including plain copies of one (pg-boss emits those), are moved under `err`
+ * so their fields go through the err serializer instead of becoming the log line itself (#26).
  */
 function errorTypeAsDefaultMessage(this: Logger, args: Parameters<LogFn>, method: LogFn): void {
   const [first, ...rest] = args as unknown[];
-  const err = first instanceof Error ? first : errorUnder(first);
-  if (err && typeof rest[0] !== 'string') {
-    const merged = first instanceof Error ? { err: first } : first;
-    method.apply(this, [merged, serializeError(err).type, ...rest] as Parameters<LogFn>);
+  const direct = isErrorLike(first);
+  const err = direct ? first : errorUnder(first);
+  if (err === undefined) {
+    method.apply(this, args);
     return;
   }
-  method.apply(this, args);
+  const merged = direct ? { err: first } : first;
+  const message = typeof rest[0] === 'string' ? rest : [serializeError(err).type, ...rest];
+  method.apply(this, [merged, ...message] as Parameters<LogFn>);
 }
 
-function errorUnder(value: unknown): Error | undefined {
+// pino copies `err.message` for any object with one, not only Errors (e.g. an error that went
+// through JSON), so any such object counts here (#26).
+function errorUnder(value: unknown): unknown {
   if (typeof value !== 'object' || value === null) return undefined;
   const err = (value as { err?: unknown }).err;
-  return err instanceof Error ? err : undefined;
+  const hasMessage = typeof err === 'object' && err !== null && 'message' in err;
+  return isErrorLike(err) || hasMessage ? err : undefined;
 }
 
 const MAX_DEPTH = 8;
@@ -99,8 +106,19 @@ function replaceErrors(value: unknown, depth: number, seen: WeakSet<object>): un
 export function redactLine(line: string): string {
   const newline = line.endsWith('\n') ? '\n' : '';
   try {
-    return JSON.stringify(redact(JSON.parse(line))) + newline;
+    return JSON.stringify(redact(errorFieldsUnderErr(JSON.parse(line) as unknown))) + newline;
   } catch {
     return redactString(line);
   }
+}
+
+/**
+ * A line whose own fields look like an error (an error's fields spread into the log object) would
+ * be reduced whole by redact(), losing level, time and msg. Its error fields move under `err`
+ * instead, as safe fields, and the rest of the line is kept (#26).
+ */
+function errorFieldsUnderErr(line: unknown): unknown {
+  if (!isErrorLike(line)) return line;
+  const { message: _message, stack, code, ...rest } = line as Record<string, unknown>;
+  return { ...rest, err: rest.err ?? serializeError({ stack, code }) };
 }

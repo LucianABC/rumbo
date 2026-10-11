@@ -91,7 +91,7 @@ Project order: Phase 0 docs/ADRs → local walking skeleton (tooling, CI, prod-l
 5. **Privacy**: no personal data in traces or logs; `DELETE /api/v1/me` deletes all of a user's data. Logging goes through `@rumbo/logger`, which redacts what it can recognize; names cannot be recognized, so:
    - never interpolate user data or free text (names, CV or posting content, prompts) into log messages; log ids (`userId`, `runId`) instead;
    - if a person's name must be logged, put it under a name key (`name`, `fullName`…), which is always redacted;
-   - log errors as `{ err }`: they are reduced to type, known code and stack frames, never their message;
+   - log errors as `{ err }`: they are reduced to a known type and allowlisted code, never their message or stack;
    - HTTP logs carry the route pattern, never the URL the client sent.
 6. **Evals before optimizing**: no prompt or routing change merges without running its eval and showing before/after.
 

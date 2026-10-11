@@ -52,16 +52,16 @@ describe('createLogger', () => {
     expect(JSON.stringify(lines[0])).not.toContain('ana@example.com');
   });
 
-  it('logs errors by type, code and stack frames, never by message', () => {
+  it('logs errors by known type and code, never by message or stack', () => {
     const { lines, destination } = capture();
     const error = Object.assign(new TypeError('job Ana Perez failed'), { code: 'ECONNREFUSED' });
 
     createLogger({ service: 'worker', destination }).error({ err: error }, 'pg-boss error');
 
-    const line = lines[0] as { msg: string; err: { type: string; code: string; stack: string } };
+    const line = lines[0] as { msg: string; err: { type: string; code: string } };
     expect(line.msg).toBe('pg-boss error');
     expect(line.err).toMatchObject({ type: 'TypeError', code: 'ECONNREFUSED' });
-    expect(line.err.stack).toMatch(/^at /);
+    expect(line.err).not.toHaveProperty('stack');
     expect(JSON.stringify(line)).not.toMatch(/Ana|Perez/);
   });
 
@@ -85,6 +85,42 @@ describe('createLogger', () => {
 
     expect(lines[0]).toMatchObject({ msg: 'RangeError', err: { type: 'RangeError' } });
     expect(JSON.stringify(lines[0])).not.toMatch(/Ana|Perez/);
+  });
+
+  describe('errors that are not Error instances', () => {
+    const source = new TypeError('job for Ana Perez failed');
+    // Same shape pg-boss emits: own properties plus message and stack.
+    const copied = {
+      ...Object.fromEntries(Object.entries(source)),
+      message: source.message,
+      stack: source.stack,
+    };
+
+    it.each([
+      ['a copied error under err', { err: copied }],
+      ['an error that went through JSON', { err: { message: 'no user Ana Perez' } }],
+    ])('never takes the message of %s as msg', (_label, object) => {
+      const { lines, destination } = capture();
+
+      createLogger({ service: 'worker', destination }).error(object);
+
+      expect(JSON.stringify(lines[0])).not.toMatch(/Ana|Perez/);
+    });
+
+    it('keeps level, time, service and msg when a copied error is logged directly', () => {
+      const { lines, destination } = capture();
+
+      createLogger({ service: 'worker', destination }).error(copied);
+
+      expect(lines[0]).toMatchObject({
+        level: 'error',
+        service: 'worker',
+        msg: 'TypeError',
+        err: { type: 'TypeError' },
+      });
+      expect(lines[0]).toHaveProperty('time');
+      expect(JSON.stringify(lines[0])).not.toMatch(/Ana|Perez/);
+    });
   });
 
   it('logs errors under any key and at any depth by their safe fields only', () => {

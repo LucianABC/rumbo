@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { serializeError, shortPath } from '../src/errors.js';
+import { serializeError } from '../src/errors.js';
 
 function withCode(code: unknown): Error {
   return Object.assign(new Error('x'), { code });
@@ -19,16 +19,12 @@ describe('serializeError', () => {
     expect(serializeError(withCode(code))).toMatchObject({ code });
   });
 
-  it.each(['AnaPerez', 'PEREZ', 'EANA', 'failed for Ana Perez', ''])(
+  it.each(['AnaPerez', 'PEREZ', 'EANA', 'ERR_ANA_PEREZ', 'failed for Ana Perez', '', 42])(
     'drops the free-form code %s, which could carry a name',
     (code) => {
       expect(serializeError(withCode(code))).not.toHaveProperty('code');
     },
   );
-
-  it('keeps numeric codes', () => {
-    expect(serializeError(withCode(42))).toMatchObject({ code: 42 });
-  });
 
   it('drops every other property, which often carries the payload', () => {
     const error = Object.assign(new Error('x'), { payload: { cvText: 'Ana Perez' } });
@@ -36,8 +32,7 @@ describe('serializeError', () => {
     expect(JSON.stringify(serializeError(error))).not.toContain('Ana');
   });
 
-  it('keeps stack frames only, with paths that carry no user directory', () => {
-    vi.spyOn(process, 'cwd').mockReturnValue('C:\\Users\\lucia\\Code\\Rumbo');
+  it('never logs stacks, including paths and function names that can carry user data', () => {
     const error = new Error('x');
     error.stack = [
       'Error: failed for Ana Perez',
@@ -45,19 +40,21 @@ describe('serializeError', () => {
       '    at greet (file:///C:/Users/lucia/Code/Rumbo/apps/api/dist/main.js:3:9)',
       '    at C:\\Users\\lucia\\elsewhere\\script.js:1:2',
       '    at main (/home/ana/project/app.js:10:5)',
+      '    at run (C:/Users/Ana Perez/project/file.js:12:3)',
+      '    at run (C:/Users/Ana (Private)/project/file.js:14:2)',
       '    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)',
     ].join('\n');
 
-    expect(serializeError(error).stack).toBe(
-      [
-        'at Db.executeSql (node_modules/pg-pool/index.js:45:11)',
-        'at greet (apps/api/dist/main.js:3:9)',
-        'at script.js:1:2',
-        'at main (app.js:10:5)',
-        'at process.processTicksAndRejections (node:internal/process/task_queues:104:5)',
-      ].join('\n'),
-    );
-    vi.restoreAllMocks();
+    expect(serializeError(error)).toEqual({ type: 'Error' });
+  });
+
+  it('uses a fixed type for custom errors and copied errors', () => {
+    class AnaPerez extends Error {}
+    const custom = new AnaPerez('private text');
+    const copied = { stack: 'AnaPerez: private text\n    at run (C:/Users/Ana Perez/file.js:1:2)' };
+
+    expect(serializeError(custom)).toEqual({ type: 'Error' });
+    expect(serializeError(copied)).toEqual({ type: 'Error' });
   });
 
   it('stops following causes after a few levels', () => {
@@ -91,7 +88,7 @@ describe('serializeError', () => {
     const out = serializeError(copied);
 
     expect(out).toMatchObject({ type: 'TypeError', code: 'ECONNRESET' });
-    expect(out.stack).toMatch(/^at /);
+    expect(out).not.toHaveProperty('stack');
     expect(JSON.stringify(out)).not.toMatch(/Ana|Perez/);
   });
 
@@ -101,13 +98,5 @@ describe('serializeError', () => {
 
   it('describes non-errors by their type only', () => {
     expect(serializeError('Ana Perez')).toEqual({ type: 'string' });
-  });
-});
-
-describe('shortPath', () => {
-  it('keeps container paths relative to the working directory', () => {
-    vi.spyOn(process, 'cwd').mockReturnValue('/app');
-    expect(shortPath('/app/dist/main.js')).toBe('dist/main.js');
-    vi.restoreAllMocks();
   });
 });
