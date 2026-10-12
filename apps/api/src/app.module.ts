@@ -4,7 +4,7 @@ import {
   Module,
   type NestApplicationOptions,
 } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import type { DestinationStream } from 'pino';
 
@@ -14,6 +14,7 @@ import { DbModule } from './db/db.module.js';
 import { ErrorFilter } from './errors/error.filter.js';
 import { HealthModule } from './health/health.module.js';
 import { loggingModule, RoutePatternGuard } from './logging/logging.module.js';
+import { ValidationPipe } from './validation/validation.js';
 
 export interface AppModuleOptions {
   /** Where logs go; tests pass a stream to assert on them. Defaults to stdout. */
@@ -38,6 +39,7 @@ export class AppModule {
         // First global guard, so the route is recorded even for requests other guards reject (#26).
         { provide: APP_GUARD, useClass: RoutePatternGuard },
         { provide: APP_FILTER, useClass: ErrorFilter },
+        { provide: APP_PIPE, useClass: ValidationPipe },
       ],
       exports: [APP_CONFIG],
     };

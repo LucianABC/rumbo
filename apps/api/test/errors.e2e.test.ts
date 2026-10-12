@@ -8,23 +8,27 @@ import {
   Post,
 } from '@nestjs/common';
 import { ErrorEnvelope } from '@rumbo/contracts';
+import { createZodDto } from 'nestjs-zod';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import { ApiException } from '../src/errors/api-exception.js';
 import { captureLogs } from './log-capture.js';
-import { createTestApp, UUID } from './test-app.js';
+import { createTestApp, NameParams, UUID } from './test-app.js';
+
+class EchoBody extends createZodDto(z.object({ text: z.string().optional() })) {}
 
 @Controller('errors')
 class ErrorsTestController {
   @Get('unknown/:name')
-  unknown(@Param('name') name: string): never {
+  unknown(@Param() { name }: NameParams): never {
     throw new Error(`could not load ${name}`);
   }
 
   @Get('not-found/:name')
-  notFound(@Param('name') name: string): never {
+  notFound(@Param() { name }: NameParams): never {
     throw new NotFoundException(`no profile for ${name}`);
   }
 
@@ -34,7 +38,7 @@ class ErrorsTestController {
   }
 
   @Post('echo')
-  echo(@Body() body: unknown): unknown {
+  echo(@Body() body: EchoBody): EchoBody {
     return body;
   }
 }

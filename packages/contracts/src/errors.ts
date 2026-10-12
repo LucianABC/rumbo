@@ -31,3 +31,43 @@ export const ErrorEnvelope = z.object({
   }),
 });
 export type ErrorEnvelope = z.infer<typeof ErrorEnvelope>;
+
+/** Zod 4 issue codes the API can report; a Zod upgrade that renames one fails the contract (#24). */
+export const ValidationIssueCode = z.enum([
+  'invalid_type',
+  'too_big',
+  'too_small',
+  'invalid_format',
+  'not_multiple_of',
+  'unrecognized_keys',
+  'invalid_union',
+  'invalid_key',
+  'invalid_element',
+  'invalid_value',
+  'custom',
+]);
+export type ValidationIssueCode = z.infer<typeof ValidationIssueCode>;
+
+/**
+ * One field that failed request validation. Only values taken from the schema, never the input or
+ * the issue message, which can embed the input (ADR 0006, #24). Clients build the text from `code`,
+ * `origin` and the bounds: date bounds are epoch milliseconds, bigint bounds arrive as strings.
+ */
+export const ValidationIssue = z.object({
+  path: z.array(z.union([z.string(), z.number()])),
+  code: ValidationIssueCode,
+  /** Kind of value the bound applies to: string, number, date, array… */
+  origin: z.string().optional(),
+  expected: z.string().optional(),
+  format: z.string().optional(),
+  minimum: z.union([z.number(), z.string()]).optional(),
+  maximum: z.union([z.number(), z.string()]).optional(),
+  inclusive: z.boolean().optional(),
+  /** For issues inside a union: which option failed this way. */
+  branch: z.int().nonnegative().optional(),
+});
+export type ValidationIssue = z.infer<typeof ValidationIssue>;
+
+/** `details` of a `BAD_REQUEST` error caused by request validation (#24). */
+export const ValidationDetails = z.object({ issues: z.array(ValidationIssue) });
+export type ValidationDetails = z.infer<typeof ValidationDetails>;

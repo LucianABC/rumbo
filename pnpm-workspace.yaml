@@ -13,6 +13,11 @@ allowBuilds:
   ssh2: false
   protobufjs: false
 
+# nestjs-zod 5.5 declares @nestjs/common ^10 || ^11 but works on Nest 12 (ADR 0006). Remove with #89.
+peerDependencyRules:
+  allowedVersions:
+    nestjs-zod>@nestjs/common: '12'
+
 # Security overrides for transitive deps of the Prisma 7 CLI (#13). Remove once Prisma ships them.
 overrides:
   mysql2: ^3.24.5 # GHSA-3f6p-5ww8-9rcr; only used by the CLI for MySQL, we use Postgres
