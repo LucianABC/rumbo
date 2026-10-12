@@ -1,5 +1,4 @@
 import type { INestApplication } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import { createPrisma } from '@rumbo/db';
 import { startTestDatabase, type TestDatabase } from '@rumbo/db/testing';
 import request from 'supertest';
@@ -7,8 +6,7 @@ import type { App } from 'supertest/types.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { captureLogs } from './log-capture.js';
-
-import { AppModule, configureApp } from '../src/app.module.js';
+import { createTestApp } from './test-app.js';
 
 describe('GET /api/v1/healthz', () => {
   let db: TestDatabase;
@@ -17,15 +15,7 @@ describe('GET /api/v1/healthz', () => {
 
   beforeAll(async () => {
     db = await startTestDatabase();
-    const moduleRef = await Test.createTestingModule({
-      imports: [
-        AppModule.forRoot(
-          { port: 0, databaseUrl: db.url, version: 'test', commit: 'test', logLevel: 'info' },
-          { logDestination: logs.destination },
-        ),
-      ],
-    }).compile();
-    app = configureApp(moduleRef.createNestApplication<INestApplication<App>>());
+    app = await createTestApp({ logs, databaseUrl: db.url });
     await app.init();
   });
 
