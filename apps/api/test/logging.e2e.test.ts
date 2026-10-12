@@ -1,11 +1,10 @@
 import { Controller, Get, type INestApplication, Param } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { AppModule, configureApp } from '../src/app.module.js';
 import { captureLogs } from './log-capture.js';
+import { createTestApp, UUID } from './test-app.js';
 
 // Stands in for future endpoints whose path carries client data.
 @Controller('people')
@@ -21,30 +20,13 @@ class PeopleTestController {
   }
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-
 // No database needed: these requests never reach a handler that queries it.
 describe('request logging', () => {
   let app: INestApplication<App>;
   const logs = captureLogs();
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
-      imports: [
-        AppModule.forRoot(
-          {
-            port: 0,
-            databaseUrl: 'postgresql://unused@127.0.0.1:1/unused',
-            version: 'test',
-            commit: 'test',
-            logLevel: 'info',
-          },
-          { logDestination: logs.destination },
-        ),
-      ],
-      controllers: [PeopleTestController],
-    }).compile();
-    app = configureApp(moduleRef.createNestApplication<INestApplication<App>>());
+    app = await createTestApp({ logs, controllers: [PeopleTestController] });
     await app.init();
   });
 
