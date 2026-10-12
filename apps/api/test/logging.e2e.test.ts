@@ -4,18 +4,18 @@ import type { App } from 'supertest/types.js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { captureLogs } from './log-capture.js';
-import { createTestApp, UUID } from './test-app.js';
+import { createTestApp, NameParams, UUID } from './test-app.js';
 
 // Stands in for future endpoints whose path carries client data.
 @Controller('people')
 class PeopleTestController {
   @Get(':name')
-  greet(@Param('name') name: string): { length: number } {
+  greet(@Param() { name }: NameParams): { length: number } {
     return { length: name.length };
   }
 
   @Get(':name/fail')
-  fail(@Param('name') name: string): never {
+  fail(@Param() { name }: NameParams): never {
     throw new Error(`could not greet ${name}`);
   }
 }

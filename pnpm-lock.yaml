@@ -239,6 +239,9 @@ importers:
       nestjs-pino:
         specifier: ^5.3.1
         version: 5.3.1(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(pino-http@11.0.0)(pino@10.4.0)(rxjs@7.8.2)
+      nestjs-zod:
+        specifier: ^5.5.0
+        version: 5.5.0(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)(zod@4.6.5)
       pino:
         specifier: ^10.4.0
         version: 10.4.0
@@ -1929,6 +1932,10 @@ packages:
     resolution: {integrity: sha512-uqbvqLUMrc6p0MO+WBRtTxY55hmyh94WRwI5a++PZe54X+bfVh59FSN7uWCBCW1CCVjzjnrwzfI8zidE2obMMw==}
     engines: {node: '>=16.9.0'}
 
+  deepmerge@4.3.1:
+    resolution: {integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==}
+    engines: {node: '>=0.10.0'}
+
   defu@6.1.7:
     resolution: {integrity: sha512-7z22QmUWiQ/2d0KkdYmANbRUVABpZ9SNYyH5vx6PZ+nE5bcC0l7uFvEfHlyld/HcGBFTL536ClDt3DEcSlEJAQ==}
 
@@ -2675,6 +2682,17 @@ packages:
       pino: ^10.0.0
       pino-http: ^11.0.0
       rxjs: ^7.1.0
+
+  nestjs-zod@5.5.0:
+    resolution: {integrity: sha512-V0WMtmICygYE2RoMKk8ExEeoetkC7PoUmUlZNP4JNk1YgrnUnG1vgkRn2DBNqsDi+Obv3c9AOssmXe/k/AvBOg==}
+    peerDependencies:
+      '@nestjs/common': ^10.0.0 || ^11.0.0
+      '@nestjs/swagger': ^7.4.2 || ^8.0.0 || ^11.0.0
+      rxjs: ^7.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@nestjs/swagger':
+        optional: true
 
   next@16.4.0:
     resolution: {integrity: sha512-N2C+9q89Z/oLrsepSRS4jRMtwmUZAoZuAHU0e9T6+sAB5DdhADmrnOW+zjYijlrYFmVfmQhGVGy9eMFoB7UgKg==}
@@ -5109,6 +5127,8 @@ snapshots:
 
   deepmerge-ts@8.0.2: {}
 
+  deepmerge@4.3.1: {}
+
   defu@6.1.7: {}
 
   delaunator@5.1.0:
@@ -5804,6 +5824,13 @@ snapshots:
       pino: 10.4.0
       pino-http: 11.0.0
       rxjs: 7.8.2
+
+  nestjs-zod@5.5.0(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)(zod@4.6.5):
+    dependencies:
+      '@nestjs/common': 12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      deepmerge: 4.3.1
+      rxjs: 7.8.2
+      zod: 4.6.5
 
   next@16.4.0(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@26.6.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:

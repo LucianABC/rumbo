@@ -1,10 +1,15 @@
 import type { INestApplication, Type } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { createZodDto } from 'nestjs-zod';
 import type { App } from 'supertest/types.js';
+import { z } from 'zod';
 
 import { APP_OPTIONS, AppModule, configureApp } from '../src/app.module.js';
 import type { AppConfig } from '../src/config.js';
 import type { captureLogs } from './log-capture.js';
+
+/** Route params of test stand-in endpoints; the global pipe requires a DTO on every param (#24). */
+export class NameParams extends createZodDto(z.object({ name: z.string() })) {}
 
 export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
