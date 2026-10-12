@@ -13,6 +13,8 @@ Every endpoint validates its input against a Zod schema from `packages/contracts
 - Invalid body → 400 with one issue per field (`path`, `code`, `message`). Zod 4 issues leave out the input value unless asked to.
 - `SwaggerModule.createDocument` + `cleanupOpenApiDoc` emits the DTO schema (`minLength`, `format: email`, `required`).
 - pnpm treats the peer range mismatch as a warning (`strict-peer-dependencies` is off).
+- With `createZodValidationPipe({ strictSchemaDeclaration: true })`, a parameter not typed with a DTO (`@Param('id') id: string`) fails with 500 instead of passing unvalidated; `@Res()` and `@Req()` are not affected.
+- Issue messages are not safe by default: a custom message can interpolate the input (`error: (iss) => \`bad email ${iss.input}\``) and the spike returned `"bad email AnaPerez-secret"`.
 
 ## Options
 
@@ -26,10 +28,15 @@ Every endpoint validates its input against a Zod schema from `packages/contracts
 
 - `pnpm-workspace.yaml` allows the mismatch with `peerDependencyRules.allowedVersions` scoped to `nestjs-zod` only, with a comment pointing to #89, which removes it when `nestjs-zod` ships Nest 12 support.
 - The e2e tests of #24 (validation) and #25 (`/api/docs`) are the canary: a Nest or `nestjs-zod` update that breaks them fails CI.
-- The global error filter (#23) maps `nestjs-zod`'s validation exception to `ApiException('BAD_REQUEST', …, details)`. `details` carries only `path`, `code` and `message` per issue, so neither the user's input nor library internals such as regex patterns reach the client.
+- The global pipe is created with `strictSchemaDeclaration: true`, so every `@Body`, `@Query` and `@Param` must be a DTO: a forgotten schema fails loudly in tests instead of letting input through unvalidated.
+- The global error filter (#23) maps `nestjs-zod`'s validation exception to `ApiException('BAD_REQUEST', …, details)`. `details` is built from an allowlist per issue: `path`, `code`, and the constraint fields that come from the schema (`expected`, `format`, `minimum`, `maximum`, `inclusive`). **Issue messages are never copied**: any message can embed the input, and reviewing every custom message is a rule that eventually fails. The web turns `code` and the constraints into user-facing text. A test sends sensitive-looking input through a refinement whose message embeds it and asserts it does not reach the response.
+- Request schemas do not use user-chosen keys (`z.record` keyed by user text), because issue paths would carry them back; such data goes in arrays of objects.
 - DTOs are built from schemas in `packages/contracts` (`createZodDto(Schema)`), never from schemas defined inside `apps/api`, so web and API share one source.
 
 ## Trade-offs
 
 - Running outside the declared peer range: a future Nest minor could break `nestjs-zod` silently at runtime. The e2e tests reduce that to a CI failure.
 - If upstream stays stalled and something breaks, validation moves to option 3 quickly; OpenAPI is the part that costs time.
+- Strict declaration means route params and query strings need a DTO too (`IdParams`), a little more boilerplate per endpoint.
+- Error texts live in the web, not in the API response; a second client would need its own mapping from codes.
+- The spike ran outside the repo; the executable evidence is the e2e suite of #24 and #25, not a committed spike.
