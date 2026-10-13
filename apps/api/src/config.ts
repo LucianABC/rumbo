@@ -1,6 +1,21 @@
-import { databaseUrl, type Env, parseEnv } from '@rumbo/config';
+import { databaseUrl, type Env, httpOrigin, parseEnv } from '@rumbo/config';
 import { LOG_LEVELS } from '@rumbo/logger';
 import { z } from 'zod';
+
+/**
+ * Comma-separated origins allowed to call the API cross-origin (#22). Empty by default: the browser
+ * talks only to the web origin, which proxies /api/* (ADR 0002), so no client needs CORS today.
+ */
+const corsOrigins = z
+  .string()
+  .default('')
+  .transform((value) =>
+    value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean),
+  )
+  .pipe(z.array(httpOrigin()));
 
 const envSchema = z
   .object({
@@ -10,6 +25,7 @@ const envSchema = z
     APP_VERSION: z.string().default('dev'),
     GIT_COMMIT: z.string().default('unknown'),
     LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
+    CORS_ORIGINS: corsOrigins,
   })
   .transform((env) => ({
     port: env.PORT,
@@ -17,6 +33,7 @@ const envSchema = z
     version: env.APP_VERSION,
     commit: env.GIT_COMMIT,
     logLevel: env.LOG_LEVEL,
+    corsOrigins: env.CORS_ORIGINS,
   }));
 
 export type AppConfig = Readonly<z.output<typeof envSchema>>;

@@ -7,6 +7,23 @@ export const databaseUrl = () => z.url({ protocol: /^postgres(ql)?$/ });
 export const httpUrl = () => z.url({ protocol: /^https?$/ });
 
 /**
+ * An http(s) origin, normalized the way browsers send it in the Origin header: lowercase host,
+ * default port and trailing slash dropped, IDN hosts in punycode (#22). Only a path, query or
+ * fragment is rejected, since those are never part of an origin.
+ */
+export const httpOrigin = () =>
+  httpUrl()
+    // Zod runs refinements even after httpUrl() failed, so unparsable values must not reach new URL() (#22).
+    .refine((value) => !URL.canParse(value) || isBareOrigin(new URL(value)), {
+      params: { reason: 'not_an_origin' },
+    })
+    .transform((value) => new URL(value).origin);
+
+function isBareOrigin(url: URL): boolean {
+  return url.pathname === '/' && url.search === '' && url.hash === '' && url.username === '';
+}
+
+/**
  * Validates environment variables against a Zod schema at boot (#21).
  *
  * - Empty values count as unset, so `FOO=` in a .env file falls back to the default.

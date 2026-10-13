@@ -19,6 +19,8 @@ export const UNUSED_DATABASE_URL = 'postgresql://unused@127.0.0.1:1/unused';
 interface TestAppOptions {
   readonly logs: ReturnType<typeof captureLogs>;
   readonly databaseUrl?: string;
+  /** Overrides for config values a test exercises, such as the CORS allowlist. */
+  readonly config?: Partial<AppConfig>;
   /** Stand-ins for future endpoints. */
   readonly controllers?: Type[];
 }
@@ -28,6 +30,7 @@ export async function createTestApp({
   logs,
   databaseUrl = UNUSED_DATABASE_URL,
   controllers = [],
+  config: overrides = {},
 }: TestAppOptions): Promise<INestApplication<App>> {
   const config: AppConfig = {
     port: 0,
@@ -35,6 +38,8 @@ export async function createTestApp({
     version: 'test',
     commit: 'test',
     logLevel: 'info',
+    corsOrigins: [],
+    ...overrides,
   };
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule.forRoot(config, { logDestination: logs.destination })],

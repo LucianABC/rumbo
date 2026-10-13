@@ -10,6 +10,7 @@ const config: AppConfig = {
   version: '1.2.3',
   commit: 'abc1234',
   logLevel: 'silent',
+  corsOrigins: [],
 };
 
 function fakePrisma(options: {
