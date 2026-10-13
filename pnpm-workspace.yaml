@@ -12,11 +12,13 @@ allowBuilds:
   cpu-features: false # optional native speedup for ssh2 (via testcontainers), not needed
   ssh2: false
   protobufjs: false
+  '@scarf/scarf': false # install-time download analytics (via swagger-ui-dist), not needed
 
-# nestjs-zod 5.5 declares @nestjs/common ^10 || ^11 but works on Nest 12 (ADR 0006). Remove with #89.
+# nestjs-zod 5.5 declares Nest ^10 || ^11 (common) and swagger ^7-^11 but works on Nest 12 (ADR 0006). Remove with #89.
 peerDependencyRules:
   allowedVersions:
     nestjs-zod>@nestjs/common: '12'
+    nestjs-zod>@nestjs/swagger: '12'
 
 # Security overrides for transitive deps of the Prisma 7 CLI (#13). Remove once Prisma ships them.
 overrides:

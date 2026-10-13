@@ -14,6 +14,7 @@ import { DbModule } from './db/db.module.js';
 import { ErrorFilter } from './errors/error.filter.js';
 import { HealthModule } from './health/health.module.js';
 import { loggingModule, RoutePatternGuard } from './logging/logging.module.js';
+import { setupOpenApi } from './openapi/openapi.js';
 import { ValidationPipe } from './validation/validation.js';
 
 export interface AppModuleOptions {
@@ -58,5 +59,6 @@ export function configureApp<T extends INestApplication>(app: T): T {
   app.useLogger(app.get(Logger));
   app.setGlobalPrefix('api/v1');
   app.enableShutdownHooks();
+  setupOpenApi(app);
   return app;
 }
