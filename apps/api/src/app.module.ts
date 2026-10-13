@@ -5,6 +5,7 @@ import {
   type NestApplicationOptions,
 } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import type { DestinationStream } from 'pino';
 
@@ -57,6 +58,12 @@ export const APP_OPTIONS = {
 export function configureApp<T extends INestApplication>(app: T): T {
   // Nest's own logs (bootstrap, unhandled exceptions) go through the same redacting logger (#26).
   app.useLogger(app.get(Logger));
+  // Registered before Nest's routes, so JSON, error envelopes, 404s and the docs all carry the
+  // security headers (#22).
+  app.use(helmet());
+  // Closed unless an environment lists origins: the browser reaches the API through the web's
+  // /api/* proxy, which is same-origin (ADR 0002, #22).
+  app.enableCors({ origin: app.get<AppConfig>(APP_CONFIG).corsOrigins });
   app.setGlobalPrefix('api/v1');
   app.enableShutdownHooks();
   setupOpenApi(app);

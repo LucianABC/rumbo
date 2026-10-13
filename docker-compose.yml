@@ -51,6 +51,7 @@ services:
       DATABASE_URL: *database-url
       PORT: 3001
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

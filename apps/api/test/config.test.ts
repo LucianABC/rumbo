@@ -13,6 +13,7 @@ describe('loadConfig', () => {
       version: 'dev',
       commit: 'unknown',
       logLevel: 'info',
+      corsOrigins: [],
     });
   });
 
@@ -24,6 +25,7 @@ describe('loadConfig', () => {
         APP_VERSION: '1.2.3',
         GIT_COMMIT: 'abc123',
         LOG_LEVEL: 'debug',
+        CORS_ORIGINS: 'https://app.example, http://localhost:4000',
       }),
     ).toEqual({
       port: 8080,
@@ -31,6 +33,7 @@ describe('loadConfig', () => {
       version: '1.2.3',
       commit: 'abc123',
       logLevel: 'debug',
+      corsOrigins: ['https://app.example', 'http://localhost:4000'],
     });
   });
 
@@ -45,6 +48,13 @@ describe('loadConfig', () => {
   it.each(['0', '70000', 'abc', '30.5'])('rejects PORT=%s', (port) => {
     expect(() => loadConfig({ DATABASE_URL, PORT: port })).toThrow(/PORT/);
   });
+
+  it.each(['https://app.example/', 'https://app.example/path', 'ftp://app.example', 'app.example'])(
+    'rejects CORS_ORIGINS=%s, which is not a bare http(s) origin',
+    (value) => {
+      expect(() => loadConfig({ DATABASE_URL, CORS_ORIGINS: value })).toThrow(/CORS_ORIGINS/);
+    },
+  );
 
   it('rejects an unknown LOG_LEVEL', () => {
     expect(() => loadConfig({ DATABASE_URL, LOG_LEVEL: 'verbose' })).toThrow(/LOG_LEVEL/);
