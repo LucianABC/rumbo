@@ -16,12 +16,13 @@
     "postinstall": "pnpm run build",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "pino": "^10.4.0"
   },
   "devDependencies": {
+    "@rumbo/vitest-config": "workspace:*",
     "vitest": "^5.0.3"
   }
 }

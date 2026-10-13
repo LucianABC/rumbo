@@ -13,6 +13,9 @@ updates:
       prefix: build
       include: scope
     groups:
+      # vitest and @vitest/coverage-v8 must stay on the same version; majors included (#28).
+      vitest:
+        patterns: ['vitest', '@vitest/*']
       minor-and-patch:
         update-types: [minor, patch]
     open-pull-requests-limit: 5

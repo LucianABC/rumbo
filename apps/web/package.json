@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "next typegen && tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@rumbo/config": "workspace:*",
@@ -19,6 +19,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@rumbo/vitest-config": "workspace:*",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "vitest": "^5.0.3"

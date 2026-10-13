@@ -7,7 +7,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@rumbo/config": "workspace:*",
@@ -17,6 +17,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@rumbo/vitest-config": "workspace:*",
     "@testcontainers/postgresql": "^12.2.0",
     "vitest": "^5.0.3"
   }
