@@ -1,12 +1,6 @@
-import { databaseUrl, type Env, httpUrl, parseEnv } from '@rumbo/config';
+import { databaseUrl, type Env, httpOrigin, parseEnv } from '@rumbo/config';
 import { LOG_LEVELS } from '@rumbo/logger';
 import { z } from 'zod';
-
-/** An http(s) origin exactly as browsers send it: scheme, host and port, no path or trailing slash. */
-// Zod runs the refinement even after httpUrl() failed, so unparsable values must not reach new URL().
-const origin = httpUrl().refine((value) => URL.canParse(value) && new URL(value).origin === value, {
-  message: 'Expected an origin such as https://app.example, without path or trailing slash',
-});
 
 /**
  * Comma-separated origins allowed to call the API cross-origin (#22). Empty by default: the browser
@@ -21,7 +15,7 @@ const corsOrigins = z
       .map((item) => item.trim())
       .filter(Boolean),
   )
-  .pipe(z.array(origin));
+  .pipe(z.array(httpOrigin()));
 
 const envSchema = z
   .object({

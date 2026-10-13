@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { databaseUrl, httpUrl, parseEnv } from '../src/index.js';
+import { databaseUrl, httpOrigin, httpUrl, parseEnv } from '../src/index.js';
 
 const schema = z.object({
   DATABASE_URL: databaseUrl(),
@@ -100,5 +100,28 @@ describe('httpUrl', () => {
 
   it.each(['ftp://api:3001', 'not a url'])('rejects %s', (value) => {
     expect(httpUrl().safeParse(value).success).toBe(false);
+  });
+});
+
+describe('httpOrigin', () => {
+  it.each([
+    ['https://app.example', 'https://app.example'],
+    ['http://localhost:4000', 'http://localhost:4000'],
+    ['https://App.Example', 'https://app.example'],
+    ['https://app.example:443/', 'https://app.example'],
+    ['https://café.example', 'https://xn--caf-dma.example'],
+  ])('accepts %s as %s, the form browsers send', (value, expected) => {
+    expect(httpOrigin().parse(value)).toBe(expected);
+  });
+
+  it.each([
+    'https://app.example/path',
+    'https://app.example?q=1',
+    'https://app.example#x',
+    'https://user@app.example',
+    'ftp://app.example',
+    'app.example',
+  ])('rejects %s, which is not an origin', (value) => {
+    expect(httpOrigin().safeParse(value).success).toBe(false);
   });
 });

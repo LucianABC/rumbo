@@ -49,8 +49,14 @@ describe('loadConfig', () => {
     expect(() => loadConfig({ DATABASE_URL, PORT: port })).toThrow(/PORT/);
   });
 
-  it.each(['https://app.example/', 'https://app.example/path', 'ftp://app.example', 'app.example'])(
-    'rejects CORS_ORIGINS=%s, which is not a bare http(s) origin',
+  it('normalizes CORS_ORIGINS to the form browsers send', () => {
+    expect(
+      loadConfig({ DATABASE_URL, CORS_ORIGINS: 'https://App.example:443/' }).corsOrigins,
+    ).toEqual(['https://app.example']);
+  });
+
+  it.each(['https://app.example/path', 'ftp://app.example', 'app.example'])(
+    'rejects CORS_ORIGINS=%s, which is not an http(s) origin',
     (value) => {
       expect(() => loadConfig({ DATABASE_URL, CORS_ORIGINS: value })).toThrow(/CORS_ORIGINS/);
     },
