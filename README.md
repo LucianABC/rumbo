@@ -51,6 +51,8 @@ docker compose up --build --wait
 
 Open http://localhost:3000 for the status page (API, database, last worker heartbeat). Every variable has a default; copy `.env.example` to `.env` to change ports or credentials.
 
+API docs (Swagger UI) are at http://localhost:3000/api/docs, and the OpenAPI document at http://localhost:3000/api/docs/openapi.json. The document is generated at boot; documented request and response schemas come from the Zod schemas in `packages/contracts`, and every endpoint includes the standard error envelope.
+
 With the stack up, run the end-to-end smoke test (installs Chromium the first time):
 
 ```bash

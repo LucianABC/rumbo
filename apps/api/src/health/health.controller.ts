@@ -1,7 +1,9 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
+import { ApiOkResponse, ApiServiceUnavailableResponse } from '@nestjs/swagger';
 import type { HealthReport } from '@rumbo/contracts';
 import type { Response } from 'express';
 
+import { HealthReportDto } from '../openapi/schemas.js';
 import { HealthService } from './health.service.js';
 
 @Controller('healthz')
@@ -15,6 +17,11 @@ export class HealthController {
    * report to show what is down (#23).
    */
   @Get()
+  @ApiOkResponse({ type: HealthReportDto, description: 'Database answers' })
+  @ApiServiceUnavailableResponse({
+    type: HealthReportDto,
+    description: 'Database down; the same report, not the error envelope',
+  })
   async get(@Res({ passthrough: true }) res: Response): Promise<HealthReport> {
     const report = await this.health.check();
     if (report.db === 'down') {

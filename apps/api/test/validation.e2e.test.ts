@@ -42,7 +42,11 @@ class ListQuery extends createZodDto(z.object({ limit: z.coerce.number().int().m
 
 class EventBody extends createZodDto(
   z.object({
-    at: z.coerce.date().min(new Date('2026-01-01T00:00:00Z')),
+    // JSON has no dates: an ISO string piped into a Date keeps the schema representable in OpenAPI.
+    at: z.iso
+      .datetime()
+      .transform((value) => new Date(value))
+      .pipe(z.date().min(new Date('2026-01-01T00:00:00Z'))),
     item: z.union([z.object({ title: z.string() }), z.object({ year: z.int() })]),
   }),
 ) {}

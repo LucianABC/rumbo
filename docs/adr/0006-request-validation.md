@@ -32,6 +32,7 @@ Every endpoint validates its input against a Zod schema from `packages/contracts
 - The pipe's `createValidationException` turns the ZodError into `ApiException('BAD_REQUEST', …, details)`, so the global error filter (#23) stays unaware of `nestjs-zod`. `details` (`ValidationDetails` in `packages/contracts`) is built from an allowlist per issue: `path`, `code`, and the fields that come from the schema (`origin`, `expected`, `format`, `minimum`, `maximum`, `inclusive`). Issues nested in a union are flattened with the index of the option they belong to (`branch`). **Issue messages are never copied**: any message can embed the input, and reviewing every custom message is a rule that eventually fails. The web turns `code` and the constraints into user-facing text. A test sends sensitive-looking input through a refinement whose message embeds it and asserts it does not reach the response.
 - Request schemas do not use user-chosen keys (`z.record` keyed by user text), because issue paths would carry them back; such data goes in arrays of objects.
 - DTOs are built from schemas in `packages/contracts` (`createZodDto(Schema)`), never from schemas defined inside `apps/api`, so web and API share one source.
+- Request schemas stay representable in JSON Schema, because OpenAPI is generated from them at boot (#25): dates are ISO strings (`z.iso.datetime()`, transformed into a `Date` when one is needed), never `z.date()` or a bare `z.coerce.date()`. An unrepresentable schema fails app boot, so the e2e tests catch it.
 
 ## Trade-offs
 
