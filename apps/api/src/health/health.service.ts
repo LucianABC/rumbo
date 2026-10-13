@@ -1,18 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { HealthReport } from '@rumbo/contracts';
 import { PrismaClient } from '@rumbo/db';
 
 import { APP_CONFIG, type AppConfig } from '../config.js';
 
-export type DbStatus = 'up' | 'down';
-
-export interface HealthReport {
-  readonly status: 'ok' | 'degraded';
-  readonly db: DbStatus;
-  readonly version: string;
-  readonly commit: string;
-  /** Last row written by the worker heartbeat job (ISO 8601); null if none or the DB is down. */
-  readonly lastHeartbeatAt: string | null;
-}
+type DbStatus = HealthReport['db'];
 
 // Keeps /healthz fast when the database hangs instead of refusing connections.
 export const DB_PING_TIMEOUT_MS = 2_000;

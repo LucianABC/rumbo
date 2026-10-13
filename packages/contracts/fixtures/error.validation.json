@@ -1,0 +1,21 @@
+{
+  "error": {
+    "code": "BAD_REQUEST",
+    "message": "Invalid request",
+    "details": {
+      "issues": [
+        {
+          "path": ["name"],
+          "code": "too_small",
+          "origin": "string",
+          "minimum": 1,
+          "inclusive": true
+        },
+        { "path": ["email"], "code": "invalid_format", "origin": "string", "format": "email" },
+        { "path": ["item"], "code": "invalid_union" },
+        { "path": ["item", "title"], "code": "invalid_type", "expected": "string", "branch": 0 }
+      ]
+    },
+    "requestId": "ff10f6e6-cf80-470d-8946-77092d81747a"
+  }
+}

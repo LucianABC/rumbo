@@ -5,3 +5,4 @@ export {
   ValidationIssue,
   ValidationIssueCode,
 } from './errors.js';
+export { HealthReport } from './health.js';

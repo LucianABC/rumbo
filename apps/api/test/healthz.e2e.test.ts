@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import { HealthReport } from '@rumbo/contracts';
 import { createPrisma } from '@rumbo/db';
 import { startTestDatabase, type TestDatabase } from '@rumbo/db/testing';
 import request from 'supertest';
@@ -26,7 +27,7 @@ describe('GET /api/v1/healthz', () => {
   it('returns 200 with db up and no heartbeat yet', async () => {
     const res = await request(app.getHttpServer()).get('/api/v1/healthz').expect(200);
 
-    expect(res.body).toEqual({
+    expect(HealthReport.parse(res.body)).toEqual({
       status: 'ok',
       db: 'up',
       version: 'test',
@@ -50,7 +51,9 @@ describe('GET /api/v1/healthz', () => {
 
     const res = await request(app.getHttpServer()).get('/api/v1/healthz').expect(200);
 
-    expect(res.body).toMatchObject({ lastHeartbeatAt: heartbeat.createdAt.toISOString() });
+    expect(HealthReport.parse(res.body)).toMatchObject({
+      lastHeartbeatAt: heartbeat.createdAt.toISOString(),
+    });
   });
 
   it('returns 503 with db down when the database is gone', async () => {
@@ -58,6 +61,10 @@ describe('GET /api/v1/healthz', () => {
 
     const res = await request(app.getHttpServer()).get('/api/v1/healthz').expect(503);
 
-    expect(res.body).toMatchObject({ status: 'degraded', db: 'down', lastHeartbeatAt: null });
+    expect(HealthReport.parse(res.body)).toMatchObject({
+      status: 'degraded',
+      db: 'down',
+      lastHeartbeatAt: null,
+    });
   });
 });
