@@ -1,0 +1,7 @@
+{
+  "status": "degraded",
+  "db": "down",
+  "version": "1.0.0",
+  "commit": "abc123",
+  "lastHeartbeatAt": null
+}

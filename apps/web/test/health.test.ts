@@ -1,3 +1,5 @@
+import degradedPayload from '@rumbo/contracts/fixtures/health.degraded.json' with { type: 'json' };
+import okPayload from '@rumbo/contracts/fixtures/health.ok.json' with { type: 'json' };
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -99,9 +101,9 @@ describe('formatAge', () => {
 
 describe('fetchHealth', () => {
   it('calls healthz on the internal API URL and returns the report', async () => {
-    const fetchFn = fakeFetch(200, report());
+    const fetchFn = fakeFetch(200, okPayload);
 
-    await expect(fetchHealth(API, fetchFn)).resolves.toEqual(report());
+    await expect(fetchHealth(API, fetchFn)).resolves.toEqual(okPayload);
     expect(fetchFn).toHaveBeenCalledWith(
       new URL('http://api:3001/api/v1/healthz'),
       expect.objectContaining({ cache: 'no-store' }),
@@ -109,9 +111,21 @@ describe('fetchHealth', () => {
   });
 
   it('returns the report from a 503 (db down)', async () => {
-    const degraded = report({ status: 'degraded', db: 'down', lastHeartbeatAt: null });
+    await expect(fetchHealth(API, fakeFetch(503, degradedPayload))).resolves.toEqual(
+      degradedPayload,
+    );
+  });
 
-    await expect(fetchHealth(API, fakeFetch(503, degraded))).resolves.toEqual(degraded);
+  it('turns the recorded payloads into a status view', async () => {
+    const ok = await fetchHealth(API, fakeFetch(200, okPayload));
+    const degraded = await fetchHealth(API, fakeFetch(503, degradedPayload));
+
+    expect(toStatusView(ok, NOW)).toMatchObject({ api: 'up', db: 'up', heartbeat: 'fresh' });
+    expect(toStatusView(degraded, NOW)).toMatchObject({
+      api: 'up',
+      db: 'down',
+      heartbeat: 'unknown',
+    });
   });
 
   it('returns null on other error statuses', async () => {
@@ -120,6 +134,9 @@ describe('fetchHealth', () => {
 
   it('returns null when the body is not a health report', async () => {
     await expect(fetchHealth(API, fakeFetch(200, { status: 'ok' }))).resolves.toBeNull();
+    await expect(
+      fetchHealth(API, fakeFetch(200, { ...okPayload, lastHeartbeatAt: 'yesterday' })),
+    ).resolves.toBeNull();
   });
 
   it('returns null when the API is unreachable', async () => {

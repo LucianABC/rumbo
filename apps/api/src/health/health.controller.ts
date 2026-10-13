@@ -1,7 +1,8 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
+import type { HealthReport } from '@rumbo/contracts';
 import type { Response } from 'express';
 
-import { HealthService, type HealthReport } from './health.service.js';
+import { HealthService } from './health.service.js';
 
 @Controller('healthz')
 export class HealthController {

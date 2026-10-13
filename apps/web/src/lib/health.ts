@@ -1,14 +1,6 @@
-/**
- * Response of GET /api/v1/healthz (apps/api/src/health/health.service.ts).
- * Moves to a shared Zod schema in packages/contracts with the contract test harness (#27).
- */
-export interface HealthReport {
-  readonly status: 'ok' | 'degraded';
-  readonly db: 'up' | 'down';
-  readonly version: string;
-  readonly commit: string;
-  readonly lastHeartbeatAt: string | null;
-}
+import { HealthReport } from '@rumbo/contracts';
+
+export type { HealthReport };
 
 // The worker writes one every minute (#14); a few missed runs are tolerated.
 export const HEARTBEAT_STALE_AFTER_MS = 5 * 60_000;
@@ -28,8 +20,9 @@ export async function fetchHealth(
     if (!res.ok && res.status !== 503) {
       return null;
     }
-    const body: unknown = await res.json();
-    return isHealthReport(body) ? body : null;
+    // Parsed with the same schema the API is tested against (#27).
+    const parsed = HealthReport.safeParse(await res.json());
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
@@ -86,17 +79,4 @@ export function formatAge(ms: number): string {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${String(hours)}h ago`;
   return `${String(Math.floor(hours / 24))}d ago`;
-}
-
-function isHealthReport(value: unknown): value is HealthReport {
-  if (typeof value !== 'object' || value === null) return false;
-  const v = value as Record<string, unknown>;
-  return (
-    (v.status === 'ok' || v.status === 'degraded') &&
-    (v.db === 'up' || v.db === 'down') &&
-    typeof v.version === 'string' &&
-    typeof v.commit === 'string' &&
-    (v.lastHeartbeatAt === null ||
-      (typeof v.lastHeartbeatAt === 'string' && !Number.isNaN(Date.parse(v.lastHeartbeatAt))))
-  );
 }
