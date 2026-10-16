@@ -49,6 +49,37 @@ export default defineConfig(
     extends: [reactHooks.configs.flat['recommended-latest']],
   },
   {
+    // Mock data is reachable only through lib/data, so replacing it with the API touches one place (#103).
+    files: ['apps/web/src/**/*.{ts,tsx}'],
+    ignores: ['apps/web/src/lib/data/**', 'apps/web/src/mocks/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/mocks', '**/mocks/**'],
+              message: 'Read data through lib/data, never from mocks.',
+            },
+          ],
+        },
+      ],
+      // no-restricted-imports only sees static imports; this closes import() and require().
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression[source.value=/(^|\\/)mocks(\\/|$)/]',
+          message: 'Read data through lib/data, never from mocks.',
+        },
+        {
+          selector:
+            "CallExpression[callee.name='require'][arguments.0.value=/(^|\\/)mocks(\\/|$)/]",
+          message: 'Read data through lib/data, never from mocks.',
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     extends: [tseslint.configs.disableTypeChecked],
   },

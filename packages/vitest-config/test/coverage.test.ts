@@ -6,7 +6,7 @@ describe('coverage', () => {
   it('measures src with the threshold for the kind of package', () => {
     expect(coverage('package')).toMatchObject({
       provider: 'v8',
-      include: ['src/**'],
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [],
       thresholds: { lines: LINE_THRESHOLDS.package },
     });
