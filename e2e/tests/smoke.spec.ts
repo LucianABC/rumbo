@@ -15,6 +15,18 @@ test('status page shows the database up and a fresh worker heartbeat', async ({ 
   }).toPass({ timeout: 90_000, intervals: [5_000] });
 });
 
+test('pages ship processed Tailwind CSS', async ({ page, request }) => {
+  // The build passes even when Tailwind is not processed, so check what the browser gets (#104).
+  await page.goto('/roadmap');
+  const href = await page.locator('link[rel="stylesheet"]').first().getAttribute('href');
+  expect(href).toBeTruthy();
+
+  const css = await (await request.get(href ?? '')).text();
+  expect(css).toContain('box-sizing:border-box');
+  expect(css).not.toContain('@theme');
+  await expect(page.locator('ol').first()).toHaveCSS('list-style-type', 'decimal');
+});
+
 test('the web origin proxies /api/* to the API', async ({ request }) => {
   const res = await request.get('/api/v1/healthz');
 
