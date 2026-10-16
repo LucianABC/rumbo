@@ -22,12 +22,12 @@ export {
   Task,
   WorkExperienceItem,
 } from './roadmap.js';
+export { Id, WebUrl } from './ids.js';
 export {
-  currentMilestoneId,
+  deriveRoadmapView,
   isInterchange,
   milestoneStatus,
-  milestoneTargetIds,
-  targetRoute,
+  type RoadmapView,
 } from './roadmap-derive.js';
 export {
   checkLayout,
@@ -36,4 +36,5 @@ export {
   LineColorToken,
   RoadmapLayout,
   routePoints,
+  targetColors,
 } from './roadmap-layout.js';

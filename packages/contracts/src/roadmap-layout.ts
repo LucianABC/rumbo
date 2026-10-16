@@ -1,15 +1,14 @@
 import { z } from 'zod';
 
+import { Id } from './ids.js';
 import type { Roadmap } from './roadmap.js';
-import { targetRoute } from './roadmap-derive.js';
+import { deriveRoadmapView, type RoadmapView } from './roadmap-derive.js';
 
 /**
  * Where the subway map draws a roadmap (spec 01). Presentation only, kept apart from `Roadmap`:
  * no agent produces coordinates, so the domain can come from the API while the layout is
  * hand-authored, computed or dropped on its own.
  */
-
-const Id = z.string().regex(/^[a-z0-9-]+$/);
 
 /** Grid units; the layout is hand-authored, not computed. */
 export const GridPoint = z.object({ x: z.int(), y: z.int() });
@@ -39,13 +38,13 @@ export function isOctilinear(a: GridPoint, b: GridPoint): boolean {
 
 /** The points a target's line passes through, bends included, in order. */
 export function routePoints(
-  roadmap: Roadmap,
+  view: RoadmapView,
   layout: RoadmapLayout,
   targetId: string,
 ): GridPoint[] {
   const at = new Map(layout.stations.map((s) => [s.id, s.at]));
   const points: GridPoint[] = [];
-  for (const id of targetRoute(roadmap, targetId)) {
+  for (const id of view.routes.get(targetId) ?? []) {
     const point = at.get(id);
     if (point) points.push(point);
     const bend = layout.bends.find((b) => b.targetId === targetId && b.after === id);
@@ -54,17 +53,35 @@ export function routePoints(
   return points;
 }
 
+function duplicates(values: readonly string[]): string[] {
+  return [...new Set(values.filter((v, i) => values.indexOf(v) !== i))];
+}
+
 /**
  * Checks a layout against the roadmap it draws; returns readable problems, empty when it fits.
  * The view falls back to the single-line list instead of failing when this is not empty.
  */
-export function checkLayout(roadmap: Roadmap, layout: RoadmapLayout): string[] {
+export function checkLayout(
+  roadmap: Roadmap,
+  layout: RoadmapLayout,
+  view: RoadmapView = deriveRoadmapView(roadmap),
+): string[] {
   const problems: string[] = [];
-  const placed = new Set(layout.stations.map((s) => s.id));
   const targetIds = roadmap.targets.map((t) => t.id);
+  const stationIds = new Set([...roadmap.milestones.map((m) => m.id), ...targetIds]);
+  const placed = layout.stations.map((s) => s.id);
 
-  for (const id of [...roadmap.milestones.map((m) => m.id), ...targetIds]) {
-    if (!placed.has(id)) problems.push(`station "${id}" has no position`);
+  for (const id of stationIds) {
+    if (!placed.includes(id)) problems.push(`station "${id}" has no position`);
+  }
+  for (const id of placed) {
+    if (!stationIds.has(id)) problems.push(`layout places unknown station "${id}"`);
+  }
+  for (const id of duplicates(placed)) problems.push(`station "${id}" is placed twice`);
+  for (const point of duplicates(
+    layout.stations.map((s) => `${String(s.at.x)},${String(s.at.y)}`),
+  )) {
+    problems.push(`more than one station sits at (${point})`);
   }
 
   for (const targetId of targetIds) {
@@ -72,13 +89,20 @@ export function checkLayout(roadmap: Roadmap, layout: RoadmapLayout): string[] {
       problems.push(`target "${targetId}" has no line color`);
     }
   }
-  const tokens = layout.lines.map((l) => l.colorToken);
-  for (const token of new Set(tokens.filter((t, i) => tokens.indexOf(t) !== i))) {
+  for (const line of layout.lines) {
+    if (!targetIds.includes(line.targetId)) {
+      problems.push(`line color for unknown target "${line.targetId}"`);
+    }
+  }
+  for (const id of duplicates(layout.lines.map((l) => l.targetId))) {
+    problems.push(`target "${id}" has more than one line color`);
+  }
+  for (const token of duplicates(layout.lines.map((l) => l.colorToken))) {
     problems.push(`color "${token}" is used by more than one line`);
   }
 
   for (const bend of layout.bends) {
-    const route = targetRoute(roadmap, bend.targetId);
+    const route = view.routes.get(bend.targetId) ?? [];
     const index = route.indexOf(bend.after);
     if (index < 0 || index === route.length - 1) {
       problems.push(`bend after "${bend.after}" is not between two stations of "${bend.targetId}"`);
@@ -86,19 +110,22 @@ export function checkLayout(roadmap: Roadmap, layout: RoadmapLayout): string[] {
   }
 
   for (const offset of layout.offsets) {
-    const route = targetRoute(roadmap, offset.targetId);
-    if (
-      route.indexOf(offset.to) !== route.indexOf(offset.from) + 1 ||
-      !route.includes(offset.from)
-    ) {
+    const route = view.routes.get(offset.targetId) ?? [];
+    const from = route.indexOf(offset.from);
+    if (from < 0 || route.indexOf(offset.to) !== from + 1) {
       problems.push(
         `offset "${offset.from}"→"${offset.to}" is not a segment of "${offset.targetId}"`,
       );
     }
   }
+  // Lines sharing a stretch need different lanes, or one hides the other.
+  const lanes = layout.offsets.map(
+    (o) => `${[o.from, o.to].sort().join('↔')} lane ${String(o.lane)}`,
+  );
+  for (const lane of duplicates(lanes)) problems.push(`two lines share ${lane}`);
 
   for (const targetId of targetIds) {
-    const points = routePoints(roadmap, layout, targetId);
+    const points = routePoints(view, layout, targetId);
     for (let i = 1; i < points.length; i++) {
       const from = points[i - 1];
       const to = points[i];
@@ -111,4 +138,27 @@ export function checkLayout(roadmap: Roadmap, layout: RoadmapLayout): string[] {
   }
 
   return problems;
+}
+
+const SLOTS = LineColorToken.options;
+
+/**
+ * Each target's color slot, for every tab (views.md): the layout's choice when the layout fits
+ * the roadmap, otherwise target order with the primary first, so a missing map never costs a
+ * target its identity.
+ */
+export function targetColors(
+  roadmap: Roadmap,
+  layout?: RoadmapLayout,
+): ReadonlyMap<string, LineColorToken> {
+  if (layout && checkLayout(roadmap, layout).length === 0) {
+    return new Map(layout.lines.map((l) => [l.targetId, l.colorToken]));
+  }
+  const ordered = [...roadmap.targets].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+  return new Map(
+    ordered.flatMap((t, i) => {
+      const slot = SLOTS[i];
+      return slot ? [[t.id, slot] as const] : [];
+    }),
+  );
 }

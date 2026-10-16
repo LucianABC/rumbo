@@ -1,12 +1,14 @@
 import { z } from 'zod';
 
+import { Id, WebUrl } from './ids.js';
+import { deriveRoadmapView } from './roadmap-derive.js';
+
 /**
  * One user's plan as the roadmap view reads it (spec 01, ADR 0004): active targets, the gaps the
  * market says they need, and milestones whose typed items close those gaps. Geometry lives in
  * `RoadmapLayout`; interchanges, routes and statuses are derived in `roadmap-derive.ts`.
  */
 
-const Id = z.string().regex(/^[a-z0-9-]+$/);
 const IsoDate = z.iso.date();
 
 /** Catalog entries are global (ADR 0004); the view carries only what the UI shows. */
@@ -50,15 +52,37 @@ export const Gap = z.object({
 });
 export type Gap = z.infer<typeof Gap>;
 
-export const EvidenceRef = z.object({
-  id: Id,
-  sourceType: z.enum(['experience', 'project', 'commit', 'education', 'manual']),
-  /** Commit SHA, certificate URL, experience id… */
-  sourceRef: z.string().min(1),
-  excerpt: z.string().optional(),
-  /** Null until the user approves it (AI rule 2). */
-  approvedAt: z.iso.datetime().nullable(),
-});
+const CommitSha = z.string().regex(/^[0-9a-f]{7,40}$/);
+
+export const EvidenceRef = z
+  .object({
+    id: Id,
+    sourceType: z.enum(['experience', 'project', 'commit', 'education', 'manual']),
+    /**
+     * Depends on `sourceType`: a commit SHA, an http(s) URL for project and education proof, an
+     * experience id, or free text for manual entries (never rendered as a link).
+     */
+    sourceRef: z.string().min(1),
+    excerpt: z.string().optional(),
+    /** Null until the user approves it (AI rule 2). */
+    approvedAt: z.iso.datetime().nullable(),
+  })
+  .superRefine((evidence, ctx) => {
+    const format = {
+      commit: CommitSha,
+      project: WebUrl,
+      education: WebUrl,
+      experience: Id,
+      manual: z.string(),
+    }[evidence.sourceType];
+    if (!format.safeParse(evidence.sourceRef).success) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `evidence "${evidence.id}" has a sourceRef that is not a valid ${evidence.sourceType} reference`,
+        path: ['sourceRef'],
+      });
+    }
+  });
 export type EvidenceRef = z.infer<typeof EvidenceRef>;
 
 export const ItemStatus = z.enum(['pending', 'in_progress', 'done']);
@@ -90,7 +114,7 @@ export const EducationItem = ItemBase.extend({
   type: z.literal('education'),
   kind: z.enum(['course', 'workshop', 'degree', 'certification']),
   provider: z.string().min(1),
-  url: z.url().optional(),
+  url: WebUrl.optional(),
 });
 export type EducationItem = z.infer<typeof EducationItem>;
 
@@ -144,9 +168,16 @@ export const Roadmap = RoadmapShape.superRefine((roadmap, ctx) => {
     ['gaps', roadmap.gaps.map((g) => g.id)],
     ['milestones', roadmap.milestones.map((m) => m.id)],
     ['items', items.map((i) => i.id)],
+    ['evidence', items.flatMap((i) => i.evidence.map((e) => e.id))],
   ];
   for (const [name, ids] of collections) {
     for (const id of duplicates(ids)) issue(`duplicate ${name} id "${id}"`, [name]);
+  }
+  // Terminals are drawn as stations, so target and milestone ids share the map's namespace.
+  for (const milestone of roadmap.milestones) {
+    if (targetIds.has(milestone.id)) {
+      issue(`milestone "${milestone.id}" has the same id as a target`, ['milestones']);
+    }
   }
 
   if (roadmap.targets.filter((t) => t.isPrimary).length !== 1) {
@@ -154,6 +185,9 @@ export const Roadmap = RoadmapShape.superRefine((roadmap, ctx) => {
   }
 
   roadmap.gaps.forEach((gap, i) => {
+    for (const id of duplicates(gap.demand.map((d) => d.targetId))) {
+      issue(`gap "${gap.id}" lists target "${id}" twice`, ['gaps', i, 'demand']);
+    }
     gap.demand.forEach((d, j) => {
       if (!targetIds.has(d.targetId)) {
         issue(`gap "${gap.id}" references unknown target "${d.targetId}"`, [
@@ -165,8 +199,17 @@ export const Roadmap = RoadmapShape.superRefine((roadmap, ctx) => {
       }
     });
     // F3 rule (ADR 0004): no gap without a way to close it.
-    if (!items.some((item) => item.gapIds.includes(gap.id))) {
+    const closing = items.filter((item) => item.gapIds.includes(gap.id));
+    if (closing.length === 0) {
       issue(`gap "${gap.id}" has no roadmap item`, ['gaps', i]);
+      return;
+    }
+    // The stored status must agree with the items that close the gap.
+    const started = closing.some((item) => item.status !== 'pending');
+    const done = closing.some((item) => item.status === 'done');
+    const consistent = { open: !started, in_progress: started, closed: done }[gap.status];
+    if (!consistent) {
+      issue(`gap "${gap.id}" is ${gap.status} but its items disagree`, ['gaps', i, 'status']);
     }
   });
 
@@ -184,15 +227,29 @@ export const Roadmap = RoadmapShape.superRefine((roadmap, ctx) => {
           ]);
         }
       });
+      if (item.type === 'project') {
+        for (const id of duplicates(item.tasks.map((t) => t.id))) {
+          issue(`item "${item.id}" lists task "${id}" twice`, [
+            'milestones',
+            i,
+            'items',
+            j,
+            'tasks',
+          ]);
+        }
+      }
       // Closing a gap needs evidence, not a ticked box (ADR 0004).
       if (item.status === 'done' && !item.evidence.some((e) => e.approvedAt !== null)) {
         issue(`item "${item.id}" is done without approved evidence`, ['milestones', i, 'items', j]);
       }
     });
-    const served = milestone.items.some((item) =>
-      item.gapIds.some((gapId) => (gaps.get(gapId)?.demand.length ?? 0) > 0),
-    );
-    if (!served) issue(`milestone "${milestone.id}" serves no target`, ['milestones', i]);
+  });
+
+  const view = deriveRoadmapView(roadmap);
+  roadmap.milestones.forEach((milestone, i) => {
+    if (view.targetsByMilestone.get(milestone.id)?.length === 0) {
+      issue(`milestone "${milestone.id}" serves no target`, ['milestones', i]);
+    }
   });
 });
 export type Roadmap = z.infer<typeof Roadmap>;

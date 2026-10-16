@@ -2,14 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   checkLayout,
-  currentMilestoneId,
+  deriveRoadmapView,
   isInterchange,
   isOctilinear,
   milestoneStatus,
-  milestoneTargetIds,
   Roadmap,
   type RoadmapLayout,
-  targetRoute,
+  targetColors,
 } from '../src/index.js';
 
 const approved = {
@@ -34,7 +33,7 @@ function roadmap() {
         skill: { id: 'skill-1', name: 'Shared skill' },
         priority: 1,
         rationale: 'Both markets ask for it.',
-        status: 'in_progress' as const,
+        status: 'closed' as 'open' | 'in_progress' | 'closed',
         demand: [
           { targetId: 'a', snapshotId: 'snap-a', share: 0.6, postingCount: 50 },
           { targetId: 'b', snapshotId: 'snap-b', share: 0.4, postingCount: 30 },
@@ -45,7 +44,7 @@ function roadmap() {
         skill: { id: 'skill-2', name: 'B skill' },
         priority: 2,
         rationale: 'Only B asks for it.',
-        status: 'open' as const,
+        status: 'in_progress' as 'open' | 'in_progress' | 'closed',
         demand: [{ targetId: 'b', snapshotId: 'snap-b', share: 0.5, postingCount: 30 }],
       },
     ],
@@ -59,9 +58,10 @@ function roadmap() {
             type: 'education' as const,
             kind: 'certification' as const,
             provider: 'Provider',
+            url: 'https://example.com/course' as string | undefined,
             title: 'Course',
             doneWhen: 'Certificate issued',
-            status: 'done' as const,
+            status: 'done' as 'pending' | 'in_progress' | 'done',
             gapIds: ['shared-skill'],
             evidence: [approved],
           },
@@ -76,9 +76,9 @@ function roadmap() {
             type: 'project' as const,
             title: 'Project',
             doneWhen: 'Published',
-            status: 'in_progress' as const,
+            status: 'in_progress' as 'pending' | 'in_progress' | 'done',
             gapIds: ['b-skill'],
-            evidence: [],
+            evidence: [] as (typeof approved)[],
             tasks: [{ id: 't1', title: 'Start', done: true }],
           },
         ],
@@ -145,18 +145,88 @@ describe('Roadmap', () => {
     );
   });
 
-  it('rejects a milestone that serves no target', () => {
+  it('rejects a milestone whose gaps serve no known target', () => {
     const r = roadmap();
-    at(at(r.milestones, 1).items, 0).gapIds = ['nope'];
+    at(at(r.gaps, 1).demand, 0).targetId = 'ghost';
 
     expect(messages(r)).toContain('milestone "second" serves no target');
   });
 
-  it('rejects duplicate ids', () => {
+  it('rejects duplicate ids, including across items and evidence', () => {
     const r = roadmap();
     at(r.milestones, 1).id = 'first';
+    at(at(r.milestones, 1).items, 0).evidence = [{ ...approved }];
 
-    expect(messages(r)).toContain('duplicate milestones id "first"');
+    expect(messages(r)).toEqual(
+      expect.arrayContaining(['duplicate milestones id "first"', 'duplicate evidence id "ev-1"']),
+    );
+  });
+
+  it('rejects a milestone with the same id as a target', () => {
+    const r = roadmap();
+    at(r.milestones, 1).id = 'b';
+
+    expect(messages(r)).toContain('milestone "b" has the same id as a target');
+  });
+
+  it('rejects repeated tasks and repeated demand for one target', () => {
+    const r = roadmap();
+    const project = at(at(r.milestones, 1).items, 0) as {
+      tasks: { id: string; title: string; done: boolean }[];
+    };
+    project.tasks.push({ id: 't1', title: 'Again', done: false });
+    const gap = at(r.gaps, 1);
+    gap.demand.push({ ...at(gap.demand, 0) });
+
+    expect(messages(r)).toEqual(
+      expect.arrayContaining([
+        'item "project" lists task "t1" twice',
+        'gap "b-skill" lists target "b" twice',
+      ]),
+    );
+  });
+
+  it.each([
+    ['open', 'in_progress'],
+    ['in_progress', 'pending'],
+    ['closed', 'in_progress'],
+  ] as const)('rejects a gap that is %s when its item is %s', (gapStatus, itemStatus) => {
+    const r = roadmap();
+    at(r.gaps, 1).status = gapStatus;
+    at(at(r.milestones, 1).items, 0).status = itemStatus;
+
+    expect(messages(r)).toContain(`gap "b-skill" is ${gapStatus} but its items disagree`);
+  });
+
+  it('only accepts http(s) links', () => {
+    const r = roadmap();
+    (at(at(r.milestones, 0).items, 0) as { url?: string }).url = 'javascript:alert(1)';
+
+    expect(Roadmap.safeParse(r).success).toBe(false);
+  });
+
+  it.each([
+    ['education', 'javascript:alert(1)'],
+    ['project', 'not a url'],
+    ['commit', 'https://github.com/x/y/commit/abc'],
+    ['experience', 'Has Spaces'],
+  ] as const)('rejects a %s evidence with sourceRef %s', (sourceType, sourceRef) => {
+    const r = roadmap();
+    at(at(r.milestones, 0).items, 0).evidence = [{ ...approved, sourceType, sourceRef } as never];
+
+    expect(messages(r)).toContain(
+      `evidence "ev-1" has a sourceRef that is not a valid ${sourceType} reference`,
+    );
+  });
+
+  it('accepts a commit SHA and free-text manual evidence', () => {
+    const r = roadmap();
+    at(at(r.milestones, 0).items, 0).evidence = [
+      { ...approved, sourceType: 'commit', sourceRef: 'a1b2c3d' } as never,
+      { ...approved, id: 'ev-2', sourceType: 'manual', sourceRef: 'Told by my manager' } as never,
+    ];
+
+    expect(messages(r)).toEqual([]);
   });
 
   it('rejects an item type without its required detail', () => {
@@ -167,25 +237,26 @@ describe('Roadmap', () => {
   });
 });
 
-describe('derived view', () => {
+describe('deriveRoadmapView', () => {
   const r = Roadmap.parse(roadmap());
+  const view = deriveRoadmapView(r);
 
   it('serves the targets of the gaps a milestone closes', () => {
-    expect(milestoneTargetIds(r, at(r.milestones, 0))).toEqual(['a', 'b']);
-    expect(milestoneTargetIds(r, at(r.milestones, 1))).toEqual(['b']);
-    expect(isInterchange(r, at(r.milestones, 0))).toBe(true);
-    expect(isInterchange(r, at(r.milestones, 1))).toBe(false);
+    expect(view.targetsByMilestone.get('first')).toEqual(['a', 'b']);
+    expect(view.targetsByMilestone.get('second')).toEqual(['b']);
+    expect(isInterchange(view, 'first')).toBe(true);
+    expect(isInterchange(view, 'second')).toBe(false);
   });
 
   it('routes each target through its milestones to its terminal', () => {
-    expect(targetRoute(r, 'a')).toEqual(['first', 'a']);
-    expect(targetRoute(r, 'b')).toEqual(['first', 'second', 'b']);
+    expect(view.routes.get('a')).toEqual(['first', 'a']);
+    expect(view.routes.get('b')).toEqual(['first', 'second', 'b']);
   });
 
   it('derives milestone status from items and "you are here" from plan order', () => {
-    expect(milestoneStatus(at(r.milestones, 0))).toBe('done');
-    expect(milestoneStatus(at(r.milestones, 1))).toBe('in_progress');
-    expect(currentMilestoneId(r)).toBe('second');
+    expect(view.statusByMilestone.get('first')).toBe('done');
+    expect(view.statusByMilestone.get('second')).toBe('in_progress');
+    expect(view.currentMilestoneId).toBe('second');
 
     const pending = structuredClone(at(r.milestones, 1));
     at(pending.items, 0).status = 'pending';
@@ -196,7 +267,7 @@ describe('derived view', () => {
     const done = structuredClone(r);
     done.milestones = [at(done.milestones, 0)];
 
-    expect(currentMilestoneId(done)).toBeNull();
+    expect(deriveRoadmapView(done).currentMilestoneId).toBeNull();
   });
 });
 
@@ -229,14 +300,30 @@ describe('checkLayout', () => {
     l.stations = l.stations.filter((s) => s.id !== 'second');
     l.lines = [
       { targetId: 'a', colorToken: 'line-1' },
-      { targetId: 'x', colorToken: 'line-1' },
+      { targetId: 'a', colorToken: 'line-1' },
     ];
 
     expect(checkLayout(r, l)).toEqual(
       expect.arrayContaining([
         'station "second" has no position',
         'target "b" has no line color',
+        'target "a" has more than one line color',
         'color "line-1" is used by more than one line',
+      ]),
+    );
+  });
+
+  it('reports stale and duplicate entries', () => {
+    const l = layout();
+    l.lines.push({ targetId: 'gone', colorToken: 'line-3' });
+    l.stations.push({ id: 'removed', at: { x: 9, y: 9 } }, { id: 'first', at: { x: 2, y: 2 } });
+
+    expect(checkLayout(r, l)).toEqual(
+      expect.arrayContaining([
+        'line color for unknown target "gone"',
+        'layout places unknown station "removed"',
+        'station "first" is placed twice',
+        'more than one station sits at (2,2)',
       ]),
     );
   });
@@ -259,6 +346,48 @@ describe('checkLayout', () => {
         'offset "first"→"second" is not a segment of "a"',
       ]),
     );
+  });
+
+  it('reports two lines in the same lane of a shared stretch', () => {
+    const l = layout();
+    l.offsets = [
+      { targetId: 'a', from: 'first', to: 'a', lane: 0 },
+      { targetId: 'b', from: 'first', to: 'second', lane: 0 },
+      { targetId: 'b', from: 'second', to: 'first', lane: 1 },
+      { targetId: 'a', from: 'first', to: 'a', lane: 0 },
+    ];
+
+    expect(checkLayout(r, l)).toContain('two lines share a↔first lane 0');
+  });
+});
+
+describe('targetColors', () => {
+  const r = Roadmap.parse(roadmap());
+
+  it("uses the layout's slots when the layout fits", () => {
+    const colors = targetColors(r, {
+      lines: [
+        { targetId: 'a', colorToken: 'line-3' },
+        { targetId: 'b', colorToken: 'line-1' },
+      ],
+      stations: [
+        { id: 'first', at: { x: 0, y: 0 } },
+        { id: 'second', at: { x: 2, y: 2 } },
+        { id: 'a', at: { x: 4, y: 0 } },
+        { id: 'b', at: { x: 4, y: 2 } },
+      ],
+      bends: [],
+      offsets: [],
+    });
+
+    expect(Object.fromEntries(colors)).toEqual({ a: 'line-3', b: 'line-1' });
+  });
+
+  it('falls back to target order, primary first, without a usable layout', () => {
+    const swapped = structuredClone(r);
+    swapped.targets.reverse();
+
+    expect(Object.fromEntries(targetColors(swapped))).toEqual({ a: 'line-1', b: 'line-2' });
   });
 });
 
