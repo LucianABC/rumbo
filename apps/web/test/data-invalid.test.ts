@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { getRoadmap, getRoadmapLayout } from '../src/lib/data';
 
 // Broken mocks stand in for a bad API payload: views must get a rejection, not a sync throw.
+vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 vi.mock('../src/mocks/roadmap', () => ({ roadmap: { from: 'x', targets: [] } }));
 vi.mock('../src/mocks/roadmap-layout', () => ({ roadmapLayout: { lines: 'not an array' } }));
 

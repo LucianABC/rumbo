@@ -1,9 +1,20 @@
 import { Roadmap } from '@rumbo/contracts';
-import { describe, expect, it } from 'vitest';
+import { connection } from 'next/server';
+import { describe, expect, it, vi } from 'vitest';
 
 import { getRoadmap, getRoadmapLayout, getTargetColors, parse } from '../src/lib/data';
 
+vi.mock('next/server', () => ({ connection: vi.fn(() => Promise.resolve()) }));
+
 describe('lib/data', () => {
+  it('renders per request: every read waits for connection()', async () => {
+    vi.mocked(connection).mockClear();
+    const roadmap = await getRoadmap();
+    await getRoadmapLayout(roadmap);
+
+    expect(connection).toHaveBeenCalledTimes(2);
+  });
+
   it('serves a roadmap and a layout that fits it', async () => {
     const roadmap = await getRoadmap();
 

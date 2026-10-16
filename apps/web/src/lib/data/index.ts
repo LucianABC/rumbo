@@ -5,6 +5,7 @@ import {
   RoadmapLayout,
   targetColors,
 } from '@rumbo/contracts';
+import { connection } from 'next/server';
 import type { z } from 'zod';
 
 import { roadmap } from '../../mocks/roadmap';
@@ -15,22 +16,26 @@ import { roadmapLayout } from '../../mocks/roadmap-layout';
  * switches to the typed API client (#79) when its feature serves real data, and no view changes.
  * Invalid data always surfaces as a rejected promise, never a synchronous throw, as it will from
  * the API.
+ *
+ * Every read waits for `connection()`, so pages built on lib/data render per request, never at
+ * build time: swapping a mock for the API cannot make `next build` call the API or bake one
+ * user's data into static HTML (#104).
  */
 
-export function getRoadmap(): Promise<Roadmap> {
-  return Promise.resolve().then(() => parse(Roadmap, roadmap, 'roadmap'));
+export async function getRoadmap(): Promise<Roadmap> {
+  await connection();
+  return parse(Roadmap, roadmap, 'roadmap');
 }
 
 /**
  * The map's layout, or null when it is missing, malformed or does not fit this roadmap: the view
  * then degrades to the single-line list instead of failing (spec 01, #103).
  */
-export function getRoadmapLayout(forRoadmap: Roadmap): Promise<RoadmapLayout | null> {
-  return Promise.resolve().then(() => {
-    const layout = RoadmapLayout.safeParse(roadmapLayout);
-    if (!layout.success || checkLayout(forRoadmap, layout.data).length > 0) return null;
-    return layout.data;
-  });
+export async function getRoadmapLayout(forRoadmap: Roadmap): Promise<RoadmapLayout | null> {
+  await connection();
+  const layout = RoadmapLayout.safeParse(roadmapLayout);
+  if (!layout.success || checkLayout(forRoadmap, layout.data).length > 0) return null;
+  return layout.data;
 }
 
 /**
