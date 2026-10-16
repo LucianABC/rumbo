@@ -7,11 +7,13 @@ Data for one fictional user after onboarding (spec 01). The user is a customer s
 | `roadmap.ts`        | ADR 0004: targets, gaps, plan | `Roadmap` (`@rumbo/contracts`)       |
 | `roadmap-layout.ts` | Presentation of the map       | `RoadmapLayout` (`@rumbo/contracts`) |
 
-The other tabs add their files here as they are built (#111–#115). Contracts that no spec backs yet come from `@rumbo/contracts/provisional`.
+The other tabs add their files here as they are built (#111–#115). Contracts that no spec backs yet go in a `@rumbo/contracts/provisional` export, created by the first tab that needs one.
+
+Cross-mock references must resolve once both files exist. For example, the evidence `sourceRef: 'experience-current-job'` in `roadmap.ts` is an experience id that the Profile mock (#113) has to define.
 
 ## Rules
 
-- **Components never import from this folder.** They call `src/lib/data`, and ESLint enforces it.
+- **Components never import from this folder**, statically or with `import()`. They call `src/lib/data`, and ESLint enforces it.
 - **Every mock is declared with `satisfies` its contract type**, and a test in `apps/web/test` parses it at runtime. A contract change breaks the build, not the demo.
 - **Edit freely.** Ids are kebab-case, and dates are relative to 2026-10-16.
 
