@@ -22,14 +22,14 @@ A front-end-only slice that pulls the F3 roadmap view forward, inside an app she
 
 - **Local only.** Nothing is deployed to Vercel or exposed in any way (hard limit in `CLAUDE.md`: no public exposure before real auth). Each milestone is "done" when it is merged, tagged and runs locally with `pnpm --filter @rumbo/web build && pnpm --filter @rumbo/web start`.
 - **Lives in `apps/web`.**
-  - Each tab is a route: `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`, plus `/tokens` for M1.
+  - Each tab is a route: `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`. `/tokens` compared the two M1 directions and was removed once the owner picked one (#105, #106).
   - `/` redirects to `/roadmap`, so the demo opens on the map.
   - The status page moves to `/status`, and the e2e smoke test follows it (#107).
 - **Route handlers under `/demo/*`**, not `/api/*`: `src/proxy.ts` forwards `/api/*` to the NestJS API (ADR 0002).
   - `/demo/health` and `/demo/analyze` are a temporary exception to ADR 0002 §5 ("no backend logic in Vercel functions").
   - Moving the analysis behind the API and the router is #121.
 - **Model id from `ANTHROPIC_MODEL`**, not from `packages/router`. This is an exception to the "model ids only in the router" rule, scoped to this adapter and also tracked by #121.
-- **Dependencies**, approved by the owner: `tailwindcss` + `@tailwindcss/postcss` + `postcss` (v4), `motion`, `ai`, `@ai-sdk/anthropic`, plus the web UI stack of ADR 0007 (#78): shadcn/ui components over Base UI, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-hook-form`, `@tanstack/react-query`, `nuqs` and `recharts`. Fonts come from `next/font`. The subway map, the single-line view and the station panel content are hand-made. Anything else needs asking first.
+- **Dependencies**, approved by the owner: `tailwindcss` + `@tailwindcss/postcss` + `postcss` (v4), `motion`, `ai`, `@ai-sdk/anthropic`, plus the web UI stack of ADR 0007 (#78): shadcn/ui components over Base UI, `class-variance-authority`, `cn`, `lucide-react`, `react-hook-form`, `@tanstack/react-query`, `nuqs` and `recharts`. Fonts come from `next/font`. The subway map, the single-line view and the station panel content are hand-made. Anything else needs asking first.
 - **Layout is hand-authored.** Geometry lives in a separate `RoadmapLayout`, on a grid, with octilinear segments only. Parallel offsets where lines share a stretch are authored too (no layout algorithm).
 - **The demo starts after onboarding.** The mock user has already imported a profile and chosen three targets. The onboarding flow and changing the goal are documented in `docs/product/views.md`. Onboarding is not built. Change targets is a mocked entry: a read-only explainer with a sample preview, with no editing or recalculation.
 - **Mocks are a fictional user.** Nothing in mocks, copy, prompts or tests refers to the owner's own projects, plan or targets.
@@ -257,6 +257,7 @@ A fictional customer support specialist with three active targets, chosen to be 
   - a sample station and segment;
   - the shared elements every tab uses: tab bar, card, table row, status chip, diff line, empty state and focus ring.
 - Line colors meet ≥ 3:1 against the map background in both themes, and text meets ≥ 4.5:1. The measured values are shown.
+- The owner picked B, "Field notes", with Bricolage Grotesque, Figtree and IBM Plex Mono (#105); `docs/product/views.md` records the direction.
 - After the owner picks a direction, `@theme` covers:
   - colors (light and dark) and line colors;
   - type scale, spacing, radii;

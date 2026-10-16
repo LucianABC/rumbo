@@ -95,7 +95,7 @@ The weekly recalculation (F5) recomputes the plan for the current targets (as in
 - **Planned state.** A tab whose view is not built yet shows a designed empty state naming the feature and its phase. It is the fallback for any tab the detour does not finish.
 - **Data comes only from `lib/data`** and has contract types. Views never import mocks.
 
-## Look and feel: what both M1 directions must cover
+## Look and feel: Field notes
 
 The subway map is the metaphor for the plan, not the theme for every pixel. The rest of the app is a calm, legible work tool that borrows from transit signage only where it helps wayfinding:
 
@@ -103,26 +103,24 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - line colors as identity;
 - clear "you are here" orientation.
 
-Each direction on `/tokens` must show:
+**Direction: B, "Field notes"**, picked by the owner on 2026-10-16 over A, "Wayfinding" (transit signage), after comparing both in light and dark (#105). The tokens live in `apps/web/src/app/globals.css` (#106); components use their utilities, never raw color values.
 
-- palette in light and dark:
-  - three line colors;
-  - neutrals;
-  - the status colors.
-- typefaces:
-  - a display + text pairing;
-  - tabular figures for numbers;
-  - the type scale.
-- the shared elements:
-  - tab bar and rail;
-  - page header with provenance line;
-  - card and table row;
-  - status chip, count pill and attention badge;
-  - diff line (added/removed);
-  - ranked bar (market frequency);
-  - empty state and focus ring;
-  - one map station and segment.
-- motion tokens (durations and easings) for the sheet, the line draw-in and the "you are here" pulse, all honoring `prefers-reduced-motion`.
+- **Why this direction:** a hand-drawn map in a notebook feels personal and calm, which suits a long job search more than a dashboard; muted inks leave strong color for status, so "awaiting approval" stands out.
+- **Palette:** paper background (`#f3eee4` light, `#1a1814` dark), lighter paper cards, warm ink text, deep green primary.
+  - lines: terracotta, slate blue and plum (`line-1…3`), each ≥ 3:1 against the background in both themes;
+  - status: success (green), attention (amber) and pending (warm gray); status text ≥ 4.5:1 on background and cards;
+  - errors use crimson (`destructive`) and focus rings the primary green, never a line color, so neither reads as a target;
+  - hover fills, skeletons and secondary buttons use a darker paper (`muted`), never the background itself;
+  - `apps/web/test/theme.test.ts` measures every ratio from `globals.css`.
+- **Typefaces** (from `next/font`, self-hosted):
+  - Bricolage Grotesque for headings: characterful without the formality of a serif;
+  - Figtree for text and UI;
+  - IBM Plex Mono for data, dates and figures, with tabular figures (`tabular-nums`);
+  - the owner rejected Fraunces + Instrument Sans and also compared Source Serif/Sans, Newsreader + Public Sans and Young Serif + Figtree.
+- **Type scale and spacing:** Tailwind's defaults (1rem body, 0.25rem step), plus `text-2xs` (11px) for tab-bar and map labels.
+- **Shape:** 12px base radius (`--radius`); map strokes 4px with round caps and joins (`--map-stroke`), stations 6px (`--map-station`).
+- **Motion:** `ease-soft` for things entering (sheet, line draw-in) and `ease-soft-in-out` for the "you are here" pulse; durations `--duration-quick` 120ms, `--duration-base` 200ms, `--duration-slow` 360ms and `--duration-pulse` 1.6s. Under `prefers-reduced-motion` every animation and transition is cut to an instant.
+- **Dark mode** follows the system preference; there is no in-app toggle yet.
 
 ## Roadmap (home) — F3 (#43), F2b (#63)
 
