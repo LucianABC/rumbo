@@ -1,7 +1,7 @@
 import type { RoadmapLayout } from '@rumbo/contracts';
 
 /**
- * Hand-authored map for the mock roadmap (spec 01). Derived routes:
+ * Hand-authored map for the mock roadmap (spec 01, #103). Derived routes:
  * Data Analyst: query-basics → weekly-report → public-dashboard → statistics-grounding → terminal
  * Business Analyst: query-basics → weekly-report → process-map → public-dashboard → terminal
  * Support Operations Lead: query-basics → weekly-report → team-capacity → terminal

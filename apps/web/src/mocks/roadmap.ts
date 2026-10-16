@@ -1,7 +1,7 @@
 import type { Roadmap } from '@rumbo/contracts';
 
 /**
- * Fictional user's roadmap after onboarding (spec 01): a customer support specialist with three
+ * Fictional user's roadmap after onboarding (spec 01, #103): a customer support specialist with three
  * active targets. Shapes follow ADR 0004; interchanges, routes and "you are here" are derived.
  */
 export const roadmap = {
@@ -223,7 +223,7 @@ export const roadmap = {
         {
           id: 'sales-dashboard',
           type: 'project',
-          repo: 'github.com/example-user/sales-dashboard',
+          repo: 'https://github.com/example-user/sales-dashboard',
           title: 'Sales dashboard project',
           doneWhen: 'Dashboard published with a README explaining the questions it answers',
           status: 'pending',
