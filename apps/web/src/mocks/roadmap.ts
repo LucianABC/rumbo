@@ -65,8 +65,8 @@ export const roadmap = {
       skill: { id: 'data-visualization', name: 'Data visualization' },
       priority: 2,
       rationale:
-        'Two targets ask for dashboards; the profile has reports but none published or reviewed by others.',
-      status: 'open',
+        'Two targets ask for dashboards; the profile has reports but none published or reviewed by others. The weekly report is the first step.',
+      status: 'in_progress',
       demand: [
         { targetId: 'data-analyst', snapshotId: 'snap-da-2026-10', share: 0.64, postingCount: 140 },
         {
