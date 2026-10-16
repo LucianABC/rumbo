@@ -205,6 +205,13 @@ describe('Roadmap', () => {
     expect(Roadmap.safeParse(r).success).toBe(false);
   });
 
+  it('only accepts http(s) repo links', () => {
+    const r = roadmap();
+    (at(at(r.milestones, 1).items, 0) as { repo?: string }).repo = 'github.com/user/repo';
+
+    expect(Roadmap.safeParse(r).success).toBe(false);
+  });
+
   it.each([
     ['education', 'javascript:alert(1)'],
     ['project', 'not a url'],
