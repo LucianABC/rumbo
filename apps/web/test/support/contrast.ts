@@ -1,6 +1,6 @@
 /**
- * WCAG 2.x contrast for the design tokens, so every ratio shown on /tokens and asserted in tests
- * is computed from the same hex values the UI uses (#105).
+ * WCAG 2.x contrast, so tests can hold the design tokens in globals.css to the minimums of spec 01
+ * (#105, #106).
  */
 
 const HEX = /^#([0-9a-f]{6})$/i;
@@ -21,11 +21,6 @@ export function luminance(hex: string): number {
 export function contrastRatio(a: string, b: string): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
   return (hi + 0.05) / (lo + 0.05);
-}
-
-/** Ratio rounded down to one decimal, so a displayed "4.5:1" never overstates a 4.49 ratio. */
-export function formatRatio(ratio: number): string {
-  return `${(Math.floor(ratio * 10) / 10).toFixed(1)}:1`;
 }
 
 /** WCAG minimums: 4.5:1 for body text, 3:1 for graphics such as map lines (1.4.3, 1.4.11). */

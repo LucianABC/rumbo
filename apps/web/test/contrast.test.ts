@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { contrastRatio, formatRatio, luminance } from '../src/lib/contrast';
+import { contrastRatio, luminance } from './support/contrast';
 
 describe('contrast', () => {
   it('matches the WCAG reference values', () => {
@@ -13,11 +13,6 @@ describe('contrast', () => {
 
   it('is order independent', () => {
     expect(contrastRatio('#1d5bbf', '#f6f5f1')).toBe(contrastRatio('#f6f5f1', '#1d5bbf'));
-  });
-
-  it('rounds down when formatting, so a failing ratio never reads as passing', () => {
-    expect(formatRatio(4.49)).toBe('4.4:1');
-    expect(formatRatio(21)).toBe('21.0:1');
   });
 
   it('rejects anything but #rrggbb', () => {

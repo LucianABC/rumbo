@@ -22,7 +22,7 @@ A front-end-only slice that pulls the F3 roadmap view forward, inside an app she
 
 - **Local only.** Nothing is deployed to Vercel or exposed in any way (hard limit in `CLAUDE.md`: no public exposure before real auth). Each milestone is "done" when it is merged, tagged and runs locally with `pnpm --filter @rumbo/web build && pnpm --filter @rumbo/web start`.
 - **Lives in `apps/web`.**
-  - Each tab is a route: `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`, plus `/tokens` for M1.
+  - Each tab is a route: `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`. `/tokens` compared the two M1 directions and was removed once the owner picked one (#105, #106).
   - `/` redirects to `/roadmap`, so the demo opens on the map.
   - The status page moves to `/status`, and the e2e smoke test follows it (#107).
 - **Route handlers under `/demo/*`**, not `/api/*`: `src/proxy.ts` forwards `/api/*` to the NestJS API (ADR 0002).
@@ -257,6 +257,7 @@ A fictional customer support specialist with three active targets, chosen to be 
   - a sample station and segment;
   - the shared elements every tab uses: tab bar, card, table row, status chip, diff line, empty state and focus ring.
 - Line colors meet ≥ 3:1 against the map background in both themes, and text meets ≥ 4.5:1. The measured values are shown.
+- The owner picked B, "Field notes", with Bricolage Grotesque, Figtree and IBM Plex Mono (#105); `docs/product/views.md` records the direction.
 - After the owner picks a direction, `@theme` covers:
   - colors (light and dark) and line colors;
   - type scale, spacing, radii;
