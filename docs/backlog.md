@@ -14,7 +14,7 @@ The board lives in **GitHub Issues** (repo `rumbo`) and the GitHub Project linke
 
 1. **Phase 0 — Decisions** — closed: ADRs 0001, 0002, 0004, 0005 accepted. Auth (ADR 0003) is deferred to Production launch; embeddings (ADR pending) to the F2 spec.
 2. **Walking skeleton (local)** — tooling, CI, prod-like Docker Compose, healthz, worker heartbeat, local smoke test.
-3. **Detour — Roadmap demo** (2026-10-16 → 2026-10-25, owner decision 2026-10-16, epic #99): front-end demo of the F3 roadmap view and every tab with contract-typed mocks (spec 01, `docs/product/views.md`). The plan below shifts about 9 days.
+3. **Detour — Roadmap demo** (2026-10-16 → 2026-10-25, owner decision 2026-10-16, epic #99): front-end demo of the F3 roadmap view with contract-typed mocks (spec 01). The plan below shifts about 9 days.
 4. **API skeleton** — config, helmet/CORS, error envelope, validation, Swagger, logging with PII redaction, contracts, coverage gate.
 5. **Ownership** — `User` + ownership scoping, identity port with local single-owner adapter, `DELETE /me`.
 6. **Features F1 → F2 → F2b → F3** — one epic each; broken down when they enter the 2–3 week horizon, starting with a spec in `docs/specs/`.
