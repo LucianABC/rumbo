@@ -1,6 +1,6 @@
 # 01 — Roadmap subway map (front-end demo slice)
 
-Status: draft, revision 2 (contract realigned with ADR 0004, #101; app views and mock layer added, #102). Pending owner approval. Deadline: demo-ready 2026-10-25. Epic #99.
+Status: revision 2, approved by the owner on 2026-10-16 (contract realigned with ADR 0004, #101; app views and mock layer, #102). Deadline: demo-ready 2026-10-25. Epic #99.
 
 ## What
 
@@ -20,7 +20,7 @@ A front-end-only slice that pulls the F3 roadmap view forward, inside an app she
 
 ## Constraints and deliberate exceptions
 
-- **Local only.** Nothing is deployed to Vercel or exposed in any way (hard limit in `CLAUDE.md`: no public exposure before real auth). Each milestone is "done" when it is merged, tagged and runs with `pnpm --filter @rumbo/web build && start` locally.
+- **Local only.** Nothing is deployed to Vercel or exposed in any way (hard limit in `CLAUDE.md`: no public exposure before real auth). Each milestone is "done" when it is merged, tagged and runs locally with `pnpm --filter @rumbo/web build && pnpm --filter @rumbo/web start`.
 - **Lives in `apps/web`.**
   - Each tab is a route: `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`, plus `/tokens` for M1.
   - `/` redirects to `/roadmap`, so the demo opens on the map.
@@ -304,7 +304,8 @@ A fictional customer support specialist with three active targets, chosen to be 
 - `POST /demo/analyze` sends the roadmap to Claude and streams `{ summary, nextMilestoneId, risk }`.
 - The final object is validated with Zod. An unknown id is shown without a link (rule 3).
 - The prompt treats the roadmap as data. The key comes from `ANTHROPIC_API_KEY` and the model from `ANTHROPIC_MODEL`.
-- Each call is capped by `maxOutputTokens`. One server log line records model, input/output tokens and estimated cost, with no roadmap content (rules 4–5).
+- Each call is capped by `maxOutputTokens`, and each analysis run has a token budget (input + output) that stops it when exceeded; retries count against the same run (rule 4). One server log line per call records run id, model, input/output tokens and estimated cost, with no roadmap content (rules 4–5).
+- Prompt-injection test: a roadmap whose milestone title and summary carry instructions ("Ignore previous instructions…") is sent through the mock client. The test asserts the prompt marks the roadmap as data and the parsed output still matches the schema (rule 1).
 - Mock mode: `DEMO_MOCK=1` or a missing key streams a recorded response with realistic timing. Tests use the mock only and never call the API.
 - The UI has states for idle, thinking, streaming, done, error with retry, and empty (nothing in progress).
 
@@ -323,7 +324,13 @@ A fictional customer support specialist with three active targets, chosen to be 
 
 ## Evals
 
-None in this slice. The analysis is a stand-in shown to the user, and nothing feeds logic beyond the validated `nextMilestoneId`. The real Tracking agent gets a golden set when it is built (F5, per rule 6).
+A minimal golden set for the analyze prompt, in `evals/` and run by `pnpm eval` (real calls, never in `pnpm test`):
+
+- three fictional roadmaps: on track, stalled (no progress in four weeks), and almost done;
+- each case checks that the output parses, that `nextMilestoneId` exists and is not done, and that the risk names something present in the roadmap;
+- before/after results are shown whenever the prompt changes (rule 6).
+
+The real Tracking agent gets its own golden set when it is built (F5).
 
 ## Out of scope (stays in the plan)
 
