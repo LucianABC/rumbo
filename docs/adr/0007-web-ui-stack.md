@@ -34,21 +34,21 @@ Headless base for option 2: Radix is the lightest but has no Combobox, which F2b
 
 **Option 2.** The stack:
 
-| Need                 | Choice                                               | Notes                                                                                             |
-| -------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Styling              | Tailwind v4, design tokens in `@theme`               | Unchanged (#104, #106)                                                                            |
-| Components           | shadcn/ui with Base UI (`shadcn` CLI, `--base base`) | Generated into `apps/web/src/components/ui`; owned code, restyled with our tokens                 |
-| Style helpers        | `class-variance-authority`, `clsx`, `tailwind-merge` | Variants and `cn()` as shadcn ships them                                                          |
-| Icons                | `lucide-react`                                       |                                                                                                   |
-| Mobile bottom sheet  | Base UI `Drawer`                                     | Not `vaul` (no release since 2024-12)                                                             |
-| Toasts               | What shadcn ships for the chosen base                |                                                                                                   |
-| Forms                | `react-hook-form` + `@hookform/resolvers`            | Schemas from `packages/contracts`; shadcn `Field` wires labels and errors                         |
-| Client server state  | `@tanstack/react-query` (+ devtools in dev only)     | Mutations, invalidation, retries, run-status polling, optimistic approvals                        |
-| URL state            | `nuqs`                                               | Filters, path comparison, in-view tabs                                                            |
-| File upload          | `react-dropzone`                                     | F1                                                                                                |
-| Charts               | `recharts` through shadcn's chart component          | Loaded lazily, only on the views that chart                                                       |
-| API client (#79)     | `openapi-typescript` + `openapi-fetch`               | Types generated from the API's OpenAPI document (#25), itself generated from `packages/contracts` |
-| Motion, AI streaming | `motion`, `ai`                                       | Already approved in spec 01                                                                       |
+| Need                 | Choice                                               | Notes                                                                                                          |
+| -------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Styling              | Tailwind v4, design tokens in `@theme`               | Unchanged (#104, #106)                                                                                         |
+| Components           | shadcn/ui with Base UI (`shadcn` CLI, `--base base`) | Generated into `apps/web/src/components/ui`; owned code, restyled with our tokens                              |
+| Style helpers        | `class-variance-authority`, `cn`                     | Variants, and `cn()` as the shadcn CLI generates it: shadcn's replacement for `clsx` + `tailwind-merge` (#105) |
+| Icons                | `lucide-react`                                       |                                                                                                                |
+| Mobile bottom sheet  | Base UI `Drawer`                                     | Not `vaul` (no release since 2024-12)                                                                          |
+| Toasts               | What shadcn ships for the chosen base                |                                                                                                                |
+| Forms                | `react-hook-form` + `@hookform/resolvers`            | Schemas from `packages/contracts`; shadcn `Field` wires labels and errors                                      |
+| Client server state  | `@tanstack/react-query` (+ devtools in dev only)     | Mutations, invalidation, retries, run-status polling, optimistic approvals                                     |
+| URL state            | `nuqs`                                               | Filters, path comparison, in-view tabs                                                                         |
+| File upload          | `react-dropzone`                                     | F1                                                                                                             |
+| Charts               | `recharts` through shadcn's chart component          | Loaded lazily, only on the views that chart                                                                    |
+| API client (#79)     | `openapi-typescript` + `openapi-fetch`               | Types generated from the API's OpenAPI document (#25), itself generated from `packages/contracts`              |
+| Motion, AI streaming | `motion`, `ai`                                       | Already approved in spec 01                                                                                    |
 
 Rules:
 
@@ -57,6 +57,7 @@ Rules:
 - **No Server Actions.** Mutations go through the typed client and the `/api/*` proxy, so the API stays the only write surface: auth, validation and ownership are enforced and tested in one place (ADR 0002 §5, ADR 0006).
 - **Validation errors** from the API are mapped from `code` to text in one web module (ADR 0006); forms show them through `Field`, never the API's message.
 - **Responses that feed logic** are still parsed with their `packages/contracts` schema; `openapi-fetch` types do not validate at runtime.
+- **The `shadcn` package stays out of the lockfile.** Its CLI dependencies carry a high advisory with no patch (GHSA-vfj7-8cjw-p6xm), so the CLI runs through `pnpm dlx shadcn@<version>` and the CSS its components need is vendored in `apps/web/src/app/shadcn.css` (#105).
 - **New UI dependencies** outside this table still need the owner's approval.
 
 ## Trade-offs
