@@ -48,10 +48,10 @@ Targets can change at any time from **Change targets** in the Roadmap summary ba
 3. **Apply:**
    - targets that were removed are archived, not deleted (`Target.status = archived`, ADR 0004);
    - market snapshots, gaps and the roadmap are recalculated;
-   - approved evidence and completed items are never lost: evidence belongs to the profile, so it keeps counting toward any target that needs that skill.
-4. **History:** Roadmap shows "Targets changed on …" with a link to the previous version, read-only.
+   - approved evidence and completed items are never lost. The preview can drop only pending or in-progress items. A done item whose gap disappears stays in the roadmap, marked "not needed for current targets". Its evidence belongs to the profile, so it keeps counting toward any target that needs that skill.
+4. **History:** Roadmap shows "Targets changed on …" with a link to the previous version, read-only. This needs roadmap versions, which ADR 0004 does not model yet. The F3 spec decides them (#43).
 
-The weekly recalculation (F5) runs the same steps 7 and 2–3 without asking for new targets. The user gets the same preview whenever the plan would change.
+The weekly recalculation (F5) recomputes the plan for the current targets (as in onboarding step 7), then shows the same preview and waits for the user to apply it. It never asks for new targets, and nothing changes without that confirmation.
 
 ## Shell
 
@@ -68,6 +68,7 @@ The weekly recalculation (F5) runs the same steps 7 and 2–3 without asking for
 - **Badges:** neutral **count** pills for collections (Projects: open tasks). A distinct **attention** badge for things waiting on the user (Projects: evidence awaiting approval; Profile: suggested changes to review).
 - **Routes:**
   - `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`;
+  - `/onboarding`, outside the shell; a user with no profile or no active targets is sent there from any tab;
   - `/` opens Roadmap;
   - the status page lives at `/status`, outside the tabs.
 - **Page header** on every tab: title, then one line of provenance, e.g. "Market data from 3 sources, checked 6 Oct 2026 · see Sources".
@@ -78,7 +79,7 @@ The weekly recalculation (F5) runs the same steps 7 and 2–3 without asking for
 
 ## Conventions every view follows
 
-- **A target looks the same everywhere.** Its color slot from the layout (`line-1…3`) marks it on the map, on gap chips and in market bars. Color is never the only cue: the target's name or initial always goes with it.
+- **A target looks the same everywhere.** Each active target has a color slot (`line-1…3`) that marks it on the map, on gap chips and in market bars. Every tab gets it from one function, `getTargetColors()` in `lib/data`: it reads the slots from `RoadmapLayout` when there is a valid layout, and otherwise assigns them in target order (primary first). A missing map never costs a target its color. Color is never the only cue: the target's name or initial always goes with it.
 - **Status vocabulary is shared:**
   - items and milestones are `pending`, `in progress` or `done`;
   - gaps are `open`, `in progress` or `closed`;
@@ -129,7 +130,7 @@ Each direction on `/tokens` must show:
 - **Summary band** (top):
   - **Who:** current role, years of experience, three strongest skills with their evidence count. Links to Profile.
   - **Goal:** the primary target and the other active ones (max three), each with role family, field and seniority, and **Change targets** (see Changing the goal).
-  - **How they connect**, per target: "You cover 6 of the 11 skills Data Analyst postings ask for most; 5 to close, 2 shared with Business Analyst". The numbers link to Skills & gaps.
+  - **How they connect**, per target: "You cover 6 of the 11 skills Data Analyst postings ask for most; 5 to close, 2 shared with Business Analyst". "Ask for most" means the skills in at least 30% of that target's snapshot postings, capped at 12. Covered means the profile has evidence for the skill; the rest are that target's gaps. The numbers link to Skills & gaps, which uses the same definition.
 - **Map:**
   - subway map on desktop and single line on mobile, one line per active target ending at its terminal;
   - milestones as stations, with interchange glyphs where a milestone serves several targets, and "you are here";
@@ -146,7 +147,9 @@ Each direction on `/tokens` must show:
   - analysis: idle, thinking, streaming, done, error with retry.
 - **Data:**
   - `getRoadmap()` → `Roadmap` and `getRoadmapLayout()` → `RoadmapLayout` (spec 01, ADR 0004);
-  - `getProfileSummary()` → derived from `Profile`.
+  - `getProfileSummary()` → derived from `Profile`;
+  - `getMarket()` for the coverage numbers;
+  - `getTargetColors()` for target identity.
 
 ## Profile — F1 (#41), F4 (#44)
 
@@ -192,7 +195,7 @@ Each direction on `/tokens` must show:
   - **Market per target:** the snapshot (role family, region, date, posting count) and the top requested skills as a ranked bar list with percentages, readable without the bars. Each skill is marked _you have it_ (with evidence count) or _gap_.
   - **Gaps** in priority order, each with:
     - the skill and its status;
-    - per target, "asked in 64% of 120 Data Analyst postings";
+    - per target, "asked in 64% of 140 Data Analyst postings";
     - "shared by N targets";
     - the model's rationale, styled as opinion and linked to the numbers;
     - the roadmap items that close it, linking to their station on Roadmap.
