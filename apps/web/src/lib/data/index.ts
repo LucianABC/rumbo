@@ -1,4 +1,4 @@
-import { Roadmap, RoadmapLayout } from '@rumbo/contracts';
+import { type LineColorToken, Roadmap, RoadmapLayout, targetColors } from '@rumbo/contracts';
 import type { z } from 'zod';
 
 import { roadmap } from '../../mocks/roadmap';
@@ -15,6 +15,16 @@ export function getRoadmap(): Promise<Roadmap> {
 
 export function getRoadmapLayout(): Promise<RoadmapLayout> {
   return Promise.resolve(parse(RoadmapLayout, roadmapLayout, 'roadmap layout'));
+}
+
+/**
+ * Each target's color slot for every tab (views.md): one source, so a target looks the same on
+ * the map, gap chips and market bars, and keeps its color when the layout is missing or broken.
+ */
+export async function getTargetColors(): Promise<ReadonlyMap<string, LineColorToken>> {
+  const roadmap = await getRoadmap();
+  const layout = RoadmapLayout.safeParse(roadmapLayout);
+  return targetColors(roadmap, layout.success ? layout.data : undefined);
 }
 
 /** Validates data as untrusted, failing with every issue and its path. */

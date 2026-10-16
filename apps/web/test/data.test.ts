@@ -1,7 +1,7 @@
 import { checkLayout, Roadmap } from '@rumbo/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { getRoadmap, getRoadmapLayout, parse } from '../src/lib/data';
+import { getRoadmap, getRoadmapLayout, getTargetColors, parse } from '../src/lib/data';
 
 describe('lib/data', () => {
   it('serves a roadmap and a layout that fits it', async () => {
@@ -16,5 +16,15 @@ describe('lib/data', () => {
     const broken = { ...roadmap, targets: [] };
 
     expect(() => parse(Roadmap, broken, 'roadmap')).toThrow(/Invalid roadmap:\ntargets: /);
+  });
+
+  it('gives every target the color its layout assigns', async () => {
+    const colors = await getTargetColors();
+
+    expect(Object.fromEntries(colors)).toEqual({
+      'data-analyst': 'line-1',
+      'business-analyst': 'line-2',
+      'support-ops-lead': 'line-3',
+    });
   });
 });
