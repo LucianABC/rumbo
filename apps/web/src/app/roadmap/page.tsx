@@ -1,9 +1,4 @@
-import {
-  currentMilestoneId,
-  isInterchange,
-  milestoneStatus,
-  milestoneTargetIds,
-} from '@rumbo/contracts';
+import { deriveRoadmapView, isInterchange } from '@rumbo/contracts';
 import type { Metadata } from 'next';
 
 import { getRoadmap } from '../../lib/data';
@@ -20,7 +15,7 @@ const ITEM_LABEL = {
 /** Walking-skeleton view of the roadmap: the data, unstyled, in plan order (spec 01, M0). */
 export default async function RoadmapPage() {
   const roadmap = await getRoadmap();
-  const current = currentMilestoneId(roadmap);
+  const view = deriveRoadmapView(roadmap);
   const targetName = new Map(roadmap.targets.map((t) => [t.id, t.roleFamily.name]));
 
   return (
@@ -29,13 +24,16 @@ export default async function RoadmapPage() {
       <p>From: {roadmap.from}</p>
       <ol>
         {roadmap.milestones.map((milestone) => {
-          const targets = milestoneTargetIds(roadmap, milestone).map((id) => targetName.get(id));
+          const targets = (view.targetsByMilestone.get(milestone.id) ?? []).map((id) =>
+            targetName.get(id),
+          );
+          const status = view.statusByMilestone.get(milestone.id) ?? 'pending';
           return (
             <li key={milestone.id} data-testid="station">
               <strong>{milestone.title}</strong>
-              {milestone.id === current && ' (you are here)'} —{' '}
-              {STATUS_LABEL[milestoneStatus(milestone)]} · serves {targets.join(', ')}
-              {isInterchange(roadmap, milestone) && ' · interchange'}
+              {milestone.id === view.currentMilestoneId && ' (you are here)'} —{' '}
+              {STATUS_LABEL[status]} · serves {targets.join(', ')}
+              {isInterchange(view, milestone.id) && ' · interchange'}
               <ul>
                 {milestone.items.map((item) => (
                   <li key={item.id}>
