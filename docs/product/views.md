@@ -109,6 +109,8 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **Palette:** paper background (`#f3eee4` light, `#1a1814` dark), lighter paper cards, warm ink text, deep green primary.
   - lines: terracotta, slate blue and plum (`line-1…3`), each ≥ 3:1 against the background in both themes;
   - status: success (green), attention (amber) and pending (warm gray); status text ≥ 4.5:1 on background and cards;
+  - errors use crimson (`destructive`) and focus rings the primary green, never a line color, so neither reads as a target;
+  - hover fills, skeletons and secondary buttons use a darker paper (`muted`), never the background itself;
   - `apps/web/test/theme.test.ts` measures every ratio from `globals.css`.
 - **Typefaces** (from `next/font`, self-hosted):
   - Bricolage Grotesque for headings: characterful without the formality of a serif;

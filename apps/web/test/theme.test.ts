@@ -74,5 +74,19 @@ describe('theme tokens', () => {
         MIN_TEXT,
       );
     });
+
+    // Hover states, skeletons and secondary buttons sit on the page background; a fill equal to
+    // it makes them invisible (review of #132).
+    it.each(['muted', 'accent', 'secondary'])('%s fill differs from the background', (name) => {
+      expect(get(name)).not.toBe(get('background'));
+      expect(contrastRatio(get('muted-foreground'), get(name))).toBeGreaterThanOrEqual(MIN_TEXT);
+    });
+
+    // Line colors identify targets (docs/product/views.md); errors and focus must not look like one.
+    it.each(['destructive', 'ring'])('%s is not a target line color', (name) => {
+      for (const line of ['line-1', 'line-2', 'line-3']) {
+        expect(get(name)).not.toBe(get(line));
+      }
+    });
   });
 });

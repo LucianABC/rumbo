@@ -8,7 +8,7 @@
  * their contrast; components use the utilities below, never raw color values (#106).
  */
 
-/* Dark mode follows the system preference; there is no in-app toggle yet. */
+/* Dark mode follows the system preference: no in-app toggle until a view needs one (#106). */
 @custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
@@ -68,12 +68,12 @@
 @theme {
   /*
    * Type scale and spacing are Tailwind's defaults (1rem body, 0.25rem spacing step); this adds
-   * the one size the defaults lack: 11px for tab-bar and map labels.
+   * the one size the defaults lack: 11px for tab-bar and map labels (#106).
    */
   --text-2xs: 0.6875rem;
   --text-2xs--line-height: 1rem;
 
-  /* Easings: ease-soft for things entering (sheet, line draw-in), ease-soft-in-out for loops. */
+  /* Easings: ease-soft for things entering (sheet, line draw-in), ease-soft-in-out for loops (#106). */
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
@@ -81,7 +81,7 @@
 :root {
   --radius: 0.75rem;
 
-  /* Durations, used as duration-(--duration-base); Tailwind has no theme namespace for them. */
+  /* Durations live here, used as duration-(--duration-base): Tailwind has no theme namespace for them (#106). */
   --duration-quick: 120ms;
   --duration-base: 200ms;
   --duration-slow: 360ms;
@@ -99,16 +99,16 @@
   --popover-foreground: #201c17;
   --primary: #2d4a3e;
   --primary-foreground: #fbf8f2;
-  --secondary: #f3eee4;
+  --secondary: #e8e0d0;
   --secondary-foreground: #201c17;
-  --muted: #f3eee4;
+  --muted: #e8e0d0;
   --muted-foreground: #5e564b;
-  --accent: #f3eee4;
+  --accent: #e8e0d0;
   --accent-foreground: #201c17;
-  --destructive: #b0432c;
+  --destructive: #a8263e;
   --border: #dbd1bf;
   --input: #dbd1bf;
-  --ring: #2c6a8a;
+  --ring: #2d4a3e;
   --line-1: #b0432c;
   --line-2: #2c6a8a;
   --line-3: #76549a;
@@ -124,10 +124,10 @@
   --sidebar-foreground: #201c17;
   --sidebar-primary: #2d4a3e;
   --sidebar-primary-foreground: #fbf8f2;
-  --sidebar-accent: #f3eee4;
+  --sidebar-accent: #e8e0d0;
   --sidebar-accent-foreground: #201c17;
   --sidebar-border: #dbd1bf;
-  --sidebar-ring: #2c6a8a;
+  --sidebar-ring: #2d4a3e;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -140,16 +140,16 @@
     --popover-foreground: #efe8da;
     --primary: #a9d1bb;
     --primary-foreground: #1a1814;
-    --secondary: #1a1814;
+    --secondary: #2e2a23;
     --secondary-foreground: #efe8da;
-    --muted: #1a1814;
+    --muted: #2e2a23;
     --muted-foreground: #b3a994;
-    --accent: #1a1814;
+    --accent: #2e2a23;
     --accent-foreground: #efe8da;
-    --destructive: #ea8669;
+    --destructive: #f4899c;
     --border: #3b362d;
     --input: #3b362d;
-    --ring: #7bb4d2;
+    --ring: #a9d1bb;
     --line-1: #ea8669;
     --line-2: #7bb4d2;
     --line-3: #b796da;
@@ -165,10 +165,10 @@
     --sidebar-foreground: #efe8da;
     --sidebar-primary: #a9d1bb;
     --sidebar-primary-foreground: #1a1814;
-    --sidebar-accent: #1a1814;
+    --sidebar-accent: #2e2a23;
     --sidebar-accent-foreground: #efe8da;
     --sidebar-border: #3b362d;
-    --sidebar-ring: #7bb4d2;
+    --sidebar-ring: #a9d1bb;
   }
 }
 

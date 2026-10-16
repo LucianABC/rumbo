@@ -86,7 +86,10 @@ describe('root layout', () => {
   it('wraps pages in an English document with the theme typefaces', () => {
     const html = renderToStaticMarkup(RootLayout({ children: 'page' }));
 
-    expect(html).toMatch(/^<html lang="en" class="font-display font-body font-data">/);
+    expect(html).toMatch(/^<html lang="en" class="[^"]*">/);
+    for (const font of ['font-display', 'font-body', 'font-data']) {
+      expect(html).toMatch(new RegExp(`^<html[^>]*class="[^"]*\\b${font}\\b`));
+    }
     expect(html).toContain('<body>page</body>');
     expect(metadata.title).toBe('rumbo');
   });
