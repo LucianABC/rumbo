@@ -2,27 +2,25 @@ import { deriveRoadmapView, isInterchange } from '@rumbo/contracts';
 import type { Metadata } from 'next';
 
 import { getRoadmap } from '../../lib/data';
+import { ITEM_STATUS_LABEL, ITEM_TYPE_LABEL } from '../../lib/labels';
 
 export const metadata: Metadata = { title: 'Roadmap · rumbo' };
 
-const STATUS_LABEL = { pending: 'pending', in_progress: 'in progress', done: 'done' } as const;
-const ITEM_LABEL = {
-  project: 'practice project',
-  education: 'education',
-  work_experience: 'work experience',
-} as const;
-
-/** Walking-skeleton view of the roadmap: the data, unstyled, in plan order (spec 01, M0). */
+/**
+ * Walking-skeleton view of the roadmap: the data in plan order, before any design (spec 01, M0).
+ * The few classes only restore what Tailwind's preflight resets, so the plan order stays visible
+ * as list numbers (#104).
+ */
 export default async function RoadmapPage() {
   const roadmap = await getRoadmap();
   const view = deriveRoadmapView(roadmap);
   const targetName = new Map(roadmap.targets.map((t) => [t.id, t.roleFamily.name]));
 
   return (
-    <main>
-      <h1>Roadmap</h1>
-      <p>From: {roadmap.from}</p>
-      <ol>
+    <main className="p-4">
+      <h1 className="text-2xl font-semibold">Roadmap</h1>
+      <p className="my-2">From: {roadmap.from}</p>
+      <ol className="list-decimal space-y-2 pl-6">
         {roadmap.milestones.map((milestone) => {
           const targets = (view.targetsByMilestone.get(milestone.id) ?? []).map((id) =>
             targetName.get(id),
@@ -32,12 +30,12 @@ export default async function RoadmapPage() {
             <li key={milestone.id} data-testid="station">
               <strong>{milestone.title}</strong>
               {milestone.id === view.currentMilestoneId && ' (you are here)'} —{' '}
-              {STATUS_LABEL[status]} · serves {targets.join(', ')}
+              {ITEM_STATUS_LABEL[status]} · serves {targets.join(', ')}
               {isInterchange(view, milestone.id) && ' · interchange'}
-              <ul>
+              <ul className="list-disc pl-6">
                 {milestone.items.map((item) => (
                   <li key={item.id}>
-                    {item.title} ({ITEM_LABEL[item.type]}, {STATUS_LABEL[item.status]})
+                    {item.title} ({ITEM_TYPE_LABEL[item.type]}, {ITEM_STATUS_LABEL[item.status]})
                   </li>
                 ))}
               </ul>

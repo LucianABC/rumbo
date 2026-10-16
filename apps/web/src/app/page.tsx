@@ -10,9 +10,11 @@ export default async function StatusPage() {
   const view = toStatusView(await fetchHealth(getApiInternalUrl()), new Date());
 
   return (
-    <main>
-      <h1>rumbo status</h1>
-      <dl>
+    // Tailwind's preflight resets headings and lists app-wide; these classes restore a readable
+    // status page until the app shell styles it (#104, #107).
+    <main className="p-4">
+      <h1 className="mb-2 text-2xl font-semibold">rumbo status</h1>
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 [&_dt]:font-semibold">
         <dt>API</dt>
         <dd data-testid="api-status">{view.api}</dd>
         <dt>Database</dt>
