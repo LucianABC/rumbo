@@ -64,6 +64,19 @@ export default defineConfig(
           ],
         },
       ],
+      // no-restricted-imports only sees static imports; this closes import() and require().
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression[source.value=/(^|\\/)mocks(\\/|$)/]',
+          message: 'Read data through lib/data, never from mocks.',
+        },
+        {
+          selector:
+            "CallExpression[callee.name='require'][arguments.0.value=/(^|\\/)mocks(\\/|$)/]",
+          message: 'Read data through lib/data, never from mocks.',
+        },
+      ],
     },
   },
   {
