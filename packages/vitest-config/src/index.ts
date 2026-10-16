@@ -22,7 +22,8 @@ export function coverage(
 ): CoverageOptions {
   return {
     provider: 'v8',
-    include: ['src/**'],
+    // Code only: docs or fixtures under src/ (e.g. apps/web/src/mocks/README.md) are not parsed.
+    include: ['src/**/*.{ts,tsx}'],
     exclude: exclude.map((item) => item.glob),
     thresholds: { lines: LINE_THRESHOLDS[kind] },
     reporter: ['text-summary'],
