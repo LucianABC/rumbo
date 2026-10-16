@@ -46,19 +46,21 @@ Two schemas, because they have different owners and lifetimes:
 ### Why the split and what changed from the first draft
 
 - **ADR 0004 is the source of truth.** A line is a `Target`. A milestone holds `RoadmapItem`s, and the item (not the milestone) has the type, `doneWhen` and status. Items close `Gap`s. Each gap carries its demand per target: which targets need it and how often that target's market snapshot asks for it (`GapTarget` with `snapshotId`). Gaps are inferred from the chosen targets and the market, so the UI can always show the numbers that justify one. The first draft put type and tasks on the milestone, which contradicted the ADR.
-- **Interchanges, routes and "you are here" are derived, not authored.** They come from functions in `packages/contracts/src/roadmap-derive.ts`, so they can never disagree with the data:
+- **Interchanges, routes and "you are here" are derived, not authored.** `deriveRoadmapView(roadmap)` in `packages/contracts/src/roadmap-derive.ts` computes them once per roadmap, so they can never disagree with the data and views do not recompute them per station:
   - a milestone's targets are the union of the targets in the demand of the gaps its items close. More than one target means it is an interchange;
   - a target's route is every milestone that serves it, in plan order, then its terminal;
   - a milestone's status follows from its items: all done → done; any done or in progress → in progress; else pending;
   - "you are here" is the first milestone in plan order that is not done.
 - **No agent will ever produce coordinates.** Keeping geometry out of the domain means the API can replace the domain mock unchanged. The layout can then be computed, stored or dropped on its own.
-- **Line color is presentation.** A target does not "have" a color. The layout assigns each target a color slot (`line-1…3`), which maps to a token. That is why the color lives in `RoadmapLayout`.
+- **Line color is presentation.** A target does not "have" a color. The layout assigns each target a color slot (`line-1…3`), which maps to a token. Every tab reads it through `targetColors(roadmap, layout?)`: the layout's slots when the layout passes `checkLayout`, otherwise target order with the primary first. A missing map never costs a target its color (`docs/product/views.md`).
 - Removed from the first draft: `lines`, `routes`, `journey`, `currentStationId`, `Station.kind` and `itemType` on milestones. Each one is now either derived or moved to the layout.
 
 ### `Roadmap` (domain)
 
 ```ts
+// Shared by roadmap and layout (packages/contracts/src/ids.ts)
 const Id = z.string().regex(/^[a-z0-9-]+$/);
+const WebUrl = z.url({ protocol: /^https?$/ }); // anything rendered as href
 const IsoDate = z.iso.date();
 
 /** Catalog entries are global (ADR 0004); the view carries just what the UI shows. */
@@ -99,7 +101,7 @@ export const Gap = z.object({
 export const EvidenceRef = z.object({
   id: Id,
   sourceType: z.enum(['experience', 'project', 'commit', 'education', 'manual']),
-  sourceRef: z.string().min(1), // commit SHA, certificate URL, experience id…
+  sourceRef: z.string().min(1), // checked per sourceType, see rules below
   excerpt: z.string().optional(),
   approvedAt: z.iso.datetime().nullable(), // null = waiting for the user (AI rule 2)
 });
@@ -125,7 +127,7 @@ export const RoadmapItem = z.discriminatedUnion('type', [
     type: z.literal('education'),
     kind: z.enum(['course', 'workshop', 'degree', 'certification']),
     provider: z.string().min(1),
-    url: z.url().optional(),
+    url: WebUrl.optional(),
   }),
   ItemBase.extend({
     type: z.literal('work_experience'),
@@ -153,11 +155,15 @@ export const Roadmap = z
 
 Rules checked in `superRefine`. Each one fails with a readable message, for example `gap "sql" has no roadmap item`:
 
-- ids are unique per collection, and every `demand[].targetId` and `gapIds` entry resolves;
+- ids are unique per collection (targets, gaps, milestones, items, evidence), within a project's tasks, and per target in a gap's demand;
+- no milestone shares an id with a target, because terminals are drawn as stations;
+- every `demand[].targetId` and `gapIds` entry resolves;
 - exactly one target is primary;
 - **F3 rule:** every gap is closed by at least one item;
+- a gap's stored status agrees with its items: `open` when none has started, `in_progress` when one has, `closed` only when one is done;
 - an item is `done` only with at least one approved evidence;
-- every milestone serves at least one target, through its items' gaps.
+- evidence `sourceRef` matches its `sourceType`: a commit SHA, an http(s) URL for project and education proof, an id for experience, free text for manual entries (never rendered as a link);
+- every milestone serves at least one known target, through its items' gaps.
 
 ### `RoadmapLayout` (presentation)
 
@@ -174,8 +180,9 @@ export const RoadmapLayout = z.object({
 
 `checkLayout(roadmap, layout)` validates the layout against the roadmap:
 
-- every milestone and target has a position, and every target has a color slot, with no slot used twice;
-- bends and offsets reference real stations on that target's derived route;
+- every milestone and target has a position, and every target has exactly one color slot, with no slot used twice;
+- nothing stale: no positions for unknown stations, no colors for unknown targets, no station placed twice, no two stations on the same point;
+- bends and offsets reference real stations on that target's derived route, and two lines never share a lane on the same stretch;
 - every segment of every derived route, bends included, is horizontal, vertical or at 45°.
 
 `/roadmap` renders without a layout too, as the single-line view. A missing or invalid layout degrades to that view; it does not error.
