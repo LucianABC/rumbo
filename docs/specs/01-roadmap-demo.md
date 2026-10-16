@@ -29,7 +29,7 @@ A front-end-only slice that pulls the F3 roadmap view forward, inside an app she
   - `/demo/health` and `/demo/analyze` are a temporary exception to ADR 0002 §5 ("no backend logic in Vercel functions").
   - Moving the analysis behind the API and the router is #121.
 - **Model id from `ANTHROPIC_MODEL`**, not from `packages/router`. This is an exception to the "model ids only in the router" rule, scoped to this adapter and also tracked by #121.
-- **Dependencies**, approved by the owner: `tailwindcss` + `@tailwindcss/postcss` + `postcss` (v4), `motion`, `ai`, `@ai-sdk/anthropic`. Fonts come from `next/font`. No UI kits. Anything else needs asking first.
+- **Dependencies**, approved by the owner: `tailwindcss` + `@tailwindcss/postcss` + `postcss` (v4), `motion`, `ai`, `@ai-sdk/anthropic`, plus the web UI stack of ADR 0007 (#78): shadcn/ui components over Base UI, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-hook-form`, `@tanstack/react-query`, `nuqs` and `recharts`. Fonts come from `next/font`. The subway map, the single-line view and the station panel content are hand-made. Anything else needs asking first.
 - **Layout is hand-authored.** Geometry lives in a separate `RoadmapLayout`, on a grid, with octilinear segments only. Parallel offsets where lines share a stretch are authored too (no layout algorithm).
 - **The demo starts after onboarding.** The mock user has already imported a profile and chosen three targets. The onboarding flow and changing the goal are documented in `docs/product/views.md`. Onboarding is not built. Change targets is a mocked entry: a read-only explainer with a sample preview, with no editing or recalculation.
 - **Mocks are a fictional user.** Nothing in mocks, copy, prompts or tests refers to the owner's own projects, plan or targets.
@@ -280,7 +280,7 @@ A fictional customer support specialist with three active targets, chosen to be 
   - the milestone's items, each with type, `doneWhen`, status and gaps it closes;
   - tasks for project items and evidence with approval state;
   - expected end and last progress, with empty states when missing.
-- The panel is a side sheet at `md` and up and a bottom sheet below. It uses dialog semantics, traps focus, closes with Esc and returns focus to the station.
+- The panel is a side sheet at `md` and up and a bottom sheet below (Base UI `Dialog` and `Drawer`, ADR 0007). It uses dialog semantics, traps focus, closes with Esc and returns focus to the station.
 - Keyboard:
   - ↑/↓ (and ←/→) move between stations with roving tabindex, and Home/End jump to the first/last;
   - Enter/Space open the panel and Esc closes it;
