@@ -10,7 +10,9 @@
     "incremental": true,
     "declaration": false,
     "declarationMap": false,
-    "plugins": [{ "name": "next" }]
+    "plugins": [{ "name": "next" }],
+    // shadcn/ui generates `@/` imports (ADR 0007); vitest.config.ts mirrors this alias.
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": [
     "next-env.d.ts",
