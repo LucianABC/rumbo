@@ -1,6 +1,6 @@
 # 01 — Roadmap subway map (front-end demo slice)
 
-Status: draft, pending owner approval. Deadline: demo-ready 2026-10-25.
+Status: approved by the owner on 2026-10-16. The contract section is revised to follow ADR 0004 in #101. Deadline: demo-ready 2026-10-25. Epic #99.
 
 ## What
 
@@ -13,10 +13,10 @@ A front-end-only slice of the F3 roadmap view: a user's combined roadmap drawn a
 
 ## Constraints and deliberate exceptions
 
-- **Local only.** Nothing is deployed to Vercel or exposed in any way (hard limit in `CLAUDE.md`: no public exposure before real auth). Each milestone is "done" when it is merged, tagged and runs with `pnpm --filter @rumbo/web build && start` locally.
-- **Lives in `apps/web`** under `/roadmap` and `/tokens`. The status page and the smoke e2e stay on `/`.
-- **Route handlers under `/demo/*`**, not `/api/*`: `src/proxy.ts` forwards `/api/*` to the NestJS API (ADR 0002). `/demo/health` and `/demo/analyze` are a temporary exception to ADR 0002 §5 ("no backend logic in Vercel functions"). When F3/F5 land, the analyze call moves to the API/worker behind the router. A follow-up ticket tracks that move.
-- **Model id from `ANTHROPIC_MODEL`**, not from `packages/router`. This is an exception to the "model ids only in the router" rule, scoped to this adapter and tracked by the same follow-up ticket.
+- **Local only.** Nothing is deployed to Vercel or exposed in any way (hard limit in `CLAUDE.md`: no public exposure before real auth). Each milestone is "done" when it is merged, tagged and runs locally with `pnpm --filter @rumbo/web build && pnpm --filter @rumbo/web start`.
+- **Lives in `apps/web`** under `/roadmap` and `/tokens`. Where `/` points is decided with the app views (#102).
+- **Route handlers under `/demo/*`**, not `/api/*`: `src/proxy.ts` forwards `/api/*` to the NestJS API (ADR 0002). `/demo/health` and `/demo/analyze` are a temporary exception to ADR 0002 §5 ("no backend logic in Vercel functions"). When F3/F5 land, the analyze call moves to the API/worker behind the router (#121).
+- **Model id from `ANTHROPIC_MODEL`**, not from `packages/router`. This is an exception to the "model ids only in the router" rule, scoped to this adapter and also tracked by #121.
 - **Dependencies**, approved by the owner: `tailwindcss` + `@tailwindcss/postcss` (v4), `motion`, `ai`, `@ai-sdk/anthropic`. Fonts come from `next/font`. No UI kits. Anything else needs asking first.
 - **Layout is hand-authored.** Coordinates and bends live in the seed, on a grid, with octilinear segments only. Where lines share a stretch, the parallel offset is also authored in the seed (no offset algorithm).
 - **Seed is a fictional user.** Nothing in the seed, copy, prompts or tests refers to the owner's own projects, plan or targets: rumbo is a product for any job seeker, not a personal tool. The seed exists only in `roadmap.json`, and no component hard-codes any of its content.
@@ -28,7 +28,7 @@ Changes from the brief, with reasons:
 - **Lines are paths to targets, not projects.** A line ends at its own terminal station, the target role. The contract allows several lines to share a terminal (two paths to the same role) or to end at different ones (up to three active targets, F2b).
 - **An interchange is a shared milestone.** It is still just a station with `lineIds.length > 1`, as in the brief. No separate "skill" stations are needed.
 - `Station.kind`: `milestone` or `terminal`. A terminal has no tasks or status of its own; its progress comes from its line.
-- `Station.itemType`: how a milestone is closed. It uses the three F3 item types (`project`, `work`, `education`) and drives the station's glyph and panel copy.
+- `Station.itemType`: how a milestone is closed. It uses the three item types of ADR 0004 (`project`, `work_experience`, `education`) and drives the station's glyph and panel copy.
 - `Line.targetStationId`: the terminal the path leads to. `Line.primary` marks the primary target (F2b: one target is primary).
 - `Roadmap.to` is removed: the target roles are the terminals, so a single `to` label would be wrong with more than one target. `from` stays as the starting-point label.
 - `Roadmap.journey`: the single-line (mobile/M2) view needs one total order across lines. Station `position` alone does not define it.
@@ -61,7 +61,7 @@ const StationBase = z.object({
 export const Station = z.discriminatedUnion('kind', [
   StationBase.extend({
     kind: z.literal('milestone'),
-    itemType: z.enum(['project', 'work', 'education']),
+    itemType: z.enum(['project', 'work_experience', 'education']),
     status: z.enum(['done', 'in_progress', 'pending']),
     targetDate: IsoDate.optional(),
     lastProgressAt: IsoDate.optional(),
@@ -164,7 +164,8 @@ A fictional user, chosen to be clearly not the owner and outside the owner's fie
 - The final object is validated with Zod. An unknown `nextStationId` is shown without a link (rule 3).
 - External content is limited to the seed, and the prompt treats it as data.
 - The key comes from `ANTHROPIC_API_KEY` and the model from `ANTHROPIC_MODEL`.
-- Each call is capped by `maxOutputTokens`. One server log line records model, input/output tokens and estimated cost, with no roadmap content (rules 4–5).
+- Each call is capped by `maxOutputTokens`, and each analysis run has a token budget (input + output) that stops it when exceeded; retries count against the same run (rule 4). One server log line per call records run id, model, input/output tokens and estimated cost, with no roadmap content (rules 4–5).
+- Prompt-injection test: a roadmap whose milestone title and summary carry instructions ("Ignore previous instructions…") is sent through the mock client. The test asserts the prompt marks the roadmap as data and the parsed output still matches the schema (rule 1).
 - Mock mode: `DEMO_MOCK=1` or a missing key streams a recorded response with realistic chunk timing. Tests use the mock only and never call the API.
 - The UI has states for idle, thinking, streaming, done, error with retry, and empty (no stations in progress).
 
@@ -180,7 +181,13 @@ A fictional user, chosen to be clearly not the owner and outside the owner's fie
 
 ## Evals
 
-None in this slice. The analysis is a stand-in shown to the user and nothing feeds logic beyond the validated `nextStationId`. The real Tracking agent gets a golden set when it is built (F5, per rule 6).
+A minimal golden set for the analyze prompt, in `evals/` and run by `pnpm eval` (real calls, never in `pnpm test`):
+
+- three fictional roadmaps: on track, stalled (no progress in four weeks), and almost done;
+- each case checks that the output parses, that `nextStationId` exists and is not done, and that the risk names something present in the roadmap;
+- before/after results are shown whenever the prompt changes (rule 6).
+
+The real Tracking agent gets its own golden set when it is built (F5).
 
 ## Out of scope (stays in the plan)
 
