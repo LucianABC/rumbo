@@ -20,8 +20,11 @@
   },
   "devDependencies": {
     "@rumbo/vitest-config": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "postcss": "^8.5.30",
+    "tailwindcss": "^4.3.3",
     "vitest": "^5.0.3"
   }
 }
