@@ -105,7 +105,7 @@ const ItemBase = z.object({
 
 export const ProjectItem = ItemBase.extend({
   type: z.literal('project'),
-  repo: z.string().optional(),
+  repo: WebUrl.optional(),
   tasks: z.array(Task),
 });
 export type ProjectItem = z.infer<typeof ProjectItem>;

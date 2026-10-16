@@ -120,7 +120,7 @@ const ItemBase = z.object({
 export const RoadmapItem = z.discriminatedUnion('type', [
   ItemBase.extend({
     type: z.literal('project'),
-    repo: z.string().optional(),
+    repo: WebUrl.optional(),
     tasks: z.array(z.object({ id: Id, title: z.string().min(1), done: z.boolean() })),
   }),
   ItemBase.extend({
