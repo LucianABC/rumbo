@@ -1,9 +1,12 @@
+'use client';
+
 import type { RoadmapItem } from '@rumbo/contracts';
 import { cn } from 'cn';
 import { BriefcaseBusiness, FolderGit2, GraduationCap, type LucideIcon } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { type CSSProperties, type KeyboardEvent, useId, useRef, useState } from 'react';
 
 import { formatDay } from '../../lib/format';
+import { rovingIndex } from '../../lib/roadmap/roving';
 import { LINE_BG, LINE_BG_AHEAD, LINE_BORDER } from '../../lib/line-colors';
 import {
   type LaneCell,
@@ -51,32 +54,72 @@ export function SingleLineView({
   readonly onOpen?: (stationId: string) => void;
 }) {
   const gutter = laneX(line.lanes.length - 1) + LANE_START;
+  const hint = useId();
+  const list = useRef<HTMLOListElement>(null);
+  // Roving tabindex (#110): the list is one Tab stop, entered at "you are here" (or the first
+  // station), and the arrow keys move between stations.
+  const stations = line.rows.flatMap((row) => (row.kind === 'milestone' ? [row] : []));
+  const entry = (stations.find((row) => row.current) ?? stations[0])?.id;
+  const [focusId, setFocusId] = useState(entry);
+  // If that station is gone (new data), fall back to the entry so the list stays reachable.
+  const tabbableId = stations.some((row) => row.id === focusId) ? focusId : entry;
+  const move = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
+    // Leave modified keys to the browser: Alt+← is Back, Ctrl+Home scrolls to the top (#110).
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const index = stations.findIndex((row) => row.id === id);
+    const next = rovingIndex(event.key, index, stations.length);
+    const target = next === null ? undefined : stations[next];
+    // At an end there is nowhere to go, so let the key scroll the page as usual.
+    if (!target || next === index) return;
+    event.preventDefault();
+    setFocusId(target.id);
+    list.current
+      ?.querySelector<HTMLButtonElement>(`[data-station-id="${CSS.escape(target.id)}"]`)
+      ?.focus();
+  };
 
   return (
-    // role="list": Safari drops list semantics under Tailwind's `list-style: none` (#108).
-    <ol role="list" aria-label="Stations" className="flex flex-col">
-      {line.rows.map((row) => (
-        <li
-          key={row.id}
-          data-testid="station"
-          data-kind={row.kind}
-          className={cn(
-            'grid grid-cols-[var(--gutter)_minmax(0,1fr)] gap-x-3',
-            withMap && 'lg:grid-cols-1',
-          )}
-          style={{ '--gutter': `${String(gutter)}px` } as CSSProperties}
-        >
-          <Track row={row} hidden={withMap} />
-          {row.kind === 'milestone' ? (
-            <MilestoneStation row={row} onActivate={onActivate} onOpen={onOpen} />
-          ) : row.kind === 'terminal' ? (
-            <Terminal row={row} />
-          ) : (
-            <Origin row={row} />
-          )}
-        </li>
-      ))}
-    </ol>
+    <>
+      <p id={hint} className="sr-only">
+        Use the arrow keys to move between stations, and Home or End for the first or last.
+      </p>
+      {/* role="list": Safari drops list semantics under Tailwind's `list-style: none` (#108). */}
+      <ol ref={list} role="list" aria-label="Stations" className="flex flex-col">
+        {line.rows.map((row) => (
+          <li
+            key={row.id}
+            data-testid="station"
+            data-kind={row.kind}
+            className={cn(
+              'grid grid-cols-[var(--gutter)_minmax(0,1fr)] gap-x-3',
+              withMap && 'lg:grid-cols-1',
+            )}
+            style={{ '--gutter': `${String(gutter)}px` } as CSSProperties}
+          >
+            <Track row={row} hidden={withMap} />
+            {row.kind === 'milestone' ? (
+              <MilestoneStation
+                row={row}
+                hint={hint}
+                tabbable={row.id === tabbableId}
+                onKeyDown={(event) => {
+                  move(event, row.id);
+                }}
+                onFocus={() => {
+                  setFocusId(row.id);
+                }}
+                onActivate={onActivate}
+                onOpen={onOpen}
+              />
+            ) : row.kind === 'terminal' ? (
+              <Terminal row={row} />
+            ) : (
+              <Origin row={row} />
+            )}
+          </li>
+        ))}
+      </ol>
+    </>
   );
 }
 
@@ -165,10 +208,19 @@ function Segments({ cell, x }: { readonly cell: LaneCell; readonly x: number }) 
 
 function MilestoneStation({
   row,
+  hint,
+  tabbable,
+  onKeyDown,
+  onFocus,
   onActivate,
   onOpen,
 }: {
   readonly row: Extract<SingleLineRow, { kind: 'milestone' }>;
+  /** Id of the instructions for the arrow keys. */
+  readonly hint: string;
+  readonly tabbable: boolean;
+  readonly onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
+  readonly onFocus: () => void;
   readonly onActivate: ((targetIds: readonly string[] | null) => void) | undefined;
   readonly onOpen: ((stationId: string) => void) | undefined;
 }) {
@@ -178,54 +230,71 @@ function MilestoneStation({
   const release = () => onActivate?.(null);
 
   return (
-    <button
-      type="button"
-      aria-label={stationLabel(row)}
-      aria-haspopup="dialog"
-      onClick={() => onOpen?.(row.id)}
+    // The button is only the title, so its accessible name starts with what it shows (WCAG 2.5.3);
+    // its ::after stretches over the card, so the whole card still opens the panel (#110).
+    <div
       onMouseEnter={activate}
       onMouseLeave={release}
-      onFocus={activate}
-      onBlur={release}
-      className="my-1 flex w-full min-w-0 flex-col items-start gap-1.5 rounded-lg px-3 py-2 text-left outline-none transition-colors duration-(--duration-quick) hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+      className="relative my-1 flex min-w-0 flex-col items-start gap-1.5 rounded-lg px-3 py-2 transition-colors duration-(--duration-quick) hover:bg-muted has-[button:focus-visible]:ring-2 has-[button:focus-visible]:ring-ring"
     >
-      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-heading text-base leading-6 font-semibold">{milestone.title}</span>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <button
+          type="button"
+          aria-label={stationLabel(row)}
+          aria-haspopup="dialog"
+          aria-describedby={hint}
+          data-station-id={row.id}
+          tabIndex={tabbable ? 0 : -1}
+          onClick={() => onOpen?.(row.id)}
+          onKeyDown={onKeyDown}
+          onFocus={() => {
+            onFocus();
+            activate();
+          }}
+          onBlur={release}
+          className="text-left font-heading text-base leading-6 font-semibold outline-none after:absolute after:inset-0 after:rounded-lg"
+        >
+          {milestone.title}
+        </button>
         <StatusChip status={row.status} />
         {row.current ? (
           <span className="inline-flex h-5 items-center rounded-full bg-primary px-2 text-2xs font-semibold text-primary-foreground">
             You are here
           </span>
         ) : null}
-      </span>
+      </div>
       {milestone.summary ? (
-        <span className="text-sm text-muted-foreground">{milestone.summary}</span>
+        <p className="text-sm text-muted-foreground">{milestone.summary}</p>
       ) : null}
-      <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <ul
+        role="list"
+        aria-label="Targets"
+        className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"
+      >
         {served.map((cell) => (
-          <span key={cell.lane.target.id} className="inline-flex items-center gap-1.5">
-            <span className={cn('size-2 rounded-full', LINE_BG[cell.lane.color])} />
+          <li key={cell.lane.target.id} className="inline-flex items-center gap-1.5">
+            <span aria-hidden className={cn('size-2 rounded-full', LINE_BG[cell.lane.color])} />
             {cell.lane.target.roleFamily.name}
-          </span>
+          </li>
         ))}
-      </span>
-      <span className="flex w-full flex-col gap-1">
+      </ul>
+      <ul role="list" aria-label="Items" className="flex w-full flex-col gap-1">
         {milestone.items.map((item) => {
           const Icon = ITEM_ICON[item.type];
           return (
-            <span key={item.id} className="flex items-start gap-2 text-sm">
-              <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <li key={item.id} className="flex items-start gap-2 text-sm">
+              <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1">{item.title}</span>
               {item.expectedEnd ? (
                 <span className="shrink-0 font-mono text-2xs leading-5 text-muted-foreground tabular-nums">
                   {formatDay(item.expectedEnd)}
                 </span>
               ) : null}
-            </span>
+            </li>
           );
         })}
-      </span>
-    </button>
+      </ul>
+    </div>
   );
 }
 

@@ -91,7 +91,13 @@ export function StationSheet({
                 <span className="sr-only">Close</span>
               </DrawerClose>
             </DrawerHeader>
-            <div className="overflow-y-auto px-4 pt-4 pb-8">
+            {/* Focusable, so keyboards can scroll it when it holds no link (WCAG 2.1.1, #110). */}
+            <div
+              role="region"
+              aria-label="Station details"
+              tabIndex={0}
+              className="overflow-y-auto rounded-sm px-4 pt-4 pb-8 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+            >
               <StationDetail row={row} gapNames={gapNames} />
             </div>
           </>
