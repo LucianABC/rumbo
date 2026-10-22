@@ -80,6 +80,18 @@
   /* "You are here": a ring that breathes out from the current station (#108). */
   --animate-here-pulse: here-pulse var(--duration-pulse) var(--ease-soft-in-out) infinite;
 
+  /* Map lines draw themselves in on load, staggered along each route (#117). */
+  --animate-draw-line: draw-line calc(var(--duration-slow) * 2.5) var(--ease-soft) both;
+
+  @keyframes draw-line {
+    from {
+      stroke-dashoffset: 1;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
   @keyframes here-pulse {
     0% {
       transform: scale(0.8);

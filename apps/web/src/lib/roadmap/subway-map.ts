@@ -1,0 +1,226 @@
+import type {
+  GridPoint,
+  ItemStatus,
+  LineColorToken,
+  Roadmap,
+  RoadmapLayout,
+  RoadmapView,
+} from '@rumbo/contracts';
+
+import { laneOrder, ORIGIN_ID, type Stretch } from './single-line';
+
+/**
+ * The desktop subway map as plain geometry (spec 01, M3, #117): every derived route drawn from the
+ * hand-authored layout, plus the starting point every line leaves from. Pure, so the SVG is a
+ * direct render of this and the rules are unit-tested here.
+ */
+
+/** Pixels per grid unit, and between parallel lanes on a shared stretch. */
+export const UNIT = 64;
+export const LANE = 10;
+/** Room for the rotated station labels above and the terminal labels to the right. */
+const PAD = { top: 170, right: 250, bottom: 60, left: 60 };
+
+export interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
+export interface MapSegment {
+  readonly key: string;
+  readonly targetId: string;
+  /** The stations the stretch joins, in route order. */
+  readonly from: string;
+  readonly to: string;
+  readonly color: LineColorToken;
+  readonly points: readonly Point[];
+  readonly stretch: Stretch;
+  /** Position along its line, for the draw-in animation's stagger. */
+  readonly order: number;
+}
+
+export interface MapStation {
+  readonly id: string;
+  readonly kind: 'origin' | 'milestone' | 'terminal';
+  readonly label: string;
+  /** Targets that stop here, in lane order. */
+  readonly targetIds: readonly string[];
+  /** The glyph: a ring at `from`, or a capsule from `from` to `to` when lines stop side by side. */
+  readonly from: Point;
+  readonly to: Point;
+  readonly color: LineColorToken | null;
+  readonly status: ItemStatus | null;
+  readonly current: boolean;
+  /** Label rotation in degrees: steeper where a line leaves up and to the right, so they never cross. */
+  readonly labelAngle: number;
+}
+
+export interface SubwayMap {
+  readonly viewBox: {
+    readonly x: number;
+    readonly y: number;
+    readonly w: number;
+    readonly h: number;
+  };
+  readonly segments: readonly MapSegment[];
+  readonly stations: readonly MapStation[];
+}
+
+/** Lane slots for the stretch leaving the starting point: primary in the middle, then each side. */
+const ORIGIN_LANES = [0, -1, 1] as const;
+
+export function subwayMap(
+  roadmap: Roadmap,
+  layout: RoadmapLayout,
+  view: RoadmapView,
+  colors: ReadonlyMap<string, LineColorToken>,
+): SubwayMap {
+  const targets = laneOrder(roadmap);
+  const at = new Map(layout.stations.map((s) => [s.id, s.at]));
+  const primary = targets[0];
+  const firstOfPrimary = at.get(view.routes.get(primary?.id ?? '')?.[0] ?? '');
+  const minX = Math.min(...layout.stations.map((s) => s.at.x));
+  // The starting point sits two units before the leftmost station, level with the main line.
+  const origin: GridPoint = { x: minX - 2, y: firstOfPrimary?.y ?? 0 };
+  at.set(ORIGIN_ID, origin);
+
+  const statusOf = (id: string): ItemStatus | undefined =>
+    id === ORIGIN_ID ? 'done' : view.statusByMilestone.get(id);
+
+  const segments: MapSegment[] = [];
+  targets.forEach((target, laneIndex) => {
+    const color = colors.get(target.id) ?? 'line-1';
+    const route = [ORIGIN_ID, ...(view.routes.get(target.id) ?? [])];
+    route.slice(1).forEach((to, i) => {
+      const from = route[i] ?? ORIGIN_ID;
+      const a = at.get(from);
+      const b = at.get(to);
+      if (!a || !b) return;
+
+      const grid =
+        from === ORIGIN_ID
+          ? [a, ...originBend(a, b), b]
+          : [
+              a,
+              ...(layout.bends.find((bend) => bend.targetId === target.id && bend.after === from)
+                ?.points ?? []),
+              b,
+            ];
+      const lane =
+        from === ORIGIN_ID
+          ? (ORIGIN_LANES[laneIndex] ?? 0)
+          : (layout.offsets.find((o) => o.targetId === target.id && o.from === from && o.to === to)
+              ?.lane ?? 0);
+
+      segments.push({
+        key: `${target.id}|${from}|${to}`,
+        targetId: target.id,
+        from,
+        to,
+        color,
+        points: shift(grid.map(toPx), lane),
+        stretch: statusOf(from) === 'done' ? 'traveled' : 'ahead',
+        order: i,
+      });
+    });
+  });
+
+  const stationIds = [
+    ORIGIN_ID,
+    ...roadmap.milestones.map((m) => m.id),
+    ...targets.map((t) => t.id),
+  ];
+  const stations = stationIds.flatMap((id): MapStation[] => {
+    const touching = segments.filter((s) => s.from === id || s.to === id);
+    const ends = touching.map((s) => (s.from === id ? s.points[0] : s.points.at(-1)));
+    const [glyphFrom, glyphTo] = extremes(ends.filter((p): p is Point => p !== undefined));
+    if (!glyphFrom || !glyphTo) return [];
+
+    const stopping = targets.filter((t) => touching.some((s) => s.targetId === t.id));
+    const climbs = touching.some((s) => {
+      const [here, next] =
+        s.from === id ? [s.points[0], s.points[1]] : [s.points.at(-1), s.points.at(-2)];
+      return here && next && next.x > here.x && next.y < here.y;
+    });
+    const milestone = roadmap.milestones.find((m) => m.id === id);
+    const target = targets.find((t) => t.id === id);
+    return [
+      {
+        id,
+        kind: id === ORIGIN_ID ? 'origin' : target ? 'terminal' : 'milestone',
+        label: milestone?.title ?? target?.roleFamily.name ?? roadmap.from,
+        targetIds: stopping.map((t) => t.id),
+        from: glyphFrom,
+        to: glyphTo,
+        color: stopping.length === 1 ? (colors.get(stopping[0]?.id ?? '') ?? null) : null,
+        status: milestone ? (view.statusByMilestone.get(id) ?? 'pending') : null,
+        current: id === view.currentMilestoneId,
+        labelAngle: climbs ? -60 : -35,
+      },
+    ];
+  });
+
+  const all = segments.flatMap((s) => s.points);
+  const xs = all.map((p) => p.x);
+  const ys = all.map((p) => p.y);
+  const left = Math.min(...xs) - PAD.left;
+  const top = Math.min(...ys) - PAD.top;
+  return {
+    viewBox: {
+      x: left,
+      y: top,
+      w: Math.max(...xs) + PAD.right - left,
+      h: Math.max(...ys) + PAD.bottom - top,
+    },
+    segments,
+    stations,
+  };
+}
+
+/** Grid to pixels. */
+function toPx(p: GridPoint): Point {
+  return { x: p.x * UNIT, y: p.y * UNIT };
+}
+
+/**
+ * Corner points from the starting point to a line's first station, keeping every segment
+ * horizontal, vertical or at 45°: along the main line first, then diagonally to the station.
+ */
+export function originBend(from: GridPoint, to: GridPoint): GridPoint[] {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  if (dy === 0 || Math.abs(dx) === Math.abs(dy)) return [];
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return [{ x: to.x - Math.sign(dx) * Math.abs(dy), y: from.y }];
+  }
+  return [{ x: to.x, y: from.y + Math.sign(dy) * Math.abs(dx) }];
+}
+
+/**
+ * Moves a stretch sideways into its lane, perpendicular to where it starts, so lines sharing a
+ * stretch run side by side instead of on top of each other.
+ */
+function shift(points: readonly Point[], lane: number): Point[] {
+  const [a, b] = points;
+  if (lane === 0 || !a || !b) return [...points];
+  const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+  const nx = (-(b.y - a.y) / length) * lane * LANE;
+  const ny = ((b.x - a.x) / length) * lane * LANE;
+  return points.map((p) => ({ x: p.x + nx, y: p.y + ny }));
+}
+
+/** The two points farthest apart: the ends of a station's capsule. */
+function extremes(points: readonly Point[]): [Point | undefined, Point | undefined] {
+  let best: [Point | undefined, Point | undefined] = [points[0], points[0]];
+  let distance = -1;
+  for (const p of points) {
+    for (const q of points) {
+      const d = Math.hypot(p.x - q.x, p.y - q.y);
+      if (d > distance) {
+        distance = d;
+        best = [p, q];
+      }
+    }
+  }
+  return best;
+}

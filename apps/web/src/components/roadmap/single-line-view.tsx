@@ -36,7 +36,17 @@ const WORK_MODE_LABEL = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On site' 
  * there is no map layout. One lane per target; a target that does not stop at a station passes
  * through it (#108).
  */
-export function SingleLineView({ line }: { readonly line: SingleLine }) {
+export function SingleLineView({
+  line,
+  withMap = false,
+  onActivate,
+}: {
+  readonly line: SingleLine;
+  /** The subway map is shown from `lg` (#117): the list keeps the stations and drops its lanes. */
+  readonly withMap?: boolean;
+  /** Highlights a station's targets on the map while it is hovered or focused (#117). */
+  readonly onActivate?: (targetIds: readonly string[] | null) => void;
+}) {
   const gutter = laneX(line.lanes.length - 1) + LANE_START;
 
   return (
@@ -47,12 +57,15 @@ export function SingleLineView({ line }: { readonly line: SingleLine }) {
           key={row.id}
           data-testid="station"
           data-kind={row.kind}
-          className="grid gap-x-3"
-          style={{ gridTemplateColumns: `${String(gutter)}px minmax(0, 1fr)` }}
+          className={cn(
+            'grid grid-cols-[var(--gutter)_minmax(0,1fr)] gap-x-3',
+            withMap && 'lg:grid-cols-1',
+          )}
+          style={{ '--gutter': `${String(gutter)}px` } as CSSProperties}
         >
-          <Track row={row} />
+          <Track row={row} hidden={withMap} />
           {row.kind === 'milestone' ? (
-            <MilestoneStation row={row} />
+            <MilestoneStation row={row} onActivate={onActivate} />
           ) : row.kind === 'terminal' ? (
             <Terminal row={row} />
           ) : (
@@ -69,7 +82,7 @@ export function SingleLineView({ line }: { readonly line: SingleLine }) {
  * joined by an ink link, terminals as larger rings around their line's color. Status is told by
  * the chip and by the line (traveled solid, ahead faded), not by the marker.
  */
-function Track({ row }: { readonly row: SingleLineRow }) {
+function Track({ row, hidden }: { readonly row: SingleLineRow; readonly hidden: boolean }) {
   const stops = row.cells.flatMap((cell, i) => (cell.stop ? [i] : []));
   const first = stops[0] ?? 0;
   const last = stops.at(-1) ?? first;
@@ -77,7 +90,7 @@ function Track({ row }: { readonly row: SingleLineRow }) {
   const interchange = stops.length > 1;
 
   return (
-    <div aria-hidden className="relative">
+    <div aria-hidden className={cn('relative', hidden && 'lg:hidden')}>
       {row.cells.map((cell, i) => (
         <Segments key={cell.lane.target.id} cell={cell} x={laneX(i)} />
       ))}
@@ -149,16 +162,24 @@ function Segments({ cell, x }: { readonly cell: LaneCell; readonly x: number }) 
 
 function MilestoneStation({
   row,
+  onActivate,
 }: {
   readonly row: Extract<SingleLineRow, { kind: 'milestone' }>;
+  readonly onActivate: ((targetIds: readonly string[] | null) => void) | undefined;
 }) {
   const { milestone } = row;
   const served = row.cells.filter((cell) => cell.stop);
+  const activate = () => onActivate?.(row.serves.map((t) => t.id));
+  const release = () => onActivate?.(null);
 
   return (
     <button
       type="button"
       aria-label={stationLabel(row)}
+      onMouseEnter={activate}
+      onMouseLeave={release}
+      onFocus={activate}
+      onBlur={release}
       className="my-1 flex w-full min-w-0 flex-col items-start gap-1.5 rounded-lg px-3 py-2 text-left outline-none transition-colors duration-(--duration-quick) hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
