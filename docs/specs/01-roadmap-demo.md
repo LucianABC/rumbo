@@ -272,6 +272,7 @@ A fictional customer support specialist with three active targets, chosen to be 
 
 **M2 — single-line view** (#108–#110, tag `v0.1-presentable`)
 
+- The list opens with the starting point (`Roadmap.from`, e.g. the current role) as the origin station every line leaves from (#108); on the map (#117) it sits before the first stations.
 - Milestones render as an `<ol>` in plan order, with:
   - line-colored segments per target and status styling (done, in progress, pending);
   - item-type glyphs and interchange markers;

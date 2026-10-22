@@ -24,7 +24,8 @@ test('pages ship processed Tailwind CSS', async ({ page, request }) => {
   const css = await (await request.get(href ?? '')).text();
   expect(css).toContain('box-sizing:border-box');
   expect(css).not.toContain('@theme');
-  await expect(page.locator('ol').first()).toHaveCSS('list-style-type', 'decimal');
+  // A utility class only Tailwind can have produced (#108).
+  await expect(page.getByRole('list', { name: 'Stations' })).toHaveCSS('display', 'flex');
 });
 
 test('the web origin proxies /api/* to the API', async ({ request }) => {

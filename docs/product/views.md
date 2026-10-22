@@ -118,7 +118,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - IBM Plex Mono for data, dates and figures, with tabular figures (`tabular-nums`);
   - the owner rejected Fraunces + Instrument Sans and also compared Source Serif/Sans, Newsreader + Public Sans and Young Serif + Figtree.
 - **Type scale and spacing:** Tailwind's defaults (1rem body, 0.25rem step), plus `text-2xs` (11px) for tab-bar and map labels.
-- **Shape:** 12px base radius (`--radius`); map strokes 4px with round caps and joins (`--map-stroke`), stations 6px (`--map-station`).
+- **Shape:** 12px base radius (`--radius`); map strokes 6px with round caps and joins (`--map-stroke`), thick enough that the lines lead, as on a transit map, stations 6px (`--map-station`).
 - **Motion:** `ease-soft` for things entering (sheet, line draw-in) and `ease-soft-in-out` for the "you are here" pulse; durations `--duration-quick` 120ms, `--duration-base` 200ms, `--duration-slow` 360ms and `--duration-pulse` 1.6s. Under `prefers-reduced-motion` every animation and transition is cut to an instant.
 - **Dark mode** follows the system preference; there is no in-app toggle yet.
 
@@ -131,6 +131,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - **How they connect**, per target: "You cover 6 of the 11 skills Data Analyst postings ask for most; 5 to close, 2 shared with Business Analyst". "Ask for most" means the skills in at least 30% of that target's snapshot postings, capped at 12. Covered means the profile has evidence for the skill; the rest are that target's gaps. The numbers link to Skills & gaps, which uses the same definition.
 - **Map:**
   - subway map on desktop and single line on mobile, one line per active target ending at its terminal;
+  - every line leaves from the starting point (the current role), drawn as the origin station;
   - milestones as stations, with interchange glyphs where a milestone serves several targets, and "you are here";
   - the station sheet shows items, `doneWhen`, tasks (projects), evidence with approval state, and dates.
 - **Analyze my progress:** a streamed summary, the suggested next milestone and one risk.

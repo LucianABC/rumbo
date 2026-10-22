@@ -2,38 +2,67 @@ import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { GET } from '../src/app/demo/health/route';
 import RoadmapPage from '../src/app/(tabs)/roadmap/page';
+import { GET } from '../src/app/demo/health/route';
 import { getRoadmap } from '../src/lib/data';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
-/** A title as React escapes it, so assertions survive `&`, quotes and apostrophes. */
+/** Text as React escapes it, so assertions survive `&`, quotes and apostrophes. */
 function escaped(text: string): string {
   return renderToStaticMarkup(createElement(Fragment, null, text));
 }
 
-describe('roadmap page', () => {
-  it('lists milestones in plan order, then the targets, and marks where the user is', async () => {
+async function render(): Promise<string> {
+  return renderToStaticMarkup(await RoadmapPage());
+}
+
+describe('roadmap page (#108)', () => {
+  it('lists the starting point, milestones in plan order, then the targets', async () => {
     const roadmap = await getRoadmap();
-    const html = renderToStaticMarkup(await RoadmapPage());
+    const html = await render();
     const titles = [
+      roadmap.from,
       ...roadmap.milestones.map((m) => m.title),
       ...roadmap.targets.map((t) => t.roleFamily.name),
     ];
-    const positions = titles.map((title) => html.indexOf(`<strong>${escaped(title)}</strong>`));
+    const stations = html.split('data-testid="station"').slice(1);
 
-    expect(positions.every((p) => p >= 0)).toBe(true);
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    expect(html).toContain(`${escaped('Own the weekly support report')}</strong> (you are here)`);
-    expect(html).toContain('interchange');
+    expect(html).toContain('<ol role="list" aria-label="Stations"');
+    expect(stations).toHaveLength(titles.length);
+    // Terminals follow lane order (primary first), which the mock's target order already is.
+    stations.forEach((station, i) => {
+      expect(station).toContain(`>${escaped(titles[i] ?? '')}</span>`);
+    });
   });
 
-  it('keeps the plan order visible as list numbers despite the CSS reset', async () => {
-    const html = renderToStaticMarkup(await RoadmapPage());
+  it('gives every milestone a button named with its status, targets and position', async () => {
+    const html = await render();
+    const names = [...html.matchAll(/<button[^>]*aria-label="([^"]+)"/g)].map((m) => m[1]);
+    const roadmap = await getRoadmap();
 
-    expect(html).toMatch(/<ol class="[^"]*\blist-decimal\b/);
+    expect(names).toHaveLength(roadmap.milestones.length);
+    expect(names.filter((n) => n?.endsWith(', you are here'))).toHaveLength(1);
+    expect(names[0]).toMatch(/^Learn the query basics, done, serves /);
+  });
+
+  it('shows "You are here" and a pulse that reduced motion hides', async () => {
+    const html = await render();
+
+    expect(html).toContain('>You are here</span>');
+    expect(html).toMatch(/class="[^"]*\banimate-here-pulse\b[^"]*\bmotion-reduce:hidden\b/);
+  });
+
+  it('names each line next to its color, primary first', async () => {
+    const html = await render();
+
+    expect(html).toContain('<ul role="list" aria-label="Lines"');
+    expect(html).toMatch(/bg-line-1[^>]*><\/span><span class="font-semibold">Data Analyst<\/span>/);
+  });
+
+  it('dates items in day-month-year', async () => {
+    expect(await render()).toContain('30 Sep 2026');
   });
 });
 
