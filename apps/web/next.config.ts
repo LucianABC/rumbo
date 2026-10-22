@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
   headers() {
     return Promise.resolve([{ source: PAGES_SOURCE, headers: [...SECURITY_HEADERS] }]);
   },
+  // The app opens on the map (spec 01, #107). Temporary: onboarding will route first-time users
+  // elsewhere (docs/product/views.md).
+  redirects() {
+    return Promise.resolve([{ source: '/', destination: '/roadmap', permanent: false }]);
+  },
 };
 
 export default nextConfig;

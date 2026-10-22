@@ -1,7 +1,10 @@
+import type { Metadata } from 'next';
 import { connection } from 'next/server';
 
-import { getApiInternalUrl } from '../lib/config';
-import { fetchHealth, type StatusView, toStatusView } from '../lib/health';
+import { getApiInternalUrl } from '../../lib/config';
+import { fetchHealth, type StatusView, toStatusView } from '../../lib/health';
+
+export const metadata: Metadata = { title: 'Status · rumbo' };
 
 /** Walking-skeleton status page: API, database and worker heartbeat (#15). */
 export default async function StatusPage() {
@@ -10,8 +13,7 @@ export default async function StatusPage() {
   const view = toStatusView(await fetchHealth(getApiInternalUrl()), new Date());
 
   return (
-    // Tailwind's preflight resets headings and lists app-wide; these classes restore a readable
-    // status page until the app shell styles it (#104, #107).
+    // Outside the tab shell on purpose: it reports the stack, not the user's data (views.md, #107).
     <main className="p-4">
       <h1 className="mb-2 text-2xl font-semibold">rumbo status</h1>
       <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 [&_dt]:font-semibold">

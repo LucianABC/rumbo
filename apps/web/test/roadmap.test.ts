@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import { GET } from '../src/app/demo/health/route';
-import RoadmapPage from '../src/app/roadmap/page';
+import RoadmapPage from '../src/app/(tabs)/roadmap/page';
 import { getRoadmap } from '../src/lib/data';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.

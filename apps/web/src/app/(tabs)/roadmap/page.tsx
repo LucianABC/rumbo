@@ -1,15 +1,16 @@
 import { deriveRoadmapView, isInterchange } from '@rumbo/contracts';
 import type { Metadata } from 'next';
 
-import { getRoadmap } from '../../lib/data';
-import { ITEM_STATUS_LABEL, ITEM_TYPE_LABEL } from '../../lib/labels';
+import { PageHeader } from '../../../components/page-header';
+import { getRoadmap } from '../../../lib/data';
+import { ITEM_STATUS_LABEL, ITEM_TYPE_LABEL } from '../../../lib/labels';
 
 export const metadata: Metadata = { title: 'Roadmap · rumbo' };
 
 /**
  * Walking-skeleton view of the roadmap: the data in plan order, before any design (spec 01, M0).
- * The few classes only restore what Tailwind's preflight resets, so the plan order stays visible
- * as list numbers (#104).
+ * The few list classes only restore what Tailwind's preflight resets, so the plan order stays
+ * visible as list numbers (#104). The shell provides `<main>` (#107).
  */
 export default async function RoadmapPage() {
   const roadmap = await getRoadmap();
@@ -17,9 +18,9 @@ export default async function RoadmapPage() {
   const targetName = new Map(roadmap.targets.map((t) => [t.id, t.roleFamily.name]));
 
   return (
-    <main className="p-4">
-      <h1 className="text-2xl font-semibold">Roadmap</h1>
-      <p className="my-2">From: {roadmap.from}</p>
+    <>
+      <PageHeader title="Roadmap" />
+      <p className="mb-4">From: {roadmap.from}</p>
       <ol className="list-decimal space-y-2 pl-6">
         {roadmap.milestones.map((milestone) => {
           const targets = (view.targetsByMilestone.get(milestone.id) ?? []).map((id) =>
@@ -49,6 +50,6 @@ export default async function RoadmapPage() {
           </li>
         ))}
       </ol>
-    </main>
+    </>
   );
 }

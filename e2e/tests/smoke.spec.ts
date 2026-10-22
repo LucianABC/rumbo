@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('status page shows the database up and a fresh worker heartbeat', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/status');
 
   await expect(page.getByTestId('api-status')).toHaveText('up');
   await expect(page.getByTestId('db-status')).toHaveText('db: up');

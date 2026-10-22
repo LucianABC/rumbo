@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import RootLayout, { metadata } from '../src/app/layout';
-import StatusPage from '../src/app/page';
+import StatusPage from '../src/app/status/page';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
