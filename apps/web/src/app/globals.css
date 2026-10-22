@@ -76,6 +76,20 @@
   /* Easings: ease-soft for things entering (sheet, line draw-in), ease-soft-in-out for loops (#106). */
   --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* "You are here": a ring that breathes out from the current station (#108). */
+  --animate-here-pulse: here-pulse var(--duration-pulse) var(--ease-soft-in-out) infinite;
+
+  @keyframes here-pulse {
+    0% {
+      transform: scale(0.8);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1.8);
+      opacity: 0;
+    }
+  }
 }
 
 :root {

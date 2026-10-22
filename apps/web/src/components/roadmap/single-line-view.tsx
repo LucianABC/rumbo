@@ -1,0 +1,237 @@
+import type { ItemStatus, RoadmapItem } from '@rumbo/contracts';
+import { cn } from 'cn';
+import { BriefcaseBusiness, FolderGit2, GraduationCap, type LucideIcon } from 'lucide-react';
+import type { CSSProperties } from 'react';
+
+import { formatDay } from '../../lib/format';
+import { ITEM_TYPE_LABEL } from '../../lib/labels';
+import { LINE_BG, LINE_BG_AHEAD, LINE_BORDER } from '../../lib/line-colors';
+import {
+  type LaneCell,
+  type SingleLine,
+  type SingleLineRow,
+  stationLabel,
+} from '../../lib/roadmap/single-line';
+import { StatusChip } from '../status-chip';
+
+/*
+ * Track geometry in px. MARKER_Y is the middle of a station's title line (card margin 4 + padding
+ * 8 + half of a 24px line), so markers sit on the title whatever the card's height (#108).
+ */
+const LANE_START = 10;
+const LANE_GAP = 14;
+const MARKER_Y = 24;
+const DOT = 12;
+
+const laneX = (index: number) => LANE_START + index * LANE_GAP;
+
+const ITEM_ICON: Readonly<Record<RoadmapItem['type'], LucideIcon>> = {
+  project: FolderGit2,
+  education: GraduationCap,
+  work_experience: BriefcaseBusiness,
+};
+
+const WORK_MODE_LABEL = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On site' } as const;
+
+/** Filled when done, tinted while in progress, hollow while pending: shape, not only color. */
+const DOT_STYLE: Readonly<Record<ItemStatus, string>> = {
+  done: 'border-2',
+  in_progress: 'border-[3px]',
+  pending: 'border-2 bg-card',
+};
+
+/**
+ * The roadmap as one vertical line (spec 01, M2): the permanent phone view and the fallback when
+ * there is no map layout. One lane per target; a target that does not stop at a station passes
+ * through it (#108).
+ */
+export function SingleLineView({ line }: { readonly line: SingleLine }) {
+  const gutter = laneX(line.lanes.length - 1) + LANE_START;
+
+  return (
+    <ol aria-label="Stations" className="flex flex-col">
+      {line.rows.map((row) => (
+        <li
+          key={row.id}
+          data-testid="station"
+          data-kind={row.kind}
+          className="grid gap-x-3"
+          style={{ gridTemplateColumns: `${String(gutter)}px minmax(0, 1fr)` }}
+        >
+          <Track row={row} />
+          {row.kind === 'milestone' ? <MilestoneStation row={row} /> : <Terminal row={row} />}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function Track({ row }: { readonly row: SingleLineRow }) {
+  const stops = row.cells.flatMap((cell, i) => (cell.stop ? [i] : []));
+  const first = stops[0] ?? 0;
+  const last = stops.at(-1) ?? first;
+  const center = (laneX(first) + laneX(last)) / 2;
+
+  return (
+    <div aria-hidden className="relative">
+      {row.cells.map((cell, i) => (
+        <Segments key={cell.lane.target.id} cell={cell} x={laneX(i)} />
+      ))}
+      {row.kind === 'milestone' && row.current ? (
+        <span
+          className="absolute size-7 -translate-1/2 animate-here-pulse rounded-full border-2 border-primary motion-reduce:hidden"
+          style={at(center, MARKER_Y)}
+        />
+      ) : null}
+      {stops.length > 1 ? (
+        // Interchange: one capsule joining the stops, as on a transit map.
+        <span
+          className="absolute h-[18px] -translate-y-1/2 rounded-full border-2 border-foreground bg-card"
+          style={{
+            left: laneX(first) - 9,
+            width: laneX(last) - laneX(first) + 18,
+            top: MARKER_Y,
+          }}
+        />
+      ) : null}
+      {stops.map((i) => {
+        const cell = row.cells[i];
+        if (!cell) return null;
+        const color = cell.lane.color;
+        return row.kind === 'terminal' ? (
+          <span
+            key={i}
+            className={cn(
+              'absolute size-[18px] -translate-1/2 rounded-[5px] border-2 border-foreground',
+              LINE_BG[color],
+            )}
+            style={at(laneX(i), MARKER_Y)}
+          />
+        ) : (
+          <span
+            key={i}
+            className={cn(
+              'absolute -translate-1/2 rounded-full',
+              DOT_STYLE[row.status],
+              LINE_BORDER[color],
+              row.status === 'done' && LINE_BG[color],
+              row.status === 'in_progress' && LINE_BG_AHEAD[color],
+            )}
+            style={{ ...at(laneX(i), MARKER_Y), width: DOT, height: DOT }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function Segments({ cell, x }: { readonly cell: LaneCell; readonly x: number }) {
+  const style = (stretch: 'traveled' | 'ahead') =>
+    cn(
+      'absolute w-(--map-stroke) -translate-x-1/2',
+      (stretch === 'traveled' ? LINE_BG : LINE_BG_AHEAD)[cell.lane.color],
+    );
+  return (
+    <>
+      {cell.top ? (
+        <span className={style(cell.top)} style={{ left: x, top: 0, height: MARKER_Y }} />
+      ) : null}
+      {cell.bottom ? (
+        <span className={style(cell.bottom)} style={{ left: x, top: MARKER_Y, bottom: 0 }} />
+      ) : null}
+    </>
+  );
+}
+
+function MilestoneStation({
+  row,
+}: {
+  readonly row: Extract<SingleLineRow, { kind: 'milestone' }>;
+}) {
+  const { milestone } = row;
+  const served = row.cells.filter((cell) => cell.stop);
+
+  return (
+    <button
+      type="button"
+      aria-label={stationLabel(row)}
+      className="my-1 flex w-full min-w-0 flex-col items-start gap-1.5 rounded-lg px-3 py-2 text-left outline-none transition-colors duration-(--duration-quick) hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-heading text-base leading-6 font-semibold">{milestone.title}</span>
+        <StatusChip status={row.status} />
+        {row.current ? (
+          <span className="inline-flex h-5 items-center rounded-full bg-primary px-2 text-2xs font-semibold text-primary-foreground">
+            You are here
+          </span>
+        ) : null}
+      </span>
+      {milestone.summary ? (
+        <span className="text-sm text-muted-foreground">{milestone.summary}</span>
+      ) : null}
+      <span className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {served.map((cell) => (
+          <span key={cell.lane.target.id} className="inline-flex items-center gap-1.5">
+            <span className={cn('size-2 rounded-full', LINE_BG[cell.lane.color])} />
+            {cell.lane.target.roleFamily.name}
+          </span>
+        ))}
+      </span>
+      <span className="flex w-full flex-col gap-1">
+        {milestone.items.map((item) => {
+          const Icon = ITEM_ICON[item.type];
+          return (
+            <span key={item.id} className="flex items-start gap-2 text-sm">
+              <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 flex-1">
+                <span className="sr-only">{ITEM_TYPE_LABEL[item.type]}: </span>
+                {item.title}
+              </span>
+              {item.expectedEnd ? (
+                <span className="shrink-0 font-mono text-2xs leading-5 text-muted-foreground tabular-nums">
+                  {formatDay(item.expectedEnd)}
+                </span>
+              ) : null}
+            </span>
+          );
+        })}
+      </span>
+    </button>
+  );
+}
+
+function Terminal({ row }: { readonly row: Extract<SingleLineRow, { kind: 'terminal' }> }) {
+  const { target } = row;
+  const details = [
+    target.seniority,
+    target.workMode && WORK_MODE_LABEL[target.workMode],
+    target.region,
+  ].filter(Boolean);
+
+  return (
+    <div
+      aria-label={stationLabel(row)}
+      role="group"
+      className="my-1 flex min-w-0 flex-col gap-1 px-3 py-2"
+    >
+      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-heading text-base leading-6 font-bold">{target.roleFamily.name}</span>
+        <span className="text-2xs font-medium tracking-wide text-muted-foreground uppercase">
+          Target role
+        </span>
+        {target.isPrimary ? (
+          <span className="inline-flex h-5 items-center rounded-full border border-foreground/30 px-2 text-2xs font-medium">
+            Primary
+          </span>
+        ) : null}
+      </span>
+      {details.length > 0 ? (
+        <span className="font-mono text-xs text-muted-foreground">{details.join(' · ')}</span>
+      ) : null}
+    </div>
+  );
+}
+
+function at(x: number, y: number): CSSProperties {
+  return { left: x, top: y };
+}

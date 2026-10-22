@@ -1,55 +1,33 @@
-import { deriveRoadmapView, isInterchange } from '@rumbo/contracts';
+import { deriveRoadmapView } from '@rumbo/contracts';
 import type { Metadata } from 'next';
 
 import { PageHeader } from '../../../components/page-header';
-import { getRoadmap } from '../../../lib/data';
-import { ITEM_STATUS_LABEL, ITEM_TYPE_LABEL } from '../../../lib/labels';
+import { LineLegend } from '../../../components/roadmap/line-legend';
+import { SingleLineView } from '../../../components/roadmap/single-line-view';
+import { getRoadmap, getRoadmapLayout, getTargetColors } from '../../../lib/data';
+import { singleLine } from '../../../lib/roadmap/single-line';
 
 export const metadata: Metadata = { title: 'Roadmap · rumbo' };
 
 /**
- * Walking-skeleton view of the roadmap: the data in plan order, before any design (spec 01, M0).
- * The few list classes only restore what Tailwind's preflight resets, so the plan order stays
- * visible as list numbers (#104). The shell provides `<main>` (#107).
+ * The roadmap as a single line (spec 01, M2, #108). The summary band (#112) goes above it and the
+ * desktop map (#117) replaces it from `md` when the layout fits; on phones it stays.
  */
 export default async function RoadmapPage() {
   const roadmap = await getRoadmap();
-  const view = deriveRoadmapView(roadmap);
-  const targetName = new Map(roadmap.targets.map((t) => [t.id, t.roleFamily.name]));
+  const colors = getTargetColors(roadmap, await getRoadmapLayout(roadmap));
+  const line = singleLine(roadmap, deriveRoadmapView(roadmap), colors);
 
   return (
     <>
       <PageHeader title="Roadmap" />
-      <p className="mb-4">From: {roadmap.from}</p>
-      <ol className="list-decimal space-y-2 pl-6">
-        {roadmap.milestones.map((milestone) => {
-          const targets = (view.targetsByMilestone.get(milestone.id) ?? []).map((id) =>
-            targetName.get(id),
-          );
-          const status = view.statusByMilestone.get(milestone.id) ?? 'pending';
-          return (
-            <li key={milestone.id} data-testid="station">
-              <strong>{milestone.title}</strong>
-              {milestone.id === view.currentMilestoneId && ' (you are here)'} —{' '}
-              {ITEM_STATUS_LABEL[status]} · serves {targets.join(', ')}
-              {isInterchange(view, milestone.id) && ' · interchange'}
-              <ul className="list-disc pl-6">
-                {milestone.items.map((item) => (
-                  <li key={item.id}>
-                    {item.title} ({ITEM_TYPE_LABEL[item.type]}, {ITEM_STATUS_LABEL[item.status]})
-                  </li>
-                ))}
-              </ul>
-            </li>
-          );
-        })}
-        {roadmap.targets.map((target) => (
-          <li key={target.id} data-testid="station">
-            <strong>{target.roleFamily.name}</strong> — target role
-            {target.isPrimary && ' (primary)'}
-          </li>
-        ))}
-      </ol>
+      <div className="flex flex-col gap-6">
+        <p className="text-sm text-muted-foreground">
+          Starting from <span className="font-medium text-foreground">{roadmap.from}</span>
+        </p>
+        <LineLegend lanes={line.lanes} />
+        <SingleLineView line={line} />
+      </div>
     </>
   );
 }
