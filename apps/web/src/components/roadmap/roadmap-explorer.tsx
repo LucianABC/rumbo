@@ -25,29 +25,37 @@ export function RoadmapExplorer({
   readonly gapNames: Readonly<Record<string, string>>;
 }) {
   const [active, setActive] = useState<readonly string[] | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
-  const open = line.rows.find(
-    (row): row is MilestoneRow => row.kind === 'milestone' && row.id === openId,
+  // The last station opened stays set after closing, so the panel keeps its content while it
+  // animates out; `open` alone says whether it shows (#142).
+  const [stationId, setStationId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const station = line.rows.find(
+    (row): row is MilestoneRow => row.kind === 'milestone' && row.id === stationId,
   );
+  const openStation = (id: string) => {
+    setStationId(id);
+    setOpen(true);
+  };
 
   return (
     <>
       {map ? (
         <div className="hidden lg:block">
-          <SubwayMapView map={map} active={active} onActivate={setActive} onOpen={setOpenId} />
+          <SubwayMapView map={map} active={active} onActivate={setActive} onOpen={openStation} />
         </div>
       ) : null}
       <SingleLineView
         line={line}
         withMap={map !== null}
         onActivate={setActive}
-        onOpen={setOpenId}
+        onOpen={openStation}
       />
       <StationSheet
-        row={open ?? null}
+        row={station ?? null}
+        open={open}
         gapNames={gapNames}
         onClose={() => {
-          setOpenId(null);
+          setOpen(false);
         }}
       />
     </>

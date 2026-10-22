@@ -106,6 +106,22 @@ for (const [name, viewport] of [
       await expect(here(page)).toBeFocused();
     });
 
+    test('shows the station that opened it, also after closing another', async ({ page }) => {
+      await page.goto('/roadmap');
+      const stations = page.getByRole('list', { name: 'Stations' }).getByRole('button');
+      const title = async (i: number) =>
+        ((await stations.nth(i).getAttribute('aria-label')) ?? '').split(', ')[0] ?? '';
+
+      for (const i of [0, 1]) {
+        // Read the name first: an open modal hides the rest of the page from the a11y tree.
+        const expected = await title(i);
+        await stations.nth(i).click();
+        await expect(page.getByRole('dialog')).toContainText(expected);
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toBeHidden();
+      }
+    });
+
     test('closes from its close button', async ({ page }) => {
       await page.goto('/roadmap');
 

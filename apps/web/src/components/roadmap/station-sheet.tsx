@@ -1,7 +1,6 @@
 'use client';
 
 import { XIcon } from 'lucide-react';
-import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -34,23 +33,22 @@ type MilestoneRow = Extract<SingleLineRow, { kind: 'milestone' }>;
  */
 export function StationSheet({
   row,
+  open,
   gapNames,
   onClose,
 }: {
+  /** The station to show; still set while the panel animates closed (#142). */
   readonly row: MilestoneRow | null;
+  readonly open: boolean;
   readonly gapNames: Readonly<Record<string, string>>;
   readonly onClose: () => void;
 }) {
   const wide = useMediaQuery('(min-width: 48rem)');
-  const open = row !== null;
-  // Keep showing the last station while the panel animates closed, instead of an empty panel.
-  const [shown, setShown] = useState(row);
-  if (row !== null && row !== shown) setShown(row);
   const onOpenChange = (next: boolean) => {
     if (!next) onClose();
   };
-  const description = shown
-    ? `Moves you toward ${joinNames(shown.serves.map((t) => t.roleFamily.name))}`
+  const description = row
+    ? `Moves you toward ${joinNames(row.serves.map((t) => t.roleFamily.name))}`
     : '';
 
   if (wide) {
@@ -60,14 +58,14 @@ export function StationSheet({
           side="right"
           className="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-md"
         >
-          {shown ? (
+          {row ? (
             <>
               <SheetHeader className="pr-12">
-                <SheetTitle className="text-xl font-bold">{shown.milestone.title}</SheetTitle>
+                <SheetTitle className="text-xl font-bold">{row.milestone.title}</SheetTitle>
                 <SheetDescription className="sr-only">{description}</SheetDescription>
               </SheetHeader>
               <div className="px-4 pb-6">
-                <StationDetail row={shown} gapNames={gapNames} />
+                <StationDetail row={row} gapNames={gapNames} />
               </div>
             </>
           ) : null}
@@ -79,10 +77,10 @@ export function StationSheet({
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
       <DrawerContent>
-        {shown ? (
+        {row ? (
           <>
             <DrawerHeader className="relative pr-12 group-data-[swipe-axis=y]/drawer-popup:text-left">
-              <DrawerTitle className="text-xl font-bold">{shown.milestone.title}</DrawerTitle>
+              <DrawerTitle className="text-xl font-bold">{row.milestone.title}</DrawerTitle>
               <DrawerDescription className="sr-only">{description}</DrawerDescription>
               <DrawerClose
                 render={
@@ -94,7 +92,7 @@ export function StationSheet({
               </DrawerClose>
             </DrawerHeader>
             <div className="overflow-y-auto px-4 pt-4 pb-8">
-              <StationDetail row={shown} gapNames={gapNames} />
+              <StationDetail row={row} gapNames={gapNames} />
             </div>
           </>
         ) : null}
