@@ -83,8 +83,22 @@ describe('subway map (#117)', () => {
   it('steepens a label where a line climbs to the right, so they never cross', async () => {
     const { map } = await build();
 
-    expect(map.stations.find((s) => s.id === 'weekly-report')?.labelAngle).toBe(-60);
+    // Business Analyst climbs from the process map back up to the public dashboard.
+    expect(map.stations.find((s) => s.id === 'process-map')?.labelAngle).toBe(-60);
     expect(map.stations.find((s) => s.id === 'team-capacity')?.labelAngle).toBe(-35);
+  });
+
+  it('runs the primary line on top: topmost terminal and top lane from the start', async () => {
+    const { roadmap, map } = await build();
+    const primary = roadmap.targets.find((t) => t.isPrimary)?.id;
+    const terminals = map.stations.filter((s) => s.kind === 'terminal');
+    const leaving = map.segments.filter((s) => s.from === ORIGIN_ID);
+    const top = (points: readonly { y: number }[]) => Math.min(...points.map((p) => p.y));
+
+    expect(terminals.reduce((a, b) => (b.from.y < a.from.y ? b : a)).id).toBe(primary);
+    expect(leaving.reduce((a, b) => (top(b.points) < top(a.points) ? b : a)).targetId).toBe(
+      primary,
+    );
   });
 
   it('bends from the starting point along the main line, then at 45 degrees', () => {

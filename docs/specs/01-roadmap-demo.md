@@ -303,6 +303,7 @@ A fictional customer support specialist with three active targets, chosen to be 
 - From `lg` up, an SVG map draws every derived route from the layout:
   - octilinear segments with rounded corners at bends;
   - authored offsets on shared stretches;
+  - the primary target's line on top: its terminal is the topmost, and it takes the top lane wherever lines share a stretch, including the stretch leaving the starting point (#117);
   - interchange glyphs.
 - Below `lg`, the M2 view.
 - On load, lines draw in with `stroke-dashoffset`; under reduced motion they appear static.

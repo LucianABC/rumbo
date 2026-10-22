@@ -66,8 +66,11 @@ export interface SubwayMap {
   readonly stations: readonly MapStation[];
 }
 
-/** Lane slots for the stretch leaving the starting point: primary in the middle, then each side. */
-const ORIGIN_LANES = [0, -1, 1] as const;
+/**
+ * Lane slots for the stretch leaving the starting point, in lane order: the primary line on top
+ * (lane -1 is above on a rightward stretch), then the others below it (spec 01, M3).
+ */
+const ORIGIN_LANES = [-1, 0, 1] as const;
 
 export function subwayMap(
   roadmap: Roadmap,
