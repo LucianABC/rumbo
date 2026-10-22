@@ -17,23 +17,35 @@ export type LocalMockName = 'roadmap' | 'roadmap-layout';
 const envSchema = z.object({ LOCAL_MOCKS_DIR: z.string().min(1).optional() });
 
 /**
- * The parsed local file, or undefined when no override is configured or the file does not exist.
+ * A local file found, with whatever it parsed to (`null` included), or none. Kept apart so a file
+ * holding `null` fails validation instead of passing for a missing one (#137).
+ */
+export type LocalMock =
+  { readonly found: true; readonly data: unknown } | { readonly found: false };
+
+const NONE: LocalMock = { found: false };
+
+/**
+ * The parsed local file, or none when no override is configured or the file does not exist.
  * The caller validates it with the same schema as the bundled mock.
  */
-export async function readLocalMock(name: LocalMockName, env: Env = process.env): Promise<unknown> {
+export async function readLocalMock(
+  name: LocalMockName,
+  env: Env = process.env,
+): Promise<LocalMock> {
   const dir = parseEnv(envSchema, env).LOCAL_MOCKS_DIR;
-  if (dir === undefined) return undefined;
+  if (dir === undefined) return NONE;
 
   let text: string;
   try {
     text = await readFile(path.resolve(dir, `${name}.json`), 'utf8');
   } catch (err) {
-    if (isMissing(err)) return undefined;
+    if (isMissing(err)) return NONE;
     throw err;
   }
 
   try {
-    return JSON.parse(text) as unknown;
+    return { found: true, data: JSON.parse(text) as unknown };
   } catch {
     // JSON.parse quotes the text around the error, which here is personal data: drop its message.
     throw new Error(`Invalid local mock ${name}.json: not valid JSON`);

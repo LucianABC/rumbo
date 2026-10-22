@@ -58,6 +58,18 @@ describe('local mocks (#137)', () => {
     await expect(getRoadmap()).rejects.toThrow(/Invalid roadmap:\ntargets: /);
   });
 
+  it('fails on a local file holding null instead of falling back to the fictional user', async () => {
+    await write('roadmap.json', 'null');
+
+    await expect(getRoadmap()).rejects.toThrow(/Invalid roadmap:/);
+  });
+
+  it('degrades to no layout when the local layout is null, not to the bundled one', async () => {
+    await write('roadmap-layout.json', 'null');
+
+    expect(await getRoadmapLayout(await getRoadmap())).toBeNull();
+  });
+
   it('degrades to no layout when the local layout is malformed', async () => {
     await write('roadmap-layout.json', { lines: 'not an array' });
 
@@ -78,7 +90,10 @@ describe('local mocks (#137)', () => {
 
     const relative = path.relative(process.cwd(), dir);
 
-    expect(await readLocalMock('roadmap', { LOCAL_MOCKS_DIR: relative })).toEqual({ from: 'x' });
+    expect(await readLocalMock('roadmap', { LOCAL_MOCKS_DIR: relative })).toEqual({
+      found: true,
+      data: { from: 'x' },
+    });
   });
 
   it('surfaces read errors other than a missing file', async () => {

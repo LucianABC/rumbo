@@ -17,3 +17,6 @@ evals
 infra
 playwright-report
 test-results
+# Personal data on the owner's machine (#137): mounted at runtime, never baked into an image layer.
+.local
+uploads

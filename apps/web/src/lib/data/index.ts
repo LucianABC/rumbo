@@ -10,7 +10,7 @@ import type { z } from 'zod';
 
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
-import { readLocalMock } from './local-mocks';
+import { type LocalMockName, readLocalMock } from './local-mocks';
 
 /**
  * The only place views get data from (spec 01, #103). Today every function reads a mock; each one
@@ -28,7 +28,7 @@ import { readLocalMock } from './local-mocks';
 
 export async function getRoadmap(): Promise<Roadmap> {
   await connection();
-  return parse(Roadmap, (await readLocalMock('roadmap')) ?? roadmap, 'roadmap');
+  return parse(Roadmap, await localOr('roadmap', roadmap), 'roadmap');
 }
 
 /**
@@ -37,7 +37,7 @@ export async function getRoadmap(): Promise<Roadmap> {
  */
 export async function getRoadmapLayout(forRoadmap: Roadmap): Promise<RoadmapLayout | null> {
   await connection();
-  const layout = RoadmapLayout.safeParse((await readLocalMock('roadmap-layout')) ?? roadmapLayout);
+  const layout = RoadmapLayout.safeParse(await localOr('roadmap-layout', roadmapLayout));
   if (!layout.success || checkLayout(forRoadmap, layout.data).length > 0) return null;
   return layout.data;
 }
@@ -52,6 +52,12 @@ export function getTargetColors(
   layout: RoadmapLayout | null,
 ): ReadonlyMap<string, LineColorToken> {
   return targetColors(forRoadmap, layout ?? undefined);
+}
+
+/** The owner's local file when there is one, whatever it holds; else the bundled mock (#137). */
+async function localOr(name: LocalMockName, bundled: unknown): Promise<unknown> {
+  const local = await readLocalMock(name);
+  return local.found ? local.data : bundled;
 }
 
 /** Validates data as untrusted, failing with every issue and its path. */
