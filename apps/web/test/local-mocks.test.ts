@@ -56,13 +56,23 @@ describe('local mocks (#137)', () => {
 
   it('replaces the profile and the market too, validated like their bundled mocks (#145)', async () => {
     await write('profile.json', { ...bundledProfile, name: 'Local Name' });
-    await write('market.json', { snapshots: bundledMarket.snapshots.slice(0, 1) });
+    const [first, ...rest] = bundledMarket.snapshots;
+    await write('market.json', { snapshots: [{ ...first, region: 'Local region' }, ...rest] });
+    const roadmap = await getRoadmap();
 
     expect((await getProfile()).name).toBe('Local Name');
-    expect((await getMarket()).snapshots).toHaveLength(1);
+    expect((await getMarket(roadmap)).snapshots[0]?.region).toBe('Local region');
 
-    await write('market.json', { snapshots: [{ ...bundledMarket.snapshots[0], postingCount: 0 }] });
-    await expect(getMarket()).rejects.toThrow(/Invalid market:/);
+    await write('market.json', { snapshots: [{ ...first, postingCount: 0 }, ...rest] });
+    await expect(getMarket(roadmap)).rejects.toThrow(/Invalid market:/);
+  });
+
+  it('rejects a local market that leaves an active target without numbers (#145)', async () => {
+    await write('market.json', { snapshots: bundledMarket.snapshots.slice(0, 1) });
+
+    await expect(getMarket(await getRoadmap())).rejects.toThrow(
+      /Invalid market:\ntarget "business-analyst" has no market snapshot/,
+    );
   });
 
   it('validates a local file like the bundled mock', async () => {

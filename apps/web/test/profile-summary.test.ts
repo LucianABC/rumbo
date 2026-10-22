@@ -55,6 +55,16 @@ describe('summarize (#145)', () => {
     expect(summarize({ ...profile, experiences: [] }, NOW, NONE).currentRole).toBeNull();
   });
 
+  it('takes the closed position that ended last, not the one that began last', async () => {
+    const profile = await getProfile();
+    const longer = job('experience-long', '2019-01', '2025-06');
+    const shorter = job('experience-short', '2024-01', '2024-12');
+
+    expect(
+      summarize({ ...profile, experiences: [shorter, longer] }, NOW, NONE).currentRole?.title,
+    ).toBe('experience-long');
+  });
+
   it('lists the three skills with the most approved evidence, ignoring the rest', async () => {
     const summary = summarize(await getProfile(), NOW, NONE);
 
@@ -94,7 +104,8 @@ describe('summarize (#145)', () => {
   });
 
   it('serves the summary of the loaded profile', async () => {
-    const [profile, market, roadmap] = await Promise.all([getProfile(), getMarket(), getRoadmap()]);
+    const roadmap = await getRoadmap();
+    const [profile, market] = await Promise.all([getProfile(), getMarket(roadmap)]);
     const summary = getProfileSummary(profile, market, roadmap);
 
     expect(summary.name).toBe(profile.name);

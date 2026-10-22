@@ -101,7 +101,8 @@ describe('coverage (#145)', () => {
 
 describe('profile and market mocks agree with the roadmap mock', () => {
   it('every gap demand matches its snapshot: same target, share and posting count', async () => {
-    const [roadmap, market] = await Promise.all([getRoadmap(), getMarket()]);
+    const roadmap = await getRoadmap();
+    const market = await getMarket(roadmap);
 
     for (const gap of roadmap.gaps) {
       for (const demand of gap.demand) {
@@ -114,7 +115,8 @@ describe('profile and market mocks agree with the roadmap mock', () => {
   });
 
   it("every skill a target asks for most and the profile lacks is one of that target's gaps", async () => {
-    const [roadmap, market, profile] = await Promise.all([getRoadmap(), getMarket(), getProfile()]);
+    const roadmap = await getRoadmap();
+    const [market, profile] = await Promise.all([getMarket(roadmap), getProfile()]);
     const result = coverage(
       profile,
       market,

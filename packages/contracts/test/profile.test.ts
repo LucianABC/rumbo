@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { PartialDate, Profile } from '../src/index.js';
-import { Market } from '../src/provisional/index.js';
+import { checkMarket, Market } from '../src/provisional/index.js';
 
 const base = {
   name: 'Sam Example',
@@ -136,5 +136,51 @@ describe('Market (provisional, #145)', () => {
     expect(issues({ snapshots: [snapshot, { ...snapshot, id: 'snap-b' }] })).toContain(
       'target "target-a" has more than one snapshot',
     );
+  });
+});
+
+describe('checkMarket (provisional, #145)', () => {
+  const roadmap = {
+    targets: [{ id: 'target-a' }, { id: 'target-b' }],
+    gaps: [
+      {
+        id: 'gap-sql',
+        skill: { id: 'sql', name: 'SQL' },
+        demand: [{ targetId: 'target-a', snapshotId: 'snap-a', share: 0.6, postingCount: 10 }],
+      },
+    ],
+  } as unknown as Parameters<typeof checkMarket>[1];
+  const snap = (id: string, targetId: string) => ({
+    id,
+    targetId,
+    roleFamily: { id: 'analyst', name: 'Analyst', field: 'Analytics' },
+    region: 'Remote',
+    checkedAt: '2026-10-01T00:00:00.000Z',
+    postingCount: 10,
+    skills: [{ skill: { id: 'sql', name: 'SQL' }, share: 0.6 }],
+  });
+
+  it('accepts a snapshot per active target that agrees with the gaps', () => {
+    expect(
+      checkMarket({ snapshots: [snap('snap-a', 'target-a'), snap('snap-b', 'target-b')] }, roadmap),
+    ).toEqual([]);
+  });
+
+  it('names a target without a snapshot and a snapshot without an active target', () => {
+    expect(
+      checkMarket({ snapshots: [snap('snap-a', 'target-a'), snap('snap-x', 'target-x')] }, roadmap),
+    ).toEqual([
+      'target "target-b" has no market snapshot',
+      'snapshot "snap-x" is for "target-x", not an active target',
+    ]);
+    expect(checkMarket({ snapshots: [] }, roadmap)).toHaveLength(3);
+  });
+
+  it('flags a gap whose demand disagrees with the snapshot it cites', () => {
+    const off = { ...snap('snap-a', 'target-a'), postingCount: 11 };
+
+    expect(checkMarket({ snapshots: [off, snap('snap-b', 'target-b')] }, roadmap)).toEqual([
+      'gap "gap-sql" disagrees with snapshot "snap-a" on its demand',
+    ]);
   });
 });

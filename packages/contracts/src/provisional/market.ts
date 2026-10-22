@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { Id } from '../ids.js';
-import { RoleFamilyRef, SkillRef } from '../roadmap.js';
+import { type Roadmap, RoleFamilyRef, SkillRef } from '../roadmap.js';
 
 /**
  * Provisional (spec 01, #145): the market as the views read it until the F2 spec (#42) decides
@@ -58,3 +58,42 @@ export const Market = z
     }
   });
 export type Market = z.infer<typeof Market>;
+
+/**
+ * Checks a market against the roadmap it backs; returns readable problems, empty when it fits.
+ * Every active target needs its snapshot, every snapshot an active target, and every gap's demand
+ * must match the snapshot it cites, so no view shows a target without numbers or two numbers for
+ * the same thing (#145).
+ */
+export function checkMarket(market: Market, roadmap: Roadmap): string[] {
+  const problems: string[] = [];
+  const targets = new Set(roadmap.targets.map((t) => t.id));
+  const byId = new Map(market.snapshots.map((s) => [s.id, s]));
+
+  for (const id of targets) {
+    if (!market.snapshots.some((s) => s.targetId === id)) {
+      problems.push(`target "${id}" has no market snapshot`);
+    }
+  }
+  for (const snapshot of market.snapshots) {
+    if (!targets.has(snapshot.targetId)) {
+      problems.push(
+        `snapshot "${snapshot.id}" is for "${snapshot.targetId}", not an active target`,
+      );
+    }
+  }
+  for (const gap of roadmap.gaps) {
+    for (const demand of gap.demand) {
+      const snapshot = byId.get(demand.snapshotId);
+      const share = snapshot?.skills.find((s) => s.skill.id === gap.skill.id)?.share;
+      if (snapshot?.targetId !== demand.targetId) {
+        problems.push(
+          `gap "${gap.id}" cites "${demand.snapshotId}", which is not ${demand.targetId}'s snapshot`,
+        );
+      } else if (share !== demand.share || snapshot.postingCount !== demand.postingCount) {
+        problems.push(`gap "${gap.id}" disagrees with snapshot "${snapshot.id}" on its demand`);
+      }
+    }
+  }
+  return problems;
+}

@@ -6,11 +6,11 @@ import {
   RoadmapLayout,
   targetColors,
 } from '@rumbo/contracts';
-import { Market } from '@rumbo/contracts/provisional';
+import { checkMarket, Market } from '@rumbo/contracts/provisional';
 import { connection } from 'next/server';
 import type { z } from 'zod';
 
-import { market } from '../../mocks/market';
+import { market as bundledMarket } from '../../mocks/market';
 import { profile } from '../../mocks/profile';
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
@@ -71,10 +71,17 @@ export function getProfileSummary(
   return summarize(forProfile, new Date(), relevant);
 }
 
-/** One market snapshot per active target; provisional until the F2 spec (#42, #145). */
-export async function getMarket(): Promise<Market> {
+/**
+ * One market snapshot per active target of this roadmap; provisional until the F2 spec (#42).
+ * A market that does not fit the roadmap rejects like invalid data: a target without numbers is a
+ * data error, not a state to render around (#145).
+ */
+export async function getMarket(forRoadmap: Roadmap): Promise<Market> {
   await connection();
-  return parse(Market, await localOr('market', market), 'market');
+  const market = parse(Market, await localOr('market', bundledMarket), 'market');
+  const problems = checkMarket(market, forRoadmap);
+  if (problems.length > 0) throw new Error(`Invalid market:\n${problems.join('\n')}`);
+  return market;
 }
 
 /**

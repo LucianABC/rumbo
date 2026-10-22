@@ -9,7 +9,12 @@ import { EvidenceRef, SkillRef } from './roadmap.js';
  * (#41) extracts it from a CV or a LinkedIn export and its spec may adjust this shape.
  */
 
-/** A year, or a year and month: what CVs and LinkedIn exports actually give (`2021`, `2021-03`). */
+/**
+ * A year, or a year and month: what CVs and LinkedIn exports actually give (`2021`, `2021-03`).
+ * A bare year says only which year, so durations read it conservatively: as January, and an end
+ * never before its start. `2021`–`2021` is one month, not twelve: rumbo would rather understate
+ * someone's experience than claim time it cannot vouch for.
+ */
 export const PartialDate = z.string().regex(/^\d{4}(-(0[1-9]|1[0-2]))?$/);
 export type PartialDate = z.infer<typeof PartialDate>;
 

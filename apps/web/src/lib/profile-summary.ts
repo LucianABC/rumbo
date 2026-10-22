@@ -27,6 +27,11 @@ function months(date: PartialDate): number {
   return Number(year) * 12 + (month ? Number(month) - 1 : 0);
 }
 
+/** An end date in months; a bare-year end never falls before the start (see PartialDate). */
+function endMonths(end: PartialDate, start: PartialDate | number): number {
+  return Math.max(months(end), typeof start === 'number' ? start : months(start));
+}
+
 function monthsOf(now: Date): number {
   return now.getUTCFullYear() * 12 + now.getUTCMonth();
 }
@@ -36,9 +41,7 @@ export function monthsWorked(experiences: readonly Experience[], now: Date): num
   const ranges = experiences
     .map((e) => {
       const start = months(e.start);
-      // A bare-year end reads as January, but never before the start: "2020-03" to "2020" is at
-      // least one month, not none, and not a whole year we cannot vouch for.
-      const end = e.end === null ? monthsOf(now) : Math.max(months(e.end), start);
+      const end = e.end === null ? monthsOf(now) : endMonths(e.end, start);
       // Inclusive months: a position from 2021-03 to 2021-03 lasted one month.
       return [start, end + 1] as const;
     })
@@ -72,8 +75,10 @@ export function summarize(
   now: Date,
   relevantSkills: ReadonlySet<string>,
 ): ProfileSummary {
+  // Open positions first; among closed ones, the one that ended last, then the one that began last.
+  const ended = (e: Experience) => (e.end === null ? Infinity : endMonths(e.end, e.start));
   const byRecency = [...profile.experiences].sort(
-    (a, b) => Number(b.end === null) - Number(a.end === null) || months(b.start) - months(a.start),
+    (a, b) => ended(b) - ended(a) || months(b.start) - months(a.start),
   );
   const latest = byRecency[0];
 
