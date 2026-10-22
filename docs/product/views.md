@@ -131,6 +131,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - **How they connect**, per target: "You cover 6 of the 11 skills Data Analyst postings ask for most; 5 to close, 2 shared with Business Analyst". "Ask for most" means the skills in at least 30% of that target's snapshot postings, capped at 12. Covered means the profile has evidence for the skill; the rest are that target's gaps. The numbers link to Skills & gaps, which uses the same definition.
 - **Map:**
   - subway map on desktop and single line on mobile, one line per active target ending at its terminal;
+  - every line leaves from the starting point (the current role), drawn as the origin station;
   - milestones as stations, with interchange glyphs where a milestone serves several targets, and "you are here";
   - the station sheet shows items, `doneWhen`, tasks (projects), evidence with approval state, and dates.
 - **Analyze my progress:** a streamed summary, the suggested next milestone and one risk.

@@ -19,10 +19,11 @@ async function render(): Promise<string> {
 }
 
 describe('roadmap page (#108)', () => {
-  it('lists milestones in plan order, then the targets, as one list of stations', async () => {
+  it('lists the starting point, milestones in plan order, then the targets', async () => {
     const roadmap = await getRoadmap();
     const html = await render();
     const titles = [
+      roadmap.from,
       ...roadmap.milestones.map((m) => m.title),
       ...roadmap.targets.map((t) => t.roleFamily.name),
     ];

@@ -5,6 +5,7 @@ import { getRoadmap, getRoadmapLayout, getTargetColors } from '../src/lib/data';
 import { formatDay } from '../src/lib/format';
 import {
   joinNames,
+  ORIGIN_ID,
   laneOrder,
   type SingleLineRow,
   singleLine,
@@ -40,10 +41,11 @@ describe('single line (#108)', () => {
     expect(laneOrder(reordered)[0]?.isPrimary).toBe(true);
   });
 
-  it('lists milestones in plan order, then one terminal per target in lane order', async () => {
+  it('lists the starting point, milestones in plan order, then one terminal per target', async () => {
     const { roadmap, line } = await lineFor();
 
     expect(line.rows.map((r) => r.id)).toEqual([
+      ORIGIN_ID,
       ...roadmap.milestones.map((m) => m.id),
       ...line.lanes.map((l) => l.target.id),
     ]);
@@ -80,7 +82,8 @@ describe('single line (#108)', () => {
     // query-basics is done, weekly-report is in progress.
     expect(cell(weekly, 'data-analyst').top).toBe('traveled');
     expect(cell(weekly, 'data-analyst').bottom).toBe('ahead');
-    expect(cell(row(line.rows, 'query-basics'), 'data-analyst').top).toBeNull();
+    // Every line leaves the starting point, which the user has already left.
+    expect(cell(row(line.rows, 'query-basics'), 'data-analyst').top).toBe('traveled');
   });
 
   it('passes through stations a target does not stop at', async () => {
@@ -109,9 +112,9 @@ describe('single line (#108)', () => {
     expect(cell(daTerminal, 'business-analyst')).toMatchObject({ stop: false, top: 'ahead' });
   });
 
-  it('starts a lane at its first stop, with nothing drawn above it', async () => {
+  it('starts every lane at the starting point, passing through until its first stop', async () => {
     const roadmap = await getRoadmap();
-    // Support Operations Lead no longer needs SQL, so its line starts further down the plan.
+    // Support Operations Lead no longer needs SQL, so its first stop is further down the plan.
     const later: Roadmap = {
       ...roadmap,
       gaps: roadmap.gaps.map((g) =>
@@ -124,14 +127,22 @@ describe('single line (#108)', () => {
     const route = deriveRoadmapView(later).routes.get('support-ops-lead') ?? [];
     const first = line.rows.findIndex((r) => r.id === route[0]);
 
-    expect(first).toBeGreaterThan(0);
-    for (const r of line.rows.slice(0, first)) {
-      expect(cell(r, 'support-ops-lead')).toMatchObject({ stop: false, top: null, bottom: null });
+    expect(cell(row(line.rows, ORIGIN_ID), 'support-ops-lead')).toMatchObject({
+      stop: true,
+      top: null,
+      bottom: 'traveled',
+    });
+    expect(first).toBeGreaterThan(1);
+    for (const r of line.rows.slice(1, first)) {
+      expect(cell(r, 'support-ops-lead')).toMatchObject({
+        stop: false,
+        top: 'traveled',
+        bottom: 'traveled',
+      });
     }
     expect(cell(row(line.rows, route[0] ?? ''), 'support-ops-lead')).toMatchObject({
       stop: true,
-      top: null,
-      bottom: 'ahead',
+      top: 'traveled',
     });
   });
 
@@ -161,6 +172,12 @@ describe('station names', () => {
     expect(stationLabel(row(line.rows, 'team-capacity'))).toBe(
       "Plan the team's capacity, pending, serves Support Operations Lead",
     );
+  });
+
+  it('names the starting point', async () => {
+    const { roadmap, line } = await lineFor();
+
+    expect(stationLabel(row(line.rows, ORIGIN_ID))).toBe(`${roadmap.from}, starting point`);
   });
 
   it('names a terminal as a target role', async () => {

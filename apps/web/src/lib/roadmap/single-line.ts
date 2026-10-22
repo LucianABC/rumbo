@@ -10,8 +10,9 @@ import type {
 import { ITEM_STATUS_LABEL } from '../labels';
 
 /**
- * The single-line view as rows and lanes (spec 01, M2, #108): milestones in plan order, then one
- * terminal per target, each crossed by one vertical lane per target. Pure, so the drawing is a
+ * The single-line view as rows and lanes (spec 01, M2, #108): the starting point, milestones in
+ * plan order, then one terminal per target, each crossed by one vertical lane per target. Every
+ * line leaves from the starting point. Pure, so the drawing is a
  * direct render of this and every rule is unit-tested here.
  */
 
@@ -33,7 +34,17 @@ export interface LaneCell {
   readonly stop: boolean;
 }
 
+/** Row id of the starting point; `:` keeps it apart from contract ids (kebab-case). */
+export const ORIGIN_ID = 'origin:start';
+
 export type SingleLineRow =
+  | {
+      readonly kind: 'origin';
+      readonly id: typeof ORIGIN_ID;
+      /** Where the user starts, e.g. their current role (`Roadmap.from`). */
+      readonly from: string;
+      readonly cells: readonly LaneCell[];
+    }
   | {
       readonly kind: 'milestone';
       readonly id: string;
@@ -75,14 +86,16 @@ export function singleLine(
     color: colors.get(target.id) ?? (['line-1', 'line-2', 'line-3'] as const)[i] ?? 'line-1',
   }));
 
-  const ids = [...roadmap.milestones.map((m) => m.id), ...lanes.map((l) => l.target.id)];
+  const ids = [ORIGIN_ID, ...roadmap.milestones.map((m) => m.id), ...lanes.map((l) => l.target.id)];
   const rowOf = new Map(ids.map((id, i) => [id, i]));
-  const statusOf = (id: string) => view.statusByMilestone.get(id);
+  // The user has already left the starting point, so the first stretch of every line is traveled.
+  const statusOf = (id: string) => (id === ORIGIN_ID ? 'done' : view.statusByMilestone.get(id));
+  const routeOf = (targetId: string) => [ORIGIN_ID, ...(view.routes.get(targetId) ?? [])];
 
   // Each lane's stretches as row ranges: [from, to) with the style of the stop it leaves.
   const stretches = new Map(
     lanes.map((lane) => {
-      const stops = (view.routes.get(lane.target.id) ?? []).map((id) => rowOf.get(id) ?? -1);
+      const stops = routeOf(lane.target.id).map((id) => rowOf.get(id) ?? -1);
       return [
         lane.target.id,
         stops.slice(1).map((to, i) => {
@@ -97,7 +110,7 @@ export function singleLine(
   const cellsAt = (row: number): LaneCell[] =>
     lanes.map((lane) => {
       const own = stretches.get(lane.target.id) ?? [];
-      const route = view.routes.get(lane.target.id) ?? [];
+      const route = routeOf(lane.target.id);
       return {
         lane,
         top: own.find((s) => s.from < row && row <= s.to)?.style ?? null,
@@ -106,7 +119,14 @@ export function singleLine(
       };
     });
 
-  const milestoneRows = roadmap.milestones.map((milestone, row): SingleLineRow => {
+  const origin: SingleLineRow = {
+    kind: 'origin',
+    id: ORIGIN_ID,
+    from: roadmap.from,
+    cells: cellsAt(0),
+  };
+
+  const milestoneRows = roadmap.milestones.map((milestone, i): SingleLineRow => {
     const serves = view.targetsByMilestone.get(milestone.id) ?? [];
     return {
       kind: 'milestone',
@@ -115,7 +135,7 @@ export function singleLine(
       status: statusOf(milestone.id) ?? 'pending',
       current: milestone.id === view.currentMilestoneId,
       serves: lanes.map((l) => l.target).filter((t) => serves.includes(t.id)),
-      cells: cellsAt(row),
+      cells: cellsAt(i + 1),
     };
   });
 
@@ -126,11 +146,11 @@ export function singleLine(
       id: lane.target.id,
       target: lane.target,
       reached: route.slice(0, -1).every((id) => statusOf(id) === 'done'),
-      cells: cellsAt(roadmap.milestones.length + i),
+      cells: cellsAt(roadmap.milestones.length + 1 + i),
     };
   });
 
-  return { lanes, rows: [...milestoneRows, ...terminalRows] };
+  return { lanes, rows: [origin, ...milestoneRows, ...terminalRows] };
 }
 
 /** "A", "A and B", "A, B and C": the spec's wording for station names (spec 01). */
@@ -144,6 +164,7 @@ export function joinNames(names: readonly string[]): string {
  * support report, in progress, serves Data Analyst and Business Analyst, you are here" (spec 01).
  */
 export function stationLabel(row: SingleLineRow): string {
+  if (row.kind === 'origin') return `${row.from}, starting point`;
   if (row.kind === 'terminal') {
     const parts = [row.target.roleFamily.name, 'target role'];
     if (row.target.isPrimary) parts.push('primary');

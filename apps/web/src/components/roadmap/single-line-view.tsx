@@ -51,7 +51,13 @@ export function SingleLineView({ line }: { readonly line: SingleLine }) {
           style={{ gridTemplateColumns: `${String(gutter)}px minmax(0, 1fr)` }}
         >
           <Track row={row} />
-          {row.kind === 'milestone' ? <MilestoneStation row={row} /> : <Terminal row={row} />}
+          {row.kind === 'milestone' ? (
+            <MilestoneStation row={row} />
+          ) : row.kind === 'terminal' ? (
+            <Terminal row={row} />
+          ) : (
+            <Origin row={row} />
+          )}
         </li>
       ))}
     </ol>
@@ -91,14 +97,20 @@ function Track({ row }: { readonly row: SingleLineRow }) {
         const cell = row.cells[i];
         if (!cell) return null;
         const color = cell.lane.color;
-        if (row.kind === 'terminal') {
+        if (row.kind !== 'milestone') {
+          // Line ends: the starting point (ink center) and each target's terminal (its color).
           return (
             <span
               key={i}
               className="absolute flex size-[22px] -translate-1/2 items-center justify-center rounded-full border-4 border-foreground bg-card"
               style={at(laneX(i), MARKER_Y)}
             >
-              <span className={cn('size-2 rounded-full', LINE_BG[color])} />
+              <span
+                className={cn(
+                  'size-2 rounded-full',
+                  row.kind === 'origin' ? 'bg-foreground' : LINE_BG[color],
+                )}
+              />
             </span>
           );
         }
@@ -220,6 +232,21 @@ function Terminal({ row }: { readonly row: Extract<SingleLineRow, { kind: 'termi
       {details.length > 0 ? (
         <span className="font-mono text-xs text-muted-foreground">{details.join(' · ')}</span>
       ) : null}
+    </div>
+  );
+}
+
+function Origin({ row }: { readonly row: Extract<SingleLineRow, { kind: 'origin' }> }) {
+  return (
+    <div
+      aria-label={stationLabel(row)}
+      role="group"
+      className="my-1 flex min-w-0 flex-col gap-0.5 px-3 py-2"
+    >
+      <span className="font-heading text-base leading-6 font-bold">{row.from}</span>
+      <span className="text-2xs font-medium tracking-wide text-muted-foreground uppercase">
+        Starting point
+      </span>
     </div>
   );
 }

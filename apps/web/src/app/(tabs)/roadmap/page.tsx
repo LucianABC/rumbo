@@ -22,9 +22,6 @@ export default async function RoadmapPage() {
     <>
       <PageHeader title="Roadmap" />
       <div className="flex flex-col gap-6">
-        <p className="text-sm text-muted-foreground">
-          Starting from <span className="font-medium text-foreground">{roadmap.from}</span>
-        </p>
         <LineLegend lanes={line.lanes} />
         <SingleLineView line={line} />
       </div>
