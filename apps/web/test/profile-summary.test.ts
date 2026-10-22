@@ -1,7 +1,7 @@
 import type { Experience } from '@rumbo/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getProfile, getProfileSummary } from '../src/lib/data';
+import { getMarket, getProfile, getProfileSummary, getRoadmap } from '../src/lib/data';
 import { monthsWorked, relevantExperiences, summarize } from '../src/lib/profile-summary';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -25,6 +25,12 @@ describe('monthsWorked (#145)', () => {
 
     expect(monthsWorked(overlap, NOW)).toBe(18);
     expect(monthsWorked(gap, NOW)).toBe(24);
+  });
+
+  it('never ends a position before it starts when the end is only a year', () => {
+    // "2020-03 – 2020": the bare year cannot end before March, so it counts as one month.
+    expect(monthsWorked([job('a', '2020-03', '2020')], NOW)).toBe(1);
+    expect(monthsWorked([job('a', '2020-03', '2021')], NOW)).toBe(11);
   });
 
   it('runs an open position up to now and reads a bare year as January', () => {
@@ -88,9 +94,10 @@ describe('summarize (#145)', () => {
   });
 
   it('serves the summary of the loaded profile', async () => {
-    const summary = await getProfileSummary();
+    const [profile, market, roadmap] = await Promise.all([getProfile(), getMarket(), getRoadmap()]);
+    const summary = getProfileSummary(profile, market, roadmap);
 
-    expect(summary.name).toBe((await getProfile()).name);
+    expect(summary.name).toBe(profile.name);
     expect(summary.yearsOfExperience).toBeGreaterThan(0);
     // Every fictional position backs Communication, which all three targets ask for.
     expect(summary.yearsOfRelevantExperience).toBe(summary.yearsOfExperience);

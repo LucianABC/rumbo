@@ -83,6 +83,15 @@ const ProfileShape = z.object({
   updatedAt: z.iso.datetime(),
 });
 
+/**
+ * Whether `end` falls before `start`, at the coarser precision of the two: "2020-03" to "2020"
+ * is fine, since a bare year only says which year it ended in.
+ */
+export function endsBeforeStart(start: PartialDate, end: PartialDate): boolean {
+  if (start.length === 4 || end.length === 4) return end.slice(0, 4) < start.slice(0, 4);
+  return end < start;
+}
+
 function duplicates(ids: readonly string[]): string[] {
   return [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
 }
@@ -105,7 +114,7 @@ export const Profile = ProfileShape.superRefine((profile, ctx) => {
   }
 
   profile.experiences.forEach((experience, i) => {
-    if (experience.end !== null && experience.end < experience.start) {
+    if (experience.end !== null && endsBeforeStart(experience.start, experience.end)) {
       issue(`experience "${experience.id}" ends before it starts`, ['experiences', i]);
     }
   });

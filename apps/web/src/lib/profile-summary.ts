@@ -36,10 +36,12 @@ export function monthsWorked(experiences: readonly Experience[], now: Date): num
   const ranges = experiences
     .map((e) => {
       const start = months(e.start);
+      // A bare-year end reads as January, but never before the start: "2020-03" to "2020" is at
+      // least one month, not none, and not a whole year we cannot vouch for.
+      const end = e.end === null ? monthsOf(now) : Math.max(months(e.end), start);
       // Inclusive months: a position from 2021-03 to 2021-03 lasted one month.
-      return [start, (e.end === null ? monthsOf(now) : months(e.end)) + 1] as const;
+      return [start, end + 1] as const;
     })
-    .filter(([start, end]) => end > start)
     .sort((a, b) => a[0] - b[0]);
 
   let total = 0;

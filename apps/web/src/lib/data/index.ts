@@ -56,15 +56,19 @@ export async function getProfile(): Promise<Profile> {
 
 /**
  * Who the user is in one line: current role, years of relevant experience, strongest skills.
- * Relevance comes from what the roadmap's targets ask for most in the market (#145).
+ * Relevance comes from what the roadmap's targets ask for most in the market (#145). Takes the
+ * data the view already loaded instead of reading and parsing it again, like getTargetColors.
  */
-export async function getProfileSummary(): Promise<ProfileSummary> {
-  const [profile, market, roadmap] = await Promise.all([getProfile(), getMarket(), getRoadmap()]);
+export function getProfileSummary(
+  forProfile: Profile,
+  market: Market,
+  forRoadmap: Roadmap,
+): ProfileSummary {
   const relevant = skillsAskedForMost(
     market,
-    roadmap.targets.map((t) => t.id),
+    forRoadmap.targets.map((t) => t.id),
   );
-  return summarize(profile, new Date(), relevant);
+  return summarize(forProfile, new Date(), relevant);
 }
 
 /** One market snapshot per active target; provisional until the F2 spec (#42, #145). */

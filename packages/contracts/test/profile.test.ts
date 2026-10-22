@@ -78,6 +78,23 @@ describe('Profile (#145)', () => {
     );
   });
 
+  it('compares a bare year with a month at the coarser precision', () => {
+    const at = (start: string, end: string) => ({
+      ...base,
+      experiences: [{ ...base.experiences[0], start, end }],
+    });
+
+    // "2020-03 – 2020" only says it ended in 2020: valid. "2020-03 – 2019" is not.
+    expect(messages(at('2020-03', '2020'))).toEqual([]);
+    expect(messages(at('2020', '2020-01'))).toEqual([]);
+    expect(messages(at('2020-03', '2019'))).toContain(
+      'experience "experience-a" ends before it starts',
+    );
+    expect(messages(at('2020', '2019-12'))).toContain(
+      'experience "experience-a" ends before it starts',
+    );
+  });
+
   it('rejects duplicate ids and the same catalog skill twice', () => {
     const skill = base.skills[0];
     const twice = { ...base, skills: [skill, { ...skill, evidence: [] }] };
