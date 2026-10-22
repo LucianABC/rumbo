@@ -66,12 +66,6 @@ export interface SubwayMap {
   readonly stations: readonly MapStation[];
 }
 
-/**
- * Lane slots for the stretch leaving the starting point, in lane order: the primary line on top
- * (lane -1 is above on a rightward stretch), then the others below it (spec 01, M3).
- */
-const ORIGIN_LANES = [-1, 0, 1] as const;
-
 export function subwayMap(
   roadmap: Roadmap,
   layout: RoadmapLayout,
@@ -90,38 +84,45 @@ export function subwayMap(
   const statusOf = (id: string): ItemStatus | undefined =>
     id === ORIGIN_ID ? 'done' : view.statusByMilestone.get(id);
 
+  // Each line keeps one lane for its whole route, in lane order with the primary on top (lane -1
+  // is above on a rightward stretch), and its corners are mitred: lines that share a stretch run
+  // side by side and never jump between lanes at a station or bend (#117). This replaces the
+  // layout's authored offsets, which shifted each stretch on its own and broke lines at stations.
   const segments: MapSegment[] = [];
   targets.forEach((target, laneIndex) => {
     const color = colors.get(target.id) ?? 'line-1';
-    const route = [ORIGIN_ID, ...(view.routes.get(target.id) ?? [])];
+    const lane = laneIndex - (targets.length - 1) / 2;
+    const route = [ORIGIN_ID, ...(view.routes.get(target.id) ?? [])].filter((id) => at.has(id));
+
+    const grid: GridPoint[] = [];
+    const stationIndex: number[] = [];
+    route.forEach((id, i) => {
+      const point = at.get(id);
+      const previous = route[i - 1];
+      if (!point) return;
+      if (previous !== undefined) {
+        const start = at.get(previous);
+        grid.push(
+          ...(previous === ORIGIN_ID && start
+            ? originBend(start, point)
+            : (layout.bends.find((bend) => bend.targetId === target.id && bend.after === previous)
+                ?.points ?? [])),
+        );
+      }
+      stationIndex.push(grid.length);
+      grid.push(point);
+    });
+    const points = offsetPolyline(grid.map(toPx), lane * LANE);
+
     route.slice(1).forEach((to, i) => {
       const from = route[i] ?? ORIGIN_ID;
-      const a = at.get(from);
-      const b = at.get(to);
-      if (!a || !b) return;
-
-      const grid =
-        from === ORIGIN_ID
-          ? [a, ...originBend(a, b), b]
-          : [
-              a,
-              ...(layout.bends.find((bend) => bend.targetId === target.id && bend.after === from)
-                ?.points ?? []),
-              b,
-            ];
-      const lane =
-        from === ORIGIN_ID
-          ? (ORIGIN_LANES[laneIndex] ?? 0)
-          : (layout.offsets.find((o) => o.targetId === target.id && o.from === from && o.to === to)
-              ?.lane ?? 0);
-
       segments.push({
         key: `${target.id}|${from}|${to}`,
         targetId: target.id,
         from,
         to,
         color,
-        points: shift(grid.map(toPx), lane),
+        points: points.slice(stationIndex[i], (stationIndex[i + 1] ?? points.length - 1) + 1),
         stretch: statusOf(from) === 'done' ? 'traveled' : 'ahead',
         order: i,
       });
@@ -200,16 +201,26 @@ export function originBend(from: GridPoint, to: GridPoint): GridPoint[] {
 }
 
 /**
- * Moves a stretch sideways into its lane, perpendicular to where it starts, so lines sharing a
- * stretch run side by side instead of on top of each other.
+ * The polyline moved `distance` px to its left (negative: to its right), as a parallel line:
+ * each corner sits where the two shifted edges meet (a miter), so the line stays continuous.
  */
-function shift(points: readonly Point[], lane: number): Point[] {
-  const [a, b] = points;
-  if (lane === 0 || !a || !b) return [...points];
-  const length = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-  const nx = (-(b.y - a.y) / length) * lane * LANE;
-  const ny = ((b.x - a.x) / length) * lane * LANE;
-  return points.map((p) => ({ x: p.x + nx, y: p.y + ny }));
+export function offsetPolyline(points: readonly Point[], distance: number): Point[] {
+  if (distance === 0) return [...points];
+  const normal = (a: Point, b: Point): Point | null => {
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    return length === 0 ? null : { x: -(b.y - a.y) / length, y: (b.x - a.x) / length };
+  };
+  return points.map((p, i) => {
+    const before = i > 0 ? normal(points[i - 1] ?? p, p) : null;
+    const after = i < points.length - 1 ? normal(p, points[i + 1] ?? p) : null;
+    const n1 = before ?? after;
+    const n2 = after ?? before;
+    if (!n1 || !n2) return p;
+    const dot = n1.x * n2.x + n1.y * n2.y;
+    // A near-reversal would send the miter to infinity: fall back to the incoming edge's normal.
+    const m = dot < -0.9 ? n1 : { x: (n1.x + n2.x) / (1 + dot), y: (n1.y + n2.y) / (1 + dot) };
+    return { x: p.x + m.x * distance, y: p.y + m.y * distance };
+  });
 }
 
 /** The two points farthest apart: the ends of a station's capsule. */

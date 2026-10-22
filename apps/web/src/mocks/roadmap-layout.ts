@@ -28,10 +28,6 @@ export const roadmapLayout = {
     { targetId: 'business-analyst', after: 'public-dashboard', points: [{ x: 8, y: 2 }] },
     { targetId: 'support-ops-lead', after: 'weekly-report', points: [{ x: 2, y: 2 }] },
   ],
-  // All three lines share the first stretch; the primary takes the top lane.
-  offsets: [
-    { targetId: 'data-analyst', from: 'query-basics', to: 'weekly-report', lane: -1 },
-    { targetId: 'business-analyst', from: 'query-basics', to: 'weekly-report', lane: 0 },
-    { targetId: 'support-ops-lead', from: 'query-basics', to: 'weekly-report', lane: 1 },
-  ],
+  // Lanes are derived (one per line, primary on top), so no stretch needs an authored offset (#117).
+  offsets: [],
 } satisfies RoadmapLayout;

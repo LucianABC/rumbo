@@ -30,7 +30,7 @@ A front-end-only slice that pulls the F3 roadmap view forward, inside an app she
   - Moving the analysis behind the API and the router is #121.
 - **Model id from `ANTHROPIC_MODEL`**, not from `packages/router`. This is an exception to the "model ids only in the router" rule, scoped to this adapter and also tracked by #121.
 - **Dependencies**, approved by the owner: `tailwindcss` + `@tailwindcss/postcss` + `postcss` (v4), `motion`, `ai`, `@ai-sdk/anthropic`, plus the web UI stack of ADR 0007 (#78): shadcn/ui components over Base UI, `class-variance-authority`, `cn`, `lucide-react`, `react-hook-form`, `@tanstack/react-query`, `nuqs` and `recharts`. Fonts come from `next/font`. The subway map, the single-line view and the station panel content are hand-made. Anything else needs asking first.
-- **Layout is hand-authored.** Geometry lives in a separate `RoadmapLayout`, on a grid, with octilinear segments only. Parallel offsets where lines share a stretch are authored too (no layout algorithm).
+- **Layout is hand-authored.** Geometry lives in a separate `RoadmapLayout`, on a grid, with octilinear segments only. Lanes are not authored: each line keeps one lane slot for its whole route, in lane order with the primary on top, and its corners are mitred, so lines sharing a stretch run side by side and never jump lanes at a station (#117). The contract's `offsets` stay valid but the map no longer reads them; dropping them is a contract change for F3 (#43).
 - **The demo starts after onboarding.** The mock user has already imported a profile and chosen three targets. The onboarding flow and changing the goal are documented in `docs/product/views.md`. Onboarding is not built. Change targets is a mocked entry: a read-only explainer with a sample preview, with no editing or recalculation.
 - **Mocks are a fictional user.** Nothing in mocks, copy, prompts or tests refers to the owner's own projects, plan or targets.
   - **Local override, owner's machine only** (#137): JSON files in the gitignored `.local/mocks/` (`roadmap.json`, `roadmap-layout.json`, named after the mock they replace) take the place of the fictional mocks when `LOCAL_MOCKS_DIR` points at that folder. `docker compose` mounts it read-only. They are validated exactly like the bundled mocks. Personal data never goes into git, history included: the repo is public. Unit tests and CI always run on the fictional user; e2e tests do not depend on mock content, since locally they run against the compose stack.
@@ -302,7 +302,7 @@ A fictional customer support specialist with three active targets, chosen to be 
 
 - From `lg` up, an SVG map draws every derived route from the layout:
   - octilinear segments with rounded corners at bends;
-  - authored offsets on shared stretches;
+  - one lane per line for its whole route, with mitred corners, so shared stretches run side by side;
   - the primary target's line on top: its terminal is the topmost, and it takes the top lane wherever lines share a stretch, including the stretch leaving the starting point (#117);
   - interchange glyphs.
 - Below `lg`, the M2 view.

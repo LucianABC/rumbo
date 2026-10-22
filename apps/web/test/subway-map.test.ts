@@ -7,7 +7,7 @@ import RoadmapPage from '../src/app/(tabs)/roadmap/page';
 import { SubwayMapView } from '../src/components/roadmap/subway-map-view';
 import { getRoadmap, getRoadmapLayout, getTargetColors } from '../src/lib/data';
 import { ORIGIN_ID } from '../src/lib/roadmap/single-line';
-import { LANE, originBend, subwayMap, UNIT } from '../src/lib/roadmap/subway-map';
+import { LANE, offsetPolyline, originBend, subwayMap, UNIT } from '../src/lib/roadmap/subway-map';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -52,6 +52,17 @@ describe('subway map (#117)', () => {
     expect(new Set(shared.map((s) => s.points[0]?.y)).size).toBe(shared.length);
     const ys = shared.map((s) => s.points[0]?.y ?? 0).sort((a, b) => a - b);
     expect((ys[1] ?? 0) - (ys[0] ?? 0)).toBe(LANE);
+  });
+
+  it('keeps every line continuous: each stretch starts where the previous one ended', async () => {
+    const { roadmap, map } = await build();
+
+    for (const target of roadmap.targets) {
+      const own = map.segments.filter((s) => s.targetId === target.id);
+      own.slice(1).forEach((segment, i) => {
+        expect(segment.points[0]).toEqual(own[i]?.points.at(-1));
+      });
+    }
   });
 
   it('marks traveled and ahead stretches from the stop they leave', async () => {
@@ -136,5 +147,41 @@ describe('subway map view', () => {
 
     expect(html).toContain('<div class="hidden lg:block"><svg');
     expect(html).toContain('lg:grid-cols-1');
+  });
+});
+
+describe('offsetPolyline', () => {
+  it('moves a straight line sideways, negative distances to its right', () => {
+    const line = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+    ];
+
+    expect(offsetPolyline(line, -5)).toEqual([
+      { x: 0, y: -5 },
+      { x: 10, y: -5 },
+    ]);
+    expect(offsetPolyline(line, 0)).toEqual(line);
+  });
+
+  it('mitres a 45 degree corner so both shifted edges stay at the same distance', () => {
+    const corner = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 20, y: 10 },
+    ];
+    const [a, b, c] = offsetPolyline(corner, -4);
+    const distanceToLine = (
+      p: { x: number; y: number },
+      q1: { x: number; y: number },
+      q2: { x: number; y: number },
+    ) =>
+      Math.abs((q2.x - q1.x) * (q1.y - p.y) - (q1.x - p.x) * (q2.y - q1.y)) /
+      Math.hypot(q2.x - q1.x, q2.y - q1.y);
+
+    expect(a?.y).toBe(-4);
+    expect(distanceToLine(b ?? { x: 0, y: 0 }, { x: 0, y: 0 }, { x: 10, y: 0 })).toBeCloseTo(4);
+    expect(distanceToLine(b ?? { x: 0, y: 0 }, { x: 10, y: 0 }, { x: 20, y: 10 })).toBeCloseTo(4);
+    expect(distanceToLine(c ?? { x: 0, y: 0 }, { x: 10, y: 0 }, { x: 20, y: 10 })).toBeCloseTo(4);
   });
 });
