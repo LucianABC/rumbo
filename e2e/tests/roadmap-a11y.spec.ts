@@ -88,6 +88,32 @@ for (const [size, viewport] of SIZES) {
       expect(await focusedStation(page)).toBe(ids.at(-1));
     });
 
+    test('leaves modified keys and keys at the ends to the browser', async ({ page }) => {
+      await page.goto('/roadmap');
+      await tabIntoStations(page);
+      // Records, after React handled it, whether each key had its default action blocked.
+      await page.evaluate(() => {
+        const log: boolean[] = [];
+        Object.assign(window, { blocked: log });
+        document.addEventListener('keydown', (e) => {
+          // Pressing Alt or Control on its own is a keydown too; only the combined key counts.
+          if (!['Alt', 'Control', 'Shift', 'Meta'].includes(e.key)) log.push(e.defaultPrevented);
+        });
+      });
+      const blocked = () =>
+        page.evaluate(() => (window as unknown as { blocked: boolean[] }).blocked);
+
+      await page.keyboard.press('Home');
+      const first = await focusedStation(page);
+      await page.keyboard.press('ArrowUp');
+      await page.keyboard.press('Alt+ArrowDown');
+      await page.keyboard.press('Control+End');
+
+      expect(await focusedStation(page)).toBe(first);
+      // Home moves focus (blocked); ArrowUp at the first station, Alt+↓ and Ctrl+End do not.
+      expect(await blocked()).toEqual([true, false, false, false]);
+    });
+
     for (const key of ['Enter', 'Space']) {
       test(`${key} opens the station panel and Esc gives focus back`, async ({ page }) => {
         await page.goto('/roadmap');

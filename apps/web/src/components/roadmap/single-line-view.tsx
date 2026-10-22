@@ -64,13 +64,13 @@ export function SingleLineView({
   // If that station is gone (new data), fall back to the entry so the list stays reachable.
   const tabbableId = stations.some((row) => row.id === focusId) ? focusId : entry;
   const move = (event: KeyboardEvent<HTMLButtonElement>, id: string) => {
-    const next = rovingIndex(
-      event.key,
-      stations.findIndex((row) => row.id === id),
-      stations.length,
-    );
+    // Leave modified keys to the browser: Alt+← is Back, Ctrl+Home scrolls to the top (#110).
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+    const index = stations.findIndex((row) => row.id === id);
+    const next = rovingIndex(event.key, index, stations.length);
     const target = next === null ? undefined : stations[next];
-    if (!target) return;
+    // At an end there is nowhere to go, so let the key scroll the page as usual.
+    if (!target || next === index) return;
     event.preventDefault();
     setFocusId(target.id);
     list.current
