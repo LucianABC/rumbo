@@ -4,7 +4,6 @@ import { BriefcaseBusiness, FolderGit2, GraduationCap, type LucideIcon } from 'l
 import type { CSSProperties } from 'react';
 
 import { formatDay } from '../../lib/format';
-import { ITEM_TYPE_LABEL } from '../../lib/labels';
 import { LINE_BG, LINE_BG_AHEAD, LINE_BORDER } from '../../lib/line-colors';
 import {
   type LaneCell,
@@ -51,7 +50,8 @@ export function SingleLineView({
   const gutter = laneX(line.lanes.length - 1) + LANE_START;
 
   return (
-    <ol aria-label="Stations" className="flex flex-col">
+    // role="list": Safari drops list semantics under Tailwind's `list-style: none` (#108).
+    <ol role="list" aria-label="Stations" className="flex flex-col">
       {line.rows.map((row) => (
         <li
           key={row.id}
@@ -208,10 +208,7 @@ function MilestoneStation({
           return (
             <span key={item.id} className="flex items-start gap-2 text-sm">
               <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1">
-                <span className="sr-only">{ITEM_TYPE_LABEL[item.type]}: </span>
-                {item.title}
-              </span>
+              <span className="min-w-0 flex-1">{item.title}</span>
               {item.expectedEnd ? (
                 <span className="shrink-0 font-mono text-2xs leading-5 text-muted-foreground tabular-nums">
                   {formatDay(item.expectedEnd)}

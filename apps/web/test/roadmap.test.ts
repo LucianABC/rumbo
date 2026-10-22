@@ -29,7 +29,7 @@ describe('roadmap page (#108)', () => {
     ];
     const stations = html.split('data-testid="station"').slice(1);
 
-    expect(html).toContain('<ol aria-label="Stations"');
+    expect(html).toContain('<ol role="list" aria-label="Stations"');
     expect(stations).toHaveLength(titles.length);
     // Terminals follow lane order (primary first), which the mock's target order already is.
     stations.forEach((station, i) => {
@@ -57,7 +57,7 @@ describe('roadmap page (#108)', () => {
   it('names each line next to its color, primary first', async () => {
     const html = await render();
 
-    expect(html).toContain('<ul aria-label="Lines"');
+    expect(html).toContain('<ul role="list" aria-label="Lines"');
     expect(html).toMatch(/bg-line-1[^>]*><\/span><span class="font-semibold">Data Analyst<\/span>/);
   });
 
