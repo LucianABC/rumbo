@@ -10,8 +10,8 @@ import { singleLine } from '../../../lib/roadmap/single-line';
 export const metadata: Metadata = { title: 'Roadmap · rumbo' };
 
 /**
- * The roadmap as a single line (spec 01, M2, #108). The summary band (#112) goes above it and the
- * desktop map (#117) replaces it from `md` when the layout fits; on phones it stays.
+ * The roadmap as a single line (spec 01, M2, #108). The summary band (#112) goes above it, and
+ * from `lg` the subway map (#117) is drawn over it when the layout fits.
  */
 export default async function RoadmapPage() {
   const roadmap = await getRoadmap();
