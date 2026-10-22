@@ -40,12 +40,15 @@ export function SingleLineView({
   line,
   withMap = false,
   onActivate,
+  onOpen,
 }: {
   readonly line: SingleLine;
   /** The subway map is shown from `lg` (#117): the list keeps the stations and drops its lanes. */
   readonly withMap?: boolean;
   /** Highlights a station's targets on the map while it is hovered or focused (#117). */
   readonly onActivate?: (targetIds: readonly string[] | null) => void;
+  /** Opens a station's panel (#109). */
+  readonly onOpen?: (stationId: string) => void;
 }) {
   const gutter = laneX(line.lanes.length - 1) + LANE_START;
 
@@ -65,7 +68,7 @@ export function SingleLineView({
         >
           <Track row={row} hidden={withMap} />
           {row.kind === 'milestone' ? (
-            <MilestoneStation row={row} onActivate={onActivate} />
+            <MilestoneStation row={row} onActivate={onActivate} onOpen={onOpen} />
           ) : row.kind === 'terminal' ? (
             <Terminal row={row} />
           ) : (
@@ -163,9 +166,11 @@ function Segments({ cell, x }: { readonly cell: LaneCell; readonly x: number }) 
 function MilestoneStation({
   row,
   onActivate,
+  onOpen,
 }: {
   readonly row: Extract<SingleLineRow, { kind: 'milestone' }>;
   readonly onActivate: ((targetIds: readonly string[] | null) => void) | undefined;
+  readonly onOpen: ((stationId: string) => void) | undefined;
 }) {
   const { milestone } = row;
   const served = row.cells.filter((cell) => cell.stop);
@@ -176,6 +181,8 @@ function MilestoneStation({
     <button
       type="button"
       aria-label={stationLabel(row)}
+      aria-haspopup="dialog"
+      onClick={() => onOpen?.(row.id)}
       onMouseEnter={activate}
       onMouseLeave={release}
       onFocus={activate}

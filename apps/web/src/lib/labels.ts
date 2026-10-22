@@ -1,4 +1,4 @@
-import type { Gap, ItemStatus, RoadmapItem } from '@rumbo/contracts';
+import type { EducationItem, EvidenceRef, Gap, ItemStatus, RoadmapItem } from '@rumbo/contracts';
 
 /**
  * The status vocabulary every tab shares (docs/product/views.md, #102): one wording per status,
@@ -27,3 +27,19 @@ export const ITEM_TYPE_LABEL: Readonly<Record<RoadmapItem['type'], string>> = {
 export function evidenceStatusLabel(approvedAt: string | null): string {
   return approvedAt === null ? 'awaiting approval' : 'approved';
 }
+
+/** Where a piece of evidence comes from, as the station sheet names it (#109). */
+export const EVIDENCE_SOURCE_LABEL: Readonly<Record<EvidenceRef['sourceType'], string>> = {
+  commit: 'Commit',
+  project: 'Project',
+  experience: 'Work experience',
+  education: 'Education',
+  manual: 'Added by you',
+};
+
+export const EDUCATION_KIND_LABEL: Readonly<Record<EducationItem['kind'], string>> = {
+  course: 'Course',
+  workshop: 'Workshop',
+  degree: 'Degree',
+  certification: 'Certification',
+};

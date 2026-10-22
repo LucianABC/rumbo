@@ -81,3 +81,39 @@ test.describe('on a wide screen with reduced motion', () => {
     await expect(mapPulse(page)).toBeHidden();
   });
 });
+
+const here = (page: Page) => page.getByRole('button', { name: /, you are here$/ });
+
+for (const [name, viewport] of [
+  ['side sheet on a wide screen', WIDE],
+  ['bottom sheet on a phone', PHONE],
+] as const) {
+  test.describe(`station panel as a ${name}`, () => {
+    test.use({ viewport });
+
+    test('opens from the keyboard, closes with Esc and gives focus back', async ({ page }) => {
+      await page.goto('/roadmap');
+
+      await here(page).focus();
+      await page.keyboard.press('Enter');
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('heading').first()).toBeVisible();
+      await expect(dialog.getByText('What closes it')).toBeVisible();
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect(here(page)).toBeFocused();
+    });
+
+    test('closes from its close button', async ({ page }) => {
+      await page.goto('/roadmap');
+
+      await here(page).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+
+      await expect(page.getByRole('dialog')).toBeHidden();
+      await expect(here(page)).toBeFocused();
+    });
+  });
+}
