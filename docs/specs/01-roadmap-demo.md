@@ -33,6 +33,7 @@ A front-end-only slice that pulls the F3 roadmap view forward, inside an app she
 - **Layout is hand-authored.** Geometry lives in a separate `RoadmapLayout`, on a grid, with octilinear segments only. Parallel offsets where lines share a stretch are authored too (no layout algorithm).
 - **The demo starts after onboarding.** The mock user has already imported a profile and chosen three targets. The onboarding flow and changing the goal are documented in `docs/product/views.md`. Onboarding is not built. Change targets is a mocked entry: a read-only explainer with a sample preview, with no editing or recalculation.
 - **Mocks are a fictional user.** Nothing in mocks, copy, prompts or tests refers to the owner's own projects, plan or targets.
+  - **Local override, owner's machine only** (#137): JSON files in the gitignored `.local/mocks/` (`roadmap.json`, `roadmap-layout.json`, named after the mock they replace) take the place of the fictional mocks when `LOCAL_MOCKS_DIR` points at that folder. `docker compose` mounts it read-only. They are validated exactly like the bundled mocks. Personal data never goes into git, history included: the repo is public. Unit tests and CI always run on the fictional user; e2e tests do not depend on mock content, since locally they run against the compose stack.
 
 ## Contract
 

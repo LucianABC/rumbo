@@ -10,6 +10,7 @@ import type { z } from 'zod';
 
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
+import { readLocalMock } from './local-mocks';
 
 /**
  * The only place views get data from (spec 01, #103). Today every function reads a mock; each one
@@ -20,11 +21,14 @@ import { roadmapLayout } from '../../mocks/roadmap-layout';
  * Every read waits for `connection()`, so pages built on lib/data render per request, never at
  * build time: swapping a mock for the API cannot make `next build` call the API or bake one
  * user's data into static HTML (#104).
+ *
+ * On the owner's machine a local JSON file can replace a mock, validated the same way
+ * (./local-mocks.ts, #137).
  */
 
 export async function getRoadmap(): Promise<Roadmap> {
   await connection();
-  return parse(Roadmap, roadmap, 'roadmap');
+  return parse(Roadmap, (await readLocalMock('roadmap')) ?? roadmap, 'roadmap');
 }
 
 /**
@@ -33,7 +37,7 @@ export async function getRoadmap(): Promise<Roadmap> {
  */
 export async function getRoadmapLayout(forRoadmap: Roadmap): Promise<RoadmapLayout | null> {
   await connection();
-  const layout = RoadmapLayout.safeParse(roadmapLayout);
+  const layout = RoadmapLayout.safeParse((await readLocalMock('roadmap-layout')) ?? roadmapLayout);
   if (!layout.success || checkLayout(forRoadmap, layout.data).length > 0) return null;
   return layout.data;
 }

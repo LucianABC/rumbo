@@ -77,6 +77,10 @@ services:
       target: web
     environment:
       API_INTERNAL_URL: http://api:3001
+      # Owner-only mocks from the gitignored .local/mocks/, if any; else the fictional ones (#137).
+      LOCAL_MOCKS_DIR: /app/local-mocks
+    volumes:
+      - ./.local/mocks:/app/local-mocks:ro
     ports:
       - 127.0.0.1:${WEB_PORT:-3000}:3000
     depends_on:
