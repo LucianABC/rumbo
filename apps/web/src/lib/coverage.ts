@@ -38,6 +38,15 @@ export function askedForMost(snapshot: MarketSnapshotView): SkillDemand[] {
     .slice(0, ASKED_CAP);
 }
 
+/** Every skill any of these targets asks for most: what makes experience relevant (#145). */
+export function skillsAskedForMost(market: Market, targetIds: readonly string[]): Set<string> {
+  return new Set(
+    market.snapshots
+      .filter((s) => targetIds.includes(s.targetId))
+      .flatMap((s) => askedForMost(s).map((d) => d.skill.id)),
+  );
+}
+
 /** One entry per target that has a snapshot, in the order given (lane order, primary first). */
 export function coverage(
   profile: Profile,

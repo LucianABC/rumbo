@@ -126,7 +126,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 
 - **For:** see the whole plan at a glance, how the user's profile connects to their goal, and what to do next.
 - **Summary band** (top):
-  - **Who:** current role, years of experience, three strongest skills with their evidence count. Links to Profile.
+  - **Who:** current role, years of relevant experience, three strongest skills with their evidence count. Links to Profile. Relevant experience is derived, not tagged: the positions whose approved evidence backs a skill the active targets ask for most (same definition as below), overlaps counted once, so it follows the targets when they change.
   - **Goal:** the primary target and the other active ones (max three), each with role family, field and seniority, and **Change targets** (see Changing the goal).
   - **How they connect**, per target: "You cover 6 of the 11 skills Data Analyst postings ask for most; 5 to close, 2 shared with Business Analyst". "Ask for most" means the skills in at least 30% of that target's snapshot postings, capped at 12. Covered means the profile has evidence for the skill; the rest are that target's gaps. The numbers link to Skills & gaps, which uses the same definition.
 - **Map:**

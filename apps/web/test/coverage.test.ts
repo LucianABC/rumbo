@@ -2,7 +2,7 @@ import type { Profile } from '@rumbo/contracts';
 import type { Market, MarketSnapshotView } from '@rumbo/contracts/provisional';
 import { describe, expect, it, vi } from 'vitest';
 
-import { ASKED_CAP, askedForMost, coverage } from '../src/lib/coverage';
+import { ASKED_CAP, askedForMost, coverage, skillsAskedForMost } from '../src/lib/coverage';
 import { getMarket, getProfile, getRoadmap } from '../src/lib/data';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -62,6 +62,15 @@ describe('coverage (#145)', () => {
     );
 
     expect(askedForMost(snapshot('a', many))).toHaveLength(ASKED_CAP);
+  });
+
+  it('joins the skills every given target asks for most', () => {
+    const market: Market = {
+      snapshots: [snapshot('a', { sql: 0.7, viz: 0.2 }), snapshot('b', { stats: 0.5 })],
+    };
+
+    expect([...skillsAskedForMost(market, ['a', 'b'])].sort()).toEqual(['sql', 'stats']);
+    expect([...skillsAskedForMost(market, ['b'])]).toEqual(['stats']);
   });
 
   it('counts a skill as covered only with approved evidence', () => {

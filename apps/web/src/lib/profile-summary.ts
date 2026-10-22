@@ -2,15 +2,20 @@ import type { Experience, PartialDate, Profile, SkillRef } from '@rumbo/contract
 
 /**
  * Who the user is, in one line, for the Roadmap summary band (docs/product/views.md, #145):
- * current role, years of experience and the skills with the most approved evidence.
+ * current role, years of relevant experience and the skills with the most approved evidence.
  */
 
 export interface ProfileSummary {
   readonly name: string;
   /** The current position, or the latest one when none is open. */
   readonly currentRole: { readonly title: string; readonly organization: string } | null;
-  /** Whole years worked, overlapping positions counted once. */
+  /** Whole years worked in any position, overlapping positions counted once. */
   readonly yearsOfExperience: number;
+  /**
+   * Whole years in positions relevant to the targets: those whose approved evidence backs a skill
+   * the targets ask for most. Derived, so it follows the targets when they change (#145).
+   */
+  readonly yearsOfRelevantExperience: number;
   readonly strongestSkills: readonly { readonly skill: SkillRef; readonly evidenceCount: number }[];
 }
 
@@ -47,7 +52,24 @@ export function monthsWorked(experiences: readonly Experience[], now: Date): num
   return total;
 }
 
-export function summarize(profile: Profile, now: Date): ProfileSummary {
+/** Positions cited by approved evidence for any of these skills. */
+export function relevantExperiences(profile: Profile, skillIds: ReadonlySet<string>): Experience[] {
+  const cited = new Set(
+    profile.skills
+      .filter((s) => skillIds.has(s.skill.id))
+      .flatMap((s) => s.evidence)
+      .filter((e) => e.sourceType === 'experience' && e.approvedAt !== null)
+      .map((e) => e.sourceRef),
+  );
+  return profile.experiences.filter((e) => cited.has(e.id));
+}
+
+/** `relevantSkills`: the skills the active targets ask for most (lib/coverage.ts). */
+export function summarize(
+  profile: Profile,
+  now: Date,
+  relevantSkills: ReadonlySet<string>,
+): ProfileSummary {
   const byRecency = [...profile.experiences].sort(
     (a, b) => Number(b.end === null) - Number(a.end === null) || months(b.start) - months(a.start),
   );
@@ -66,6 +88,9 @@ export function summarize(profile: Profile, now: Date): ProfileSummary {
     name: profile.name,
     currentRole: latest ? { title: latest.title, organization: latest.organization } : null,
     yearsOfExperience: Math.floor(monthsWorked(profile.experiences, now) / 12),
+    yearsOfRelevantExperience: Math.floor(
+      monthsWorked(relevantExperiences(profile, relevantSkills), now) / 12,
+    ),
     strongestSkills,
   };
 }

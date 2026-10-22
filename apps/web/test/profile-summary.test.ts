@@ -2,11 +2,12 @@ import type { Experience } from '@rumbo/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getProfile, getProfileSummary } from '../src/lib/data';
-import { monthsWorked, summarize } from '../src/lib/profile-summary';
+import { monthsWorked, relevantExperiences, summarize } from '../src/lib/profile-summary';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
 const NOW = new Date('2026-10-22T12:00:00.000Z');
+const NONE: ReadonlySet<string> = new Set();
 
 function job(id: string, start: string, end: string | null): Experience {
   return { id, title: id, organization: 'Org', start, end, highlights: [] };
@@ -40,16 +41,16 @@ describe('summarize (#145)', () => {
       experiences: profile.experiences.map((e) => ({ ...e, end: e.end ?? '2026-06' })),
     };
 
-    expect(summarize(profile, NOW).currentRole).toEqual({
+    expect(summarize(profile, NOW, NONE).currentRole).toEqual({
       title: 'Customer Support Specialist',
       organization: 'Northwind Software',
     });
-    expect(summarize(closed, NOW).currentRole?.organization).toBe('Northwind Software');
-    expect(summarize({ ...profile, experiences: [] }, NOW).currentRole).toBeNull();
+    expect(summarize(closed, NOW, NONE).currentRole?.organization).toBe('Northwind Software');
+    expect(summarize({ ...profile, experiences: [] }, NOW, NONE).currentRole).toBeNull();
   });
 
   it('lists the three skills with the most approved evidence, ignoring the rest', async () => {
-    const summary = summarize(await getProfile(), NOW);
+    const summary = summarize(await getProfile(), NOW, NONE);
 
     expect(summary.strongestSkills).toHaveLength(3);
     expect(summary.strongestSkills[0]).toEqual({
@@ -59,10 +60,39 @@ describe('summarize (#145)', () => {
     expect(summary.strongestSkills.map((s) => s.skill.id)).not.toContain('requirements-analysis');
   });
 
+  it('counts as relevant only positions that back a skill the targets ask for most', async () => {
+    const profile = await getProfile();
+    const unrelated = {
+      ...profile,
+      experiences: [...profile.experiences, job('experience-bakery', '2010-01', '2015-12')],
+    };
+
+    // Communication is cited by both support positions; the bakery job backs nothing.
+    expect(relevantExperiences(unrelated, new Set(['communication'])).map((e) => e.id)).toEqual([
+      'experience-current-job',
+      'experience-call-center',
+    ]);
+    const summary = summarize(unrelated, NOW, new Set(['communication']));
+    expect(summary.yearsOfExperience).toBeGreaterThan(summary.yearsOfRelevantExperience);
+    expect(summary.yearsOfRelevantExperience).toBe(6);
+  });
+
+  it('ignores evidence awaiting approval when deciding what is relevant', async () => {
+    const profile = await getProfile();
+
+    // Requirements analysis is backed only by evidence the user has not approved yet.
+    expect(relevantExperiences(profile, new Set(['requirements-analysis']))).toEqual([]);
+    expect(
+      summarize(profile, NOW, new Set(['requirements-analysis'])).yearsOfRelevantExperience,
+    ).toBe(0);
+  });
+
   it('serves the summary of the loaded profile', async () => {
     const summary = await getProfileSummary();
 
     expect(summary.name).toBe((await getProfile()).name);
     expect(summary.yearsOfExperience).toBeGreaterThan(0);
+    // Every fictional position backs Communication, which all three targets ask for.
+    expect(summary.yearsOfRelevantExperience).toBe(summary.yearsOfExperience);
   });
 });

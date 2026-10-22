@@ -14,6 +14,7 @@ import { market } from '../../mocks/market';
 import { profile } from '../../mocks/profile';
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
+import { skillsAskedForMost } from '../coverage';
 import { type ProfileSummary, summarize } from '../profile-summary';
 import { type LocalMockName, readLocalMock } from './local-mocks';
 
@@ -53,9 +54,17 @@ export async function getProfile(): Promise<Profile> {
   return parse(Profile, await localOr('profile', profile), 'profile');
 }
 
-/** Who the user is in one line: current role, years of experience, strongest skills (#145). */
-export async function getProfileSummary(forProfile?: Profile): Promise<ProfileSummary> {
-  return summarize(forProfile ?? (await getProfile()), new Date());
+/**
+ * Who the user is in one line: current role, years of relevant experience, strongest skills.
+ * Relevance comes from what the roadmap's targets ask for most in the market (#145).
+ */
+export async function getProfileSummary(): Promise<ProfileSummary> {
+  const [profile, market, roadmap] = await Promise.all([getProfile(), getMarket(), getRoadmap()]);
+  const relevant = skillsAskedForMost(
+    market,
+    roadmap.targets.map((t) => t.id),
+  );
+  return summarize(profile, new Date(), relevant);
 }
 
 /** One market snapshot per active target; provisional until the F2 spec (#42, #145). */
