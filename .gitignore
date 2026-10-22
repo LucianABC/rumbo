@@ -45,3 +45,6 @@ Thumbs.db
 
 # User uploads in local dev (CVs contain personal data)
 uploads/
+
+# Owner-only local data, e.g. mocks built from a real profile (#137). Never commit it: the repo is public.
+.local/
