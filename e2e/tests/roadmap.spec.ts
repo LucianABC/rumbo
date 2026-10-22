@@ -81,3 +81,69 @@ test.describe('on a wide screen with reduced motion', () => {
     await expect(mapPulse(page)).toBeHidden();
   });
 });
+
+const here = (page: Page) => page.getByRole('button', { name: /, you are here$/ });
+
+for (const [name, viewport] of [
+  ['side sheet on a wide screen', WIDE],
+  ['bottom sheet on a phone', PHONE],
+] as const) {
+  test.describe(`station panel as a ${name}`, () => {
+    test.use({ viewport });
+
+    test('is a dialog named after its station and described by its targets', async ({ page }) => {
+      await page.goto('/roadmap');
+      const name = (await here(page).getAttribute('aria-label')) ?? '';
+      const title = name.split(', ')[0] ?? '';
+      const serves = /serves (.+?)(, you are here)?$/.exec(name)?.[1] ?? '';
+
+      await here(page).click();
+      const dialog = page.getByRole('dialog', { name: title });
+
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toHaveAccessibleDescription(`Moves you toward ${serves}`);
+      await expect(dialog.getByRole('heading', { level: 2, name: title })).toBeVisible();
+    });
+
+    test('opens from the keyboard, closes with Esc and gives focus back', async ({ page }) => {
+      await page.goto('/roadmap');
+
+      await here(page).focus();
+      await page.keyboard.press('Enter');
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByRole('heading').first()).toBeVisible();
+      await expect(dialog.getByText('What closes it')).toBeVisible();
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect(here(page)).toBeFocused();
+    });
+
+    test('shows the station that opened it, also after closing another', async ({ page }) => {
+      await page.goto('/roadmap');
+      const stations = page.getByRole('list', { name: 'Stations' }).getByRole('button');
+      const title = async (i: number) =>
+        ((await stations.nth(i).getAttribute('aria-label')) ?? '').split(', ')[0] ?? '';
+
+      for (const i of [0, 1]) {
+        // Read the name first: an open modal hides the rest of the page from the a11y tree.
+        const expected = await title(i);
+        await stations.nth(i).click();
+        await expect(page.getByRole('dialog')).toContainText(expected);
+        await page.keyboard.press('Escape');
+        await expect(page.getByRole('dialog')).toBeHidden();
+      }
+    });
+
+    test('closes from its close button', async ({ page }) => {
+      await page.goto('/roadmap');
+
+      await here(page).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
+
+      await expect(page.getByRole('dialog')).toBeHidden();
+      await expect(here(page)).toBeFocused();
+    });
+  });
+}
