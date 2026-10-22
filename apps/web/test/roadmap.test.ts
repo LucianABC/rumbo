@@ -33,7 +33,9 @@ describe('roadmap page (#108)', () => {
     expect(stations).toHaveLength(titles.length);
     // Terminals follow lane order (primary first), which the mock's target order already is.
     stations.forEach((station, i) => {
-      expect(station).toContain(`>${escaped(titles[i] ?? '')}</span>`);
+      // Milestone titles are their station's button (#110); the ends are plain text.
+      const title = `>${escaped(titles[i] ?? '')}</`;
+      expect(station.includes(`${title}button>`) || station.includes(`${title}span>`)).toBe(true);
     });
   });
 
