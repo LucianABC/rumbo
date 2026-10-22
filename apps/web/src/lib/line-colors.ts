@@ -22,3 +22,16 @@ export const LINE_BORDER: Readonly<Record<LineColorToken, string>> = {
   'line-2': 'border-line-2',
   'line-3': 'border-line-3',
 };
+
+/** SVG strokes and fills for the subway map (#117). */
+export const LINE_STROKE: Readonly<Record<LineColorToken, string>> = {
+  'line-1': 'stroke-line-1',
+  'line-2': 'stroke-line-2',
+  'line-3': 'stroke-line-3',
+};
+
+export const LINE_FILL: Readonly<Record<LineColorToken, string>> = {
+  'line-1': 'fill-line-1',
+  'line-2': 'fill-line-2',
+  'line-3': 'fill-line-3',
+};

@@ -34,3 +34,27 @@ test.describe('with reduced motion', () => {
     await expect(page.getByText('You are here', { exact: true })).toBeVisible();
   });
 });
+
+test.describe('on a wide screen', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('the subway map is shown as decoration over the station list', async ({ page }) => {
+    await page.goto('/roadmap');
+
+    const map = page.getByTestId('subway-map');
+    await expect(map).toBeVisible();
+    await expect(map).toHaveAttribute('aria-hidden', 'true');
+    await expect(page.getByRole('button', { name: /, you are here$/ })).toHaveCount(1);
+  });
+});
+
+test.describe('on a wide screen with reduced motion', () => {
+  test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' });
+
+  test('the lines appear without drawing in', async ({ page }) => {
+    await page.goto('/roadmap');
+
+    const line = page.locator('[data-testid="subway-map"] path').first();
+    await expect(line).toHaveCSS('stroke-dashoffset', '0px');
+  });
+});
