@@ -1,4 +1,4 @@
-import type { ItemStatus, RoadmapItem } from '@rumbo/contracts';
+import type { RoadmapItem } from '@rumbo/contracts';
 import { cn } from 'cn';
 import { BriefcaseBusiness, FolderGit2, GraduationCap, type LucideIcon } from 'lucide-react';
 import type { CSSProperties } from 'react';
@@ -18,10 +18,9 @@ import { StatusChip } from '../status-chip';
  * Track geometry in px. MARKER_Y is the middle of a station's title line (card margin 4 + padding
  * 8 + half of a 24px line), so markers sit on the title whatever the card's height (#108).
  */
-const LANE_START = 10;
-const LANE_GAP = 14;
+const LANE_START = 12;
+const LANE_GAP = 20;
 const MARKER_Y = 24;
-const DOT = 12;
 
 const laneX = (index: number) => LANE_START + index * LANE_GAP;
 
@@ -32,13 +31,6 @@ const ITEM_ICON: Readonly<Record<RoadmapItem['type'], LucideIcon>> = {
 };
 
 const WORK_MODE_LABEL = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On site' } as const;
-
-/** Filled when done, tinted while in progress, hollow while pending: shape, not only color. */
-const DOT_STYLE: Readonly<Record<ItemStatus, string>> = {
-  done: 'border-2',
-  in_progress: 'border-[3px]',
-  pending: 'border-2 bg-card',
-};
 
 /**
  * The roadmap as one vertical line (spec 01, M2): the permanent phone view and the fallback when
@@ -66,11 +58,17 @@ export function SingleLineView({ line }: { readonly line: SingleLine }) {
   );
 }
 
+/**
+ * Transit-map markers (#108): a white station on its line, interchanges as ink-ringed stations
+ * joined by an ink link, terminals as larger rings around their line's color. Status is told by
+ * the chip and by the line (traveled solid, ahead faded), not by the marker.
+ */
 function Track({ row }: { readonly row: SingleLineRow }) {
   const stops = row.cells.flatMap((cell, i) => (cell.stop ? [i] : []));
   const first = stops[0] ?? 0;
   const last = stops.at(-1) ?? first;
   const center = (laneX(first) + laneX(last)) / 2;
+  const interchange = stops.length > 1;
 
   return (
     <div aria-hidden className="relative">
@@ -79,45 +77,39 @@ function Track({ row }: { readonly row: SingleLineRow }) {
       ))}
       {row.kind === 'milestone' && row.current ? (
         <span
-          className="absolute size-7 -translate-1/2 animate-here-pulse rounded-full border-2 border-primary motion-reduce:hidden"
+          className="absolute size-9 -translate-1/2 animate-here-pulse rounded-full border-2 border-primary motion-reduce:hidden"
           style={at(center, MARKER_Y)}
         />
       ) : null}
-      {stops.length > 1 ? (
-        // Interchange: one capsule joining the stops, as on a transit map.
+      {interchange ? (
         <span
-          className="absolute h-[18px] -translate-y-1/2 rounded-full border-2 border-foreground bg-card"
-          style={{
-            left: laneX(first) - 9,
-            width: laneX(last) - laneX(first) + 18,
-            top: MARKER_Y,
-          }}
+          className="absolute h-2 -translate-y-1/2 rounded-full bg-foreground"
+          style={{ left: laneX(first), width: laneX(last) - laneX(first), top: MARKER_Y }}
         />
       ) : null}
       {stops.map((i) => {
         const cell = row.cells[i];
         if (!cell) return null;
         const color = cell.lane.color;
-        return row.kind === 'terminal' ? (
+        if (row.kind === 'terminal') {
+          return (
+            <span
+              key={i}
+              className="absolute flex size-[22px] -translate-1/2 items-center justify-center rounded-full border-4 border-foreground bg-card"
+              style={at(laneX(i), MARKER_Y)}
+            >
+              <span className={cn('size-2 rounded-full', LINE_BG[color])} />
+            </span>
+          );
+        }
+        return (
           <span
             key={i}
             className={cn(
-              'absolute size-[18px] -translate-1/2 rounded-[5px] border-2 border-foreground',
-              LINE_BG[color],
+              'absolute -translate-1/2 rounded-full border-[3px] bg-card',
+              interchange ? 'size-4 border-foreground' : cn('size-3.5', LINE_BORDER[color]),
             )}
             style={at(laneX(i), MARKER_Y)}
-          />
-        ) : (
-          <span
-            key={i}
-            className={cn(
-              'absolute -translate-1/2 rounded-full',
-              DOT_STYLE[row.status],
-              LINE_BORDER[color],
-              row.status === 'done' && LINE_BG[color],
-              row.status === 'in_progress' && LINE_BG_AHEAD[color],
-            )}
-            style={{ ...at(laneX(i), MARKER_Y), width: DOT, height: DOT }}
           />
         );
       })}

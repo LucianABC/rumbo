@@ -118,7 +118,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - IBM Plex Mono for data, dates and figures, with tabular figures (`tabular-nums`);
   - the owner rejected Fraunces + Instrument Sans and also compared Source Serif/Sans, Newsreader + Public Sans and Young Serif + Figtree.
 - **Type scale and spacing:** Tailwind's defaults (1rem body, 0.25rem step), plus `text-2xs` (11px) for tab-bar and map labels.
-- **Shape:** 12px base radius (`--radius`); map strokes 4px with round caps and joins (`--map-stroke`), stations 6px (`--map-station`).
+- **Shape:** 12px base radius (`--radius`); map strokes 6px with round caps and joins (`--map-stroke`), thick enough that the lines lead, as on a transit map, stations 6px (`--map-station`).
 - **Motion:** `ease-soft` for things entering (sheet, line draw-in) and `ease-soft-in-out` for the "you are here" pulse; durations `--duration-quick` 120ms, `--duration-base` 200ms, `--duration-slow` 360ms and `--duration-pulse` 1.6s. Under `prefers-reduced-motion` every animation and transition is cut to an instant.
 - **Dark mode** follows the system preference; there is no in-app toggle yet.
 

@@ -101,8 +101,8 @@
   --duration-slow: 360ms;
   --duration-pulse: 1600ms;
 
-  /* Map geometry (#108, #117): rounded ink strokes. */
-  --map-stroke: 4px;
+  /* Map geometry (#108, #117): thick rounded strokes, so the lines lead as on a transit map. */
+  --map-stroke: 6px;
   --map-station: 6px;
 
   --background: #f3eee4;
