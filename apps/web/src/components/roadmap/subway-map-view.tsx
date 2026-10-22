@@ -19,10 +19,13 @@ export function SubwayMapView({
   map,
   active,
   onActivate,
+  onOpen,
 }: {
   readonly map: SubwayMap;
   readonly active: readonly string[] | null;
   readonly onActivate: (targetIds: readonly string[] | null) => void;
+  /** Mouse shortcut to a station's panel; keyboards open it from the list (#109). */
+  readonly onOpen?: (stationId: string) => void;
 }) {
   const { x, y, w, h } = map.viewBox;
   const dimmed = (targetIds: readonly string[]) =>
@@ -69,6 +72,13 @@ export function SubwayMapView({
           onEnter={() => {
             onActivate(station.targetIds);
           }}
+          onClick={
+            station.kind === 'milestone' && onOpen
+              ? () => {
+                  onOpen(station.id);
+                }
+              : undefined
+          }
         />
       ))}
     </svg>
@@ -79,10 +89,12 @@ function Station({
   station,
   dimmed,
   onEnter,
+  onClick,
 }: {
   readonly station: MapStation;
   readonly dimmed: boolean;
   readonly onEnter: () => void;
+  readonly onClick: (() => void) | undefined;
 }) {
   const { from, to } = station;
   const center = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
@@ -97,6 +109,7 @@ function Station({
         dimmed ? 'opacity-30' : 'opacity-100',
       )}
       onMouseEnter={onEnter}
+      onClick={onClick}
     >
       {station.current ? (
         <circle
