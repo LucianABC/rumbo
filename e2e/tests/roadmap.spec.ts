@@ -91,6 +91,20 @@ for (const [name, viewport] of [
   test.describe(`station panel as a ${name}`, () => {
     test.use({ viewport });
 
+    test('is a dialog named after its station and described by its targets', async ({ page }) => {
+      await page.goto('/roadmap');
+      const name = (await here(page).getAttribute('aria-label')) ?? '';
+      const title = name.split(', ')[0] ?? '';
+      const serves = /serves (.+?)(, you are here)?$/.exec(name)?.[1] ?? '';
+
+      await here(page).click();
+      const dialog = page.getByRole('dialog', { name: title });
+
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toHaveAccessibleDescription(`Moves you toward ${serves}`);
+      await expect(dialog.getByRole('heading', { level: 2, name: title })).toBeVisible();
+    });
+
     test('opens from the keyboard, closes with Esc and gives focus back', async ({ page }) => {
       await page.goto('/roadmap');
 
