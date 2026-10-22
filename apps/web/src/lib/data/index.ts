@@ -1,15 +1,20 @@
 import {
   checkLayout,
   type LineColorToken,
+  Profile,
   Roadmap,
   RoadmapLayout,
   targetColors,
 } from '@rumbo/contracts';
+import { Market } from '@rumbo/contracts/provisional';
 import { connection } from 'next/server';
 import type { z } from 'zod';
 
+import { market } from '../../mocks/market';
+import { profile } from '../../mocks/profile';
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
+import { type ProfileSummary, summarize } from '../profile-summary';
 import { type LocalMockName, readLocalMock } from './local-mocks';
 
 /**
@@ -40,6 +45,23 @@ export async function getRoadmapLayout(forRoadmap: Roadmap): Promise<RoadmapLayo
   const layout = RoadmapLayout.safeParse(await localOr('roadmap-layout', roadmapLayout));
   if (!layout.success || checkLayout(forRoadmap, layout.data).length > 0) return null;
   return layout.data;
+}
+
+/** The user's profile: header, experiences, education, skills and their evidence (#145). */
+export async function getProfile(): Promise<Profile> {
+  await connection();
+  return parse(Profile, await localOr('profile', profile), 'profile');
+}
+
+/** Who the user is in one line: current role, years of experience, strongest skills (#145). */
+export async function getProfileSummary(forProfile?: Profile): Promise<ProfileSummary> {
+  return summarize(forProfile ?? (await getProfile()), new Date());
+}
+
+/** One market snapshot per active target; provisional until the F2 spec (#42, #145). */
+export async function getMarket(): Promise<Market> {
+  await connection();
+  return parse(Market, await localOr('market', market), 'market');
 }
 
 /**

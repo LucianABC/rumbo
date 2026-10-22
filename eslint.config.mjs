@@ -80,6 +80,24 @@ export default defineConfig(
     },
   },
   {
+    // Provisional contracts are web-only until their feature spec replaces them (spec 01, #145).
+    files: ['apps/api/**/*.ts', 'apps/worker/**/*.ts', 'packages/**/*.ts'],
+    ignores: ['packages/contracts/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@rumbo/contracts/provisional', '@rumbo/contracts/provisional/**'],
+              message: 'Provisional contracts are web-only until their feature spec (spec 01).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.js', '**/*.mjs', '**/*.cjs'],
     extends: [tseslint.configs.disableTypeChecked],
   },

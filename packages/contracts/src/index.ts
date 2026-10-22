@@ -24,6 +24,16 @@ export {
 } from './roadmap.js';
 export { Id, WebUrl } from './ids.js';
 export {
+  Certification,
+  Education,
+  Experience,
+  Language,
+  PartialDate,
+  Profile,
+  ProfileSkill,
+  ProfileSource,
+} from './profile.js';
+export {
   deriveRoadmapView,
   isInterchange,
   milestoneStatus,
