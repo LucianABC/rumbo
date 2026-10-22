@@ -8,6 +8,11 @@ import StatusPage from '../src/app/page';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
+// next/font only works inside Next's compiler; outside it a font is just its variable class name.
+vi.mock('next/font/google', () => {
+  const font = (options: { variable: string }) => ({ variable: options.variable.slice(2) });
+  return { Bricolage_Grotesque: font, Figtree: font, IBM_Plex_Mono: font };
+});
 
 const NOW = new Date('2026-10-10T12:00:00.000Z');
 
@@ -78,10 +83,13 @@ describe('status page', () => {
 });
 
 describe('root layout', () => {
-  it('wraps pages in an English document', () => {
+  it('wraps pages in an English document with the theme typefaces', () => {
     const html = renderToStaticMarkup(RootLayout({ children: 'page' }));
 
-    expect(html).toMatch(/^<html lang="en">/);
+    expect(html).toMatch(/^<html lang="en" class="[^"]*">/);
+    for (const font of ['font-display', 'font-body', 'font-data']) {
+      expect(html).toMatch(new RegExp(`^<html[^>]*class="[^"]*\\b${font}\\b`));
+    }
     expect(html).toContain('<body>page</body>');
     expect(metadata.title).toBe('rumbo');
   });
