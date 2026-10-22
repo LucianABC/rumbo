@@ -1,15 +1,21 @@
 import {
   checkLayout,
   type LineColorToken,
+  Profile,
   Roadmap,
   RoadmapLayout,
   targetColors,
 } from '@rumbo/contracts';
+import { checkMarket, Market } from '@rumbo/contracts/provisional';
 import { connection } from 'next/server';
 import type { z } from 'zod';
 
+import { market as bundledMarket } from '../../mocks/market';
+import { profile } from '../../mocks/profile';
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
+import { skillsAskedForMost } from '../coverage';
+import { type ProfileSummary, summarize } from '../profile-summary';
 import { type LocalMockName, readLocalMock } from './local-mocks';
 
 /**
@@ -40,6 +46,42 @@ export async function getRoadmapLayout(forRoadmap: Roadmap): Promise<RoadmapLayo
   const layout = RoadmapLayout.safeParse(await localOr('roadmap-layout', roadmapLayout));
   if (!layout.success || checkLayout(forRoadmap, layout.data).length > 0) return null;
   return layout.data;
+}
+
+/** The user's profile: header, experiences, education, skills and their evidence (#145). */
+export async function getProfile(): Promise<Profile> {
+  await connection();
+  return parse(Profile, await localOr('profile', profile), 'profile');
+}
+
+/**
+ * Who the user is in one line: current role, years of relevant experience, strongest skills.
+ * Relevance comes from what the roadmap's targets ask for most in the market (#145). Takes the
+ * data the view already loaded instead of reading and parsing it again, like getTargetColors.
+ */
+export function getProfileSummary(
+  forProfile: Profile,
+  market: Market,
+  forRoadmap: Roadmap,
+): ProfileSummary {
+  const relevant = skillsAskedForMost(
+    market,
+    forRoadmap.targets.map((t) => t.id),
+  );
+  return summarize(forProfile, new Date(), relevant);
+}
+
+/**
+ * One market snapshot per active target of this roadmap; provisional until the F2 spec (#42).
+ * A market that does not fit the roadmap rejects like invalid data: a target without numbers is a
+ * data error, not a state to render around (#145).
+ */
+export async function getMarket(forRoadmap: Roadmap): Promise<Market> {
+  await connection();
+  const market = parse(Market, await localOr('market', bundledMarket), 'market');
+  const problems = checkMarket(market, forRoadmap);
+  if (problems.length > 0) throw new Error(`Invalid market:\n${problems.join('\n')}`);
+  return market;
 }
 
 /**

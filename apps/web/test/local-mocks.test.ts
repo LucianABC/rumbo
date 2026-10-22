@@ -4,8 +4,10 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getRoadmap, getRoadmapLayout } from '../src/lib/data';
+import { getMarket, getProfile, getRoadmap, getRoadmapLayout } from '../src/lib/data';
 import { readLocalMock } from '../src/lib/data/local-mocks';
+import { market as bundledMarket } from '../src/mocks/market';
+import { profile as bundledProfile } from '../src/mocks/profile';
 import { roadmap as bundled } from '../src/mocks/roadmap';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -50,6 +52,27 @@ describe('local mocks (#137)', () => {
     expect(roadmap.from).toBe('Local role');
     // Same plan, so the bundled layout still fits it.
     expect(await getRoadmapLayout(roadmap)).not.toBeNull();
+  });
+
+  it('replaces the profile and the market too, validated like their bundled mocks (#145)', async () => {
+    await write('profile.json', { ...bundledProfile, name: 'Local Name' });
+    const [first, ...rest] = bundledMarket.snapshots;
+    await write('market.json', { snapshots: [{ ...first, region: 'Local region' }, ...rest] });
+    const roadmap = await getRoadmap();
+
+    expect((await getProfile()).name).toBe('Local Name');
+    expect((await getMarket(roadmap)).snapshots[0]?.region).toBe('Local region');
+
+    await write('market.json', { snapshots: [{ ...first, postingCount: 0 }, ...rest] });
+    await expect(getMarket(roadmap)).rejects.toThrow(/Invalid market:/);
+  });
+
+  it('rejects a local market that leaves an active target without numbers (#145)', async () => {
+    await write('market.json', { snapshots: bundledMarket.snapshots.slice(0, 1) });
+
+    await expect(getMarket(await getRoadmap())).rejects.toThrow(
+      /Invalid market:\ntarget "business-analyst" has no market snapshot/,
+    );
   });
 
   it('validates a local file like the bundled mock', async () => {

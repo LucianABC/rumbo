@@ -8,6 +8,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./provisional": {
+      "types": "./dist/provisional/index.d.ts",
+      "default": "./dist/provisional/index.js"
+    },
     "./fixtures/*": "./fixtures/*"
   },
   "files": [
