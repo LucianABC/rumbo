@@ -21,6 +21,9 @@ const envSchema = z
   .object({
     DATABASE_URL: databaseUrl(),
     PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
+    // Loopback unless told otherwise: nothing is exposed before real auth (CLAUDE.md, #76). The
+    // container sets 0.0.0.0, which the compose network alone can reach.
+    HOST: z.string().min(1).default('127.0.0.1'),
     // Defaults for local runs; images get real values from Dockerfile build args (#53).
     APP_VERSION: z.string().default('dev'),
     GIT_COMMIT: z.string().default('unknown'),
@@ -29,6 +32,7 @@ const envSchema = z
   })
   .transform((env) => ({
     port: env.PORT,
+    host: env.HOST,
     databaseUrl: env.DATABASE_URL,
     version: env.APP_VERSION,
     commit: env.GIT_COMMIT,

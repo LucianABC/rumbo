@@ -9,6 +9,7 @@ describe('loadConfig', () => {
   it('applies defaults for the optional values', () => {
     expect(loadConfig({ DATABASE_URL })).toEqual({
       port: 3001,
+      host: '127.0.0.1',
       databaseUrl: DATABASE_URL,
       version: 'dev',
       commit: 'unknown',
@@ -22,6 +23,7 @@ describe('loadConfig', () => {
       loadConfig({
         DATABASE_URL,
         PORT: '8080',
+        HOST: '0.0.0.0',
         APP_VERSION: '1.2.3',
         GIT_COMMIT: 'abc123',
         LOG_LEVEL: 'debug',
@@ -29,6 +31,7 @@ describe('loadConfig', () => {
       }),
     ).toEqual({
       port: 8080,
+      host: '0.0.0.0',
       databaseUrl: DATABASE_URL,
       version: '1.2.3',
       commit: 'abc123',

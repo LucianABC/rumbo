@@ -11,6 +11,7 @@
     "dev": "node scripts/dev.mjs all",
     "dev:web": "node scripts/dev.mjs web",
     "dev:api": "node scripts/dev.mjs api",
+    "dev:worker": "node scripts/dev.mjs worker",
     "build:packages": "pnpm -r --filter \"./packages/**\" --if-present run build",
     "build": "pnpm -r --if-present run build",
     "db:migrate": "pnpm --filter @rumbo/db db:migrate",

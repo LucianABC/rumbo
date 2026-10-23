@@ -2,8 +2,8 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 
 const mode = process.argv[2];
-if (!['web', 'api', 'all'].includes(mode)) {
-  console.error('Usage: node scripts/dev.mjs web|api|all');
+if (!['web', 'api', 'worker', 'all'].includes(mode)) {
+  console.error('Usage: node scripts/dev.mjs web|api|worker|all');
   process.exit(1);
 }
 
@@ -49,41 +49,43 @@ function stop(code = 0) {
 process.on('SIGINT', () => stop(0));
 process.on('SIGTERM', () => stop(0));
 
-async function api() {
-  await run('docker', ['compose', 'up', '-d', '--wait', 'postgres']);
-  await run('pnpm', ['build:packages']);
-  await run('pnpm', ['db:migrate']);
-  await run('pnpm', ['--filter', '@rumbo/api', 'build']);
-  void run(
-    'pnpm',
-    [
-      '--filter',
-      '@rumbo/api',
-      'exec',
-      'tsc',
-      '-p',
-      'tsconfig.build.json',
-      '--watch',
-      '--preserveWatchOutput',
-    ],
-    { watch: true },
-  ).catch((error) => {
-    if (!stopping) console.error(error);
-  });
-  void run('node', ['--watch', '--enable-source-maps', 'apps/api/dist/main.js'], {
-    watch: true,
-  }).catch((error) => {
+/** Long-running processes: one exiting stops the rest, so a crash never leaves half a stack. */
+function watch(name, args) {
+  void run(name, args, { watch: true }).catch((error) => {
     if (!stopping) console.error(error);
   });
 }
 
+/** Postgres from compose, shared packages and migrations: what api and worker both need. */
+async function backend() {
+  await run('docker', ['compose', 'up', '-d', '--wait', 'postgres']);
+  await run('pnpm', ['build:packages']);
+  await run('pnpm', ['db:migrate']);
+}
+
+/** A Node app (api, worker): build once, then recompile and restart it as its source changes. */
+async function nodeApp(app) {
+  await run('pnpm', ['--filter', `@rumbo/${app}`, 'build']);
+  watch('pnpm', [
+    '--filter',
+    `@rumbo/${app}`,
+    'exec',
+    'tsc',
+    '-p',
+    'tsconfig.build.json',
+    '--watch',
+    '--preserveWatchOutput',
+  ]);
+  watch('node', ['--watch', '--enable-source-maps', `apps/${app}/dist/main.js`]);
+}
+
 try {
-  if (mode === 'web' || mode === 'all') {
-    void run('pnpm', ['--filter', '@rumbo/web', 'dev'], { watch: true }).catch((error) => {
-      if (!stopping) console.error(error);
-    });
+  if (mode === 'web' || mode === 'all') watch('pnpm', ['--filter', '@rumbo/web', 'dev']);
+  if (mode !== 'web') {
+    await backend();
+    if (mode === 'api' || mode === 'all') await nodeApp('api');
+    if (mode === 'worker' || mode === 'all') await nodeApp('worker');
   }
-  if (mode === 'api' || mode === 'all') await api();
 } catch (error) {
   console.error(error);
   stop(1);
