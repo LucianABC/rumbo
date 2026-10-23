@@ -130,7 +130,7 @@ function Explainer({ preview }: { readonly preview: ChangePreview | null }) {
                 </p>
               )}
               <p className="text-xs text-muted-foreground">
-                {preview.gapsKept} {preview.gapsKept === 1 ? 'gap stays' : 'gaps stay'}.
+                {preview.gapsKept} open {preview.gapsKept === 1 ? 'gap stays' : 'gaps stay'}.
               </p>
             </div>
             <div className="flex flex-col gap-1.5">

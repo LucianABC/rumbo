@@ -1,6 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
+import { gotoRoadmapWithBand } from './summary-band.js';
+
 /**
  * Keyboard and accessibility for the roadmap (spec 01, M2, #110), on a phone (single line, bottom
  * sheet) and a wide screen (map over the list, side sheet). Nothing depends on mock content: the
@@ -147,7 +149,7 @@ for (const [size, viewport] of SIZES) {
     });
 
     test('has no WCAG 2.1 AA violations with Change targets open (#112)', async ({ page }) => {
-      await page.goto('/roadmap');
+      await gotoRoadmapWithBand(page);
       await page.getByRole('button', { name: 'Change targets' }).click();
       await expect(page.getByRole('dialog', { name: 'Change targets' })).toBeVisible();
       await page.waitForTimeout(600);

@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { gotoRoadmapWithBand } from './summary-band.js';
+
 /**
  * The Roadmap summary band and the mocked Change targets explainer (#112). Like the other roadmap
  * specs, nothing depends on mock content: locally the stack may serve the owner's mocks (#137).
@@ -19,7 +21,7 @@ for (const [size, viewport] of SIZES) {
     test.use({ viewport });
 
     test('every target shows its coverage, linked to Skills & gaps', async ({ page }) => {
-      await page.goto('/roadmap');
+      await gotoRoadmapWithBand(page);
 
       const rows = targets(page);
       expect(await rows.count()).toBeGreaterThan(0);
@@ -44,7 +46,7 @@ for (const [size, viewport] of SIZES) {
     });
 
     test('Change targets opens a read-only preview and gives focus back', async ({ page }) => {
-      await page.goto('/roadmap');
+      await gotoRoadmapWithBand(page);
 
       await changeTargets(page).focus();
       await page.keyboard.press('Enter');

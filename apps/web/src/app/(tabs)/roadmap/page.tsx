@@ -9,11 +9,11 @@ import { RoadmapExplorer } from '../../../components/roadmap/roadmap-explorer';
 import { SummaryBand, SummaryUnavailable } from '../../../components/roadmap/summary-band';
 import { coverage } from '../../../lib/coverage';
 import {
-  getMarket,
   getProfile,
   getProfileSummary,
   getRoadmap,
   getRoadmapLayout,
+  getSummaryData,
   getTargetColors,
 } from '../../../lib/data';
 import { formatDay } from '../../../lib/format';
@@ -29,17 +29,20 @@ export const metadata: Metadata = { title: 'Roadmap · rumbo' };
  * layout (M2, #108). Either one opens a station's panel (#109).
  */
 export default async function RoadmapPage() {
+  // The profile does not depend on the roadmap, so it loads alongside it (#112).
+  const pendingProfile = getProfile();
+  // getSummaryData handles its rejection; this only keeps it from going unhandled when the
+  // roadmap fails first.
+  pendingProfile.catch(() => undefined);
   const roadmap = await getRoadmap();
-  // The band needs profile and market; the map does not. If either is invalid or does not fit
-  // this roadmap, only the band degrades (#112). Not logged: the error lists data paths (rule 5).
   const [layout, band] = await Promise.all([
     getRoadmapLayout(roadmap),
-    Promise.all([getProfile(), getMarket(roadmap)]).catch(() => null),
+    getSummaryData(pendingProfile, roadmap),
   ]);
   const colors = getTargetColors(roadmap, layout);
   const view = deriveRoadmapView(roadmap);
   const line = singleLine(roadmap, view, colors);
-  const provenance = band ? marketProvenance(band[1]) : null;
+  const provenance = band ? marketProvenance(band.market) : null;
 
   return (
     <>
@@ -60,12 +63,12 @@ export default async function RoadmapPage() {
       <div className="flex flex-col gap-6">
         {band ? (
           <SummaryBand
-            who={getProfileSummary(band[0], band[1], roadmap)}
+            who={getProfileSummary(band.profile, band.market, roadmap)}
             targets={targetSummaries(
               line.lanes,
               coverage(
-                band[0],
-                band[1],
+                band.profile,
+                band.market,
                 line.lanes.map((l) => l.target.id),
               ),
             )}

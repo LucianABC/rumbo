@@ -11,6 +11,7 @@ import {
   closingClause,
   marketProvenance,
   targetSummaries,
+  type TargetSummary,
 } from '../src/lib/roadmap/summary';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -50,7 +51,7 @@ describe('SummaryBand (#112)', () => {
     yearsOfRelevantExperience: 1,
     strongestSkills: [],
   };
-  const row = (asked: number, covered: number) => ({
+  const row = (asked: number, covered: number): TargetSummary => ({
     target: { id: 't', isPrimary: true, roleFamily: { id: 't', name: 'Tester', field: 'QA' } },
     color: 'line-1' as const,
     covered,
@@ -60,14 +61,17 @@ describe('SummaryBand (#112)', () => {
     postings: 8,
     href: '/skills?target=t',
   });
-  const render = (r: ReturnType<typeof row>) =>
+  const render = (r: TargetSummary) =>
     renderToStaticMarkup(SummaryBand({ who, targets: [r], changeTargets: null }));
 
-  it('links the coverage numbers and hides the meter from assistive tech', () => {
-    const html = render(row(4, 3));
+  it('links every coverage number and hides the meter from assistive tech', () => {
+    const html = render({ ...row(4, 3), shared: [{ name: 'Other', count: 1 }] });
+    const link = /<a [^>]*href="\/skills\?target=t"[^>]*>(.*?)<\/a>/.exec(html)?.[1] ?? '';
+    const text = link.replace(/<[^>]+>/g, '');
 
-    expect(html).toContain('href="/skills?target=t"');
-    expect(html).toContain('3 of 4 skills');
+    expect(text).toContain('3 of 4 skills');
+    expect(text).toContain('1 to close');
+    expect(text).toContain('1 shared with Other');
     expect(html).not.toContain('role="img"');
   });
 
@@ -150,7 +154,13 @@ describe('changePreview (#112)', () => {
     from: 'Now',
     updatedAt: '2026-10-22T00:00:00.000Z',
     targets: [target('a', true), target('b', false)],
-    gaps: [gap('only-b', ['b']), gap('shared', ['a', 'b']), gap('only-a', ['a'])],
+    gaps: [
+      gap('only-b', ['b']),
+      gap('shared', ['a', 'b']),
+      gap('only-a', ['a']),
+      // Already closed: it is not work that stays (#112).
+      { ...gap('closed-a', ['a']), status: 'closed' },
+    ],
     milestones: [
       {
         id: 'm',

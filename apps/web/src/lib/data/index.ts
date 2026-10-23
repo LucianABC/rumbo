@@ -15,6 +15,7 @@ import { profile } from '../../mocks/profile';
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
 import { skillsAskedForMost } from '../coverage';
+import { logger } from '../logger';
 import { type ProfileSummary, summarize } from '../profile-summary';
 import { type LocalMockName, readLocalMock } from './local-mocks';
 
@@ -82,6 +83,31 @@ export async function getMarket(forRoadmap: Roadmap): Promise<Market> {
   const problems = checkMarket(market, forRoadmap);
   if (problems.length > 0) throw new Error(`Invalid market:\n${problems.join('\n')}`);
   return market;
+}
+
+/**
+ * Profile and market for the Roadmap summary band, or null when either is invalid or does not fit
+ * the roadmap: the map does not need them, so only the band degrades (#112). Takes the profile
+ * already in flight so the page can start it before the roadmap resolves. Each failure is logged
+ * as `{ err }`, its type and code only: the message lists data paths (AI rule 5).
+ */
+export async function getSummaryData(
+  pendingProfile: Promise<Profile>,
+  forRoadmap: Roadmap,
+): Promise<{ profile: Profile; market: Market } | null> {
+  const [profile, market] = await Promise.allSettled([pendingProfile, getMarket(forRoadmap)]);
+  if (profile.status === 'fulfilled' && market.status === 'fulfilled') {
+    return { profile: profile.value, market: market.value };
+  }
+  for (const [source, result] of [
+    ['profile', profile],
+    ['market', market],
+  ] as const) {
+    if (result.status === 'rejected') {
+      logger.warn({ err: result.reason, source }, 'roadmap summary unavailable');
+    }
+  }
+  return null;
 }
 
 /**

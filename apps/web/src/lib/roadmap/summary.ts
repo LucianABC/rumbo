@@ -84,6 +84,7 @@ export type ItemOutcome = 'kept' | 'dropped' | 'not_needed';
 export interface ChangePreview {
   readonly dropped: Target;
   readonly gapsGone: readonly { readonly gap: Gap; readonly share: number }[];
+  /** Gaps still open or in progress after the change. */
   readonly gapsKept: number;
   readonly items: readonly {
     readonly item: RoadmapItem;
@@ -120,5 +121,8 @@ export function changePreview(roadmap: Roadmap, lanes: readonly Lane[]): ChangeP
     }),
   );
 
-  return { dropped, gapsGone, gapsKept: roadmap.gaps.length - gone.size, items };
+  // Closed gaps are not work that stays; counting them overstated what is left (#112).
+  const gapsKept = roadmap.gaps.filter((g) => !gone.has(g.id) && g.status !== 'closed').length;
+
+  return { dropped, gapsGone, gapsKept, items };
 }

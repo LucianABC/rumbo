@@ -102,7 +102,7 @@ function Who({ who }: { readonly who: ProfileSummary }) {
           <ul role="list" className="flex flex-wrap gap-2">
             {who.strongestSkills.map(({ skill, evidenceCount }) => (
               <li key={skill.id}>
-                {/* Badge never wraps; a long skill name must, or it overflows at 360px. */}
+                {/* Badge never wraps; a long skill name must, or it overflows at 360px (#112). */}
                 <Badge
                   variant="secondary"
                   className="h-auto min-h-6 max-w-full shrink flex-wrap justify-start gap-x-1.5 text-left whitespace-normal"
@@ -144,14 +144,17 @@ function TargetRow({ summary: s }: { readonly summary: TargetSummary }) {
           <Meter summary={s} />
           <p className="text-sm text-muted-foreground">
             You cover{' '}
+            {/* Every number in the sentence links to Skills & gaps, not just the first (#112). */}
             <Link href={s.href} className={LINK}>
-              {s.covered} of {s.asked} skills
-            </Link>{' '}
-            its postings ask for most; {closingClause(s)}
+              <span className="font-semibold">
+                {s.covered} of {s.asked} skills
+              </span>{' '}
+              its postings ask for most; {closingClause(s)}
+            </Link>
           </p>
         </>
       ) : (
-        // Without this, a thin snapshot would read "0 of 0, nothing to close": fully covered.
+        // Without this, a thin snapshot would read "0 of 0, nothing to close": fully covered (#112).
         <p className="text-sm text-muted-foreground">
           Not enough market data yet: no skill appears in {Math.round(ASKED_MIN_SHARE * 100)}% of
           its {s.postings} postings ·{' '}
@@ -165,7 +168,7 @@ function TargetRow({ summary: s }: { readonly summary: TargetSummary }) {
 }
 
 const LINK =
-  'rounded-sm font-semibold text-foreground underline underline-offset-4 outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring';
+  'rounded-sm text-foreground underline underline-offset-4 outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring';
 
 /**
  * One segment per skill asked for most, filled where covered. Hidden from assistive tech: the
