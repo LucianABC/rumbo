@@ -300,6 +300,9 @@ importers:
       '@rumbo/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@rumbo/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
