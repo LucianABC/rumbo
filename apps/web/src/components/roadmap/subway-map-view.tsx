@@ -20,12 +20,18 @@ export function SubwayMapView({
   active,
   onActivate,
   onOpen,
+  onSelectLine,
 }: {
   readonly map: SubwayMap;
   readonly active: readonly string[] | null;
   readonly onActivate: (targetIds: readonly string[] | null) => void;
   /** Mouse shortcut to a station's panel; keyboards open it from the list (#109). */
   readonly onOpen?: (stationId: string) => void;
+  /**
+   * Mouse shortcut to the line switcher: clicking a line or its terminal shows that line in the
+   * list; keyboards use the switcher (#148).
+   */
+  readonly onSelectLine?: (targetId: string) => void;
 }) {
   const { x, y, w, h } = map.viewBox;
   const dimmed = (targetIds: readonly string[]) =>
@@ -36,7 +42,9 @@ export function SubwayMapView({
       aria-hidden
       data-testid="subway-map"
       viewBox={`${String(x)} ${String(y)} ${String(w)} ${String(h)}`}
-      className="h-auto w-full"
+      // The top fits the labels from an estimate of their width (labelTop); if one still runs
+      // past it, it shows over the gap above instead of being cut off (#148).
+      className="h-auto w-full overflow-visible"
       onMouseLeave={() => {
         onActivate(null);
       }}
@@ -58,8 +66,12 @@ export function SubwayMapView({
                   : 'opacity-100',
             )}
             style={{ animationDelay: `${String(segment.order * DRAW_STAGGER_MS)}ms` }}
+            data-target-id={segment.targetId}
             onMouseEnter={() => {
               onActivate([segment.targetId]);
+            }}
+            onClick={() => {
+              onSelectLine?.(segment.targetId);
             }}
           />
         ))}
@@ -72,17 +84,31 @@ export function SubwayMapView({
           onEnter={() => {
             onActivate(station.targetIds);
           }}
-          onClick={
-            station.kind === 'milestone' && onOpen
-              ? () => {
-                  onOpen(station.id);
-                }
-              : undefined
-          }
+          onClick={stationClick(station, onOpen, onSelectLine)}
         />
       ))}
     </svg>
   );
+}
+
+/** A milestone opens its panel; a terminal selects its line (#148); the starting point does nothing. */
+function stationClick(
+  station: MapStation,
+  onOpen: ((stationId: string) => void) | undefined,
+  onSelectLine: ((targetId: string) => void) | undefined,
+): (() => void) | undefined {
+  if (station.kind === 'milestone' && onOpen) {
+    return () => {
+      onOpen(station.id);
+    };
+  }
+  const target = station.kind === 'terminal' ? station.targetIds[0] : undefined;
+  if (target && onSelectLine) {
+    return () => {
+      onSelectLine(target);
+    };
+  }
+  return undefined;
 }
 
 function Station({
@@ -107,6 +133,7 @@ function Station({
       className={cn(
         'transition-opacity duration-(--duration-base)',
         dimmed ? 'opacity-30' : 'opacity-100',
+        onClick && 'cursor-pointer',
       )}
       onMouseEnter={onEnter}
       onClick={onClick}

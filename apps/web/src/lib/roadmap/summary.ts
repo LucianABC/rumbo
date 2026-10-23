@@ -19,6 +19,8 @@ export interface TargetSummary {
   readonly toClose: number;
   /** Other targets missing some of this target's missing skills, with how many. */
   readonly shared: readonly { readonly name: string; readonly count: number }[];
+  /** How many of this target's missing skills any other target also misses, each counted once. */
+  readonly sharedCount: number;
   /** Postings in the target's snapshot, for the state where none of its skills reach 30%. */
   readonly postings: number;
   /** Skills & gaps filtered to this target; #111 reads `target`. */
@@ -38,6 +40,11 @@ export function targetSummaries(
       name: names.get(s.targetId) ?? s.targetId,
       count: s.count,
     }));
+    const othersMissing = new Set(
+      coverage
+        .filter((c) => c.targetId !== target.id)
+        .flatMap((c) => c.missing.map((m) => m.skill.id)),
+    );
     return [
       {
         target,
@@ -46,6 +53,7 @@ export function targetSummaries(
         asked: entry.asked.length,
         toClose: entry.missing.length,
         shared,
+        sharedCount: entry.missing.filter((m) => othersMissing.has(m.skill.id)).length,
         postings: entry.snapshot.postingCount,
         href: `/skills?target=${encodeURIComponent(target.id)}`,
       },
@@ -53,13 +61,20 @@ export function targetSummaries(
   });
 }
 
-/** "5 to close, 2 shared with Business Analyst and 1 with Support Lead", or "nothing to close". */
-export function closingClause(s: Pick<TargetSummary, 'toClose' | 'shared'>): string {
+/**
+ * "5 to close, 2 shared", or "nothing to close": short enough for one line of the band, which
+ * reads as a header; who shares them is in sharedDetail (#112).
+ */
+export function closingClause(s: Pick<TargetSummary, 'toClose' | 'sharedCount'>): string {
   if (s.toClose === 0) return 'nothing to close';
-  const shared = s.shared.map(
-    (x, i) => `${String(x.count)} ${i === 0 ? 'shared ' : ''}with ${x.name}`,
-  );
-  return [`${String(s.toClose)} to close`, joinNames(shared)].filter(Boolean).join(', ');
+  const shared = s.sharedCount > 0 ? `, ${String(s.sharedCount)} shared` : '';
+  return `${String(s.toClose)} to close${shared}`;
+}
+
+/** "Also missing for Business Analyst (2) and Support Lead (1)", or null when nothing is shared. */
+export function sharedDetail(s: Pick<TargetSummary, 'shared'>): string | null {
+  if (s.shared.length === 0) return null;
+  return `Also missing for ${joinNames(s.shared.map((x) => `${x.name} (${String(x.count)})`))}`;
 }
 
 /** Where the market numbers come from, for the page header (views.md, "Page header"). */
