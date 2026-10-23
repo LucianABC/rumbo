@@ -42,7 +42,9 @@ export function SubwayMapView({
       aria-hidden
       data-testid="subway-map"
       viewBox={`${String(x)} ${String(y)} ${String(w)} ${String(h)}`}
-      className="h-auto w-full"
+      // The top fits the labels from an estimate of their width (labelTop); if one still runs
+      // past it, it shows over the gap above instead of being cut off (#148).
+      className="h-auto w-full overflow-visible"
       onMouseLeave={() => {
         onActivate(null);
       }}

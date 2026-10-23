@@ -185,22 +185,34 @@ export function subwayMap(
   };
 }
 
-/** Average glyph widths of the label fonts (13px medium, 15px heading bold), for the label fit. */
-const CHAR_PX = { station: 7.2, heading: 9 };
+/** Label font sizes (subway-map-view's Label): 13px medium, 15px heading bold. */
+const FONT_PX = { station: 13, heading: 15 };
+/**
+ * Per em, on the wide side so the estimate errs high: average glyph width of mixed-case text
+ * (most names run 0.5–0.55em) and ascent. Labels are text in an SVG, so the server cannot measure
+ * them; an estimate that runs short would cut the label off at the top (#148).
+ */
+const GLYPH_EM = 0.62;
+const ASCENT_EM = 0.8;
+/** Half the label's halo stroke (strokeWidth 5). */
+const HALO = 2.5;
 /** The rotated label starts this far above its station (subway-map-view's Label). */
 const LABEL_LIFT = 20;
 const LABEL_MARGIN = 12;
 
 /**
- * The highest point a station's label reaches. Terminal labels read straight, beside their
- * station; the others are rotated and rise with their length.
+ * The highest point a station's label reaches, halo included. Terminal labels read straight,
+ * beside their station; the others are rotated and rise with their length, plus the top edge of
+ * their glyphs, which the rotation tilts up too.
  */
 export function labelTop(station: MapStation): number {
   const y = (station.from.y + station.to.y) / 2;
-  if (station.kind === 'terminal') return y - LABEL_LIFT;
-  const char = station.kind === 'origin' ? CHAR_PX.heading : CHAR_PX.station;
+  if (station.kind === 'terminal') return y + 5 - FONT_PX.heading * ASCENT_EM - HALO;
+  const size = station.kind === 'origin' ? FONT_PX.heading : FONT_PX.station;
+  const angle = (Math.abs(station.labelAngle) * Math.PI) / 180;
   const rise =
-    station.label.length * char * Math.sin((Math.abs(station.labelAngle) * Math.PI) / 180);
+    station.label.length * size * GLYPH_EM * Math.sin(angle) +
+    (size * ASCENT_EM + HALO) * Math.cos(angle);
   return y - LABEL_LIFT - rise;
 }
 

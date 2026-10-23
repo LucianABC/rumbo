@@ -138,6 +138,7 @@ function TargetRow({ summary: s }: { readonly summary: TargetSummary }) {
   const { target } = s;
   const meta = [target.roleFamily.field, target.seniority].filter(Boolean).join(' · ');
   const detail = sharedDetail(s);
+  const detailId = `shared-detail-${target.id}`;
 
   return (
     <li className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 md:grid-cols-[minmax(0,15rem)_minmax(5rem,1fr)_auto]">
@@ -156,22 +157,31 @@ function TargetRow({ summary: s }: { readonly summary: TargetSummary }) {
       {s.asked > 0 ? (
         <>
           <Meter summary={s} />
-          <p className="col-span-2 text-sm text-muted-foreground md:col-span-1 md:text-right">
+          <p className="relative col-span-2 text-sm text-muted-foreground md:col-span-1 md:text-right">
             {/* Every number in the line links to Skills & gaps, not just the first (#112). */}
-            <Link href={s.href} className={cn(LINK, 'group/link')} title={detail ?? undefined}>
+            <Link
+              href={s.href}
+              className={cn(LINK, 'peer/link')}
+              title={detail ?? undefined}
+              aria-describedby={detail ? detailId : undefined}
+            >
               <span className="font-mono font-semibold tabular-nums">
                 {s.covered}/{s.asked}
               </span>{' '}
               top skills · {closingClause(s)}
-              {/* The tooltip only reaches mouse users: screen readers get it in the link's name
-                  and keyboard users see it while the link has focus (#148). */}
-              {detail ? (
-                <span className="sr-only group-focus-visible/link:not-sr-only group-focus-visible/link:block group-focus-visible/link:text-xs">
-                  {' '}
-                  ({detail})
-                </span>
-              ) : null}
             </Link>
+            {/* The title only reaches mouse users. Screen readers get the detail once, as the
+                link's description (it outranks the title), and keyboard users see it on focus,
+                floating so the band does not grow and push the page down (#148). */}
+            {detail ? (
+              <span
+                id={detailId}
+                role="tooltip"
+                className="invisible absolute top-full left-0 z-10 mt-1 w-max max-w-xs rounded-md border bg-popover px-2 py-1 text-left text-xs text-popover-foreground shadow-sm peer-focus-visible/link:visible md:right-0 md:left-auto"
+              >
+                {detail}
+              </span>
+            ) : null}
           </p>
         </>
       ) : (

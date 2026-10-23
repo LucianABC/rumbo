@@ -36,6 +36,29 @@ for (const [size, viewport] of SIZES) {
       );
     });
 
+    test('keyboard focus shows who shares the gaps without moving the page (#148)', async ({
+      page,
+    }) => {
+      await gotoRoadmapWithBand(page);
+      const link = page
+        .getByRole('region', { name: 'Your targets' })
+        .getByRole('link', { description: /^Also missing for / })
+        .first();
+      // The owner's mocks may share nothing; then there is no detail to show.
+      test.skip((await link.count()) === 0, 'no target shares a gap');
+
+      const tooltip = page.locator(`#${String(await link.getAttribute('aria-describedby'))}`);
+      const band = page.getByRole('region', { name: 'Your targets' });
+      const before = await band.boundingBox();
+      await expect(tooltip).toBeHidden();
+      await link.focus();
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Tab');
+
+      await expect(tooltip).toBeVisible();
+      expect(await band.boundingBox()).toEqual(before);
+    });
+
     test('the page never scrolls sideways', async ({ page }) => {
       await page.goto('/roadmap');
 
