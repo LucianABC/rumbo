@@ -9,6 +9,7 @@ import { singleLine } from '../src/lib/roadmap/single-line';
 import {
   changePreview,
   closingClause,
+  sharedDetail,
   marketProvenance,
   targetSummaries,
   type TargetSummary,
@@ -58,6 +59,7 @@ describe('SummaryBand (#112)', () => {
     asked,
     toClose: asked - covered,
     shared: [],
+    sharedCount: 0,
     postings: 8,
     href: '/skills?target=t',
   });
@@ -65,13 +67,18 @@ describe('SummaryBand (#112)', () => {
     renderToStaticMarkup(SummaryBand({ who, targets: [r], changeTargets: null }));
 
   it('links every coverage number and hides the meter from assistive tech', () => {
-    const html = render({ ...row(4, 3), shared: [{ name: 'Other', count: 1 }] });
-    const link = /<a [^>]*href="\/skills\?target=t"[^>]*>(.*?)<\/a>/.exec(html)?.[1] ?? '';
-    const text = link.replace(/<[^>]+>/g, '');
+    const html = render({ ...row(4, 3), shared: [{ name: 'Other', count: 1 }], sharedCount: 1 });
+    const tag = /<a [^>]*href="\/skills\?target=t"[^>]*>(.*?)<\/a>/.exec(html);
+    const text = (tag?.[1] ?? '').replace(/<[^>]+>/g, '');
 
-    expect(text).toContain('3 of 4 skills');
-    expect(text).toContain('1 to close');
-    expect(text).toContain('1 shared with Other');
+    expect(text).toContain('3/4 top skills');
+    expect(text).toContain('1 to close, 1 shared');
+    // Who shares them is off the line, so it stays short (#148): in the title for the mouse, and
+    // once, as the link's description, for screen readers and keyboard focus.
+    expect(tag?.[0]).toContain('title="Also missing for Other (1)"');
+    expect(tag?.[0]).toContain('aria-describedby="shared-detail-t"');
+    expect(text).not.toContain('Also missing');
+    expect(html).toMatch(/id="shared-detail-t" role="tooltip"[^>]*>Also missing for Other \(1\)</);
     expect(html).not.toContain('role="img"');
   });
 
@@ -80,27 +87,43 @@ describe('SummaryBand (#112)', () => {
 
     expect(html).toContain('Not enough market data yet');
     expect(html).toContain('8 postings');
-    expect(html).not.toContain('0 of 0');
+    expect(html).not.toContain('0/0');
     expect(html).not.toContain('nothing to close');
   });
 });
 
-describe('closingClause (#112)', () => {
-  it('names shared gaps only when there are any', () => {
-    expect(closingClause({ toClose: 5, shared: [] })).toBe('5 to close');
-    expect(closingClause({ toClose: 5, shared: [{ name: 'BA', count: 2 }] })).toBe(
-      '5 to close, 2 shared with BA',
-    );
+describe('closingClause and sharedDetail (#112)', () => {
+  it('counts shared gaps only when there are any, and says who shares them apart', () => {
+    expect(closingClause({ toClose: 5, sharedCount: 0 })).toBe('5 to close');
+    expect(closingClause({ toClose: 5, sharedCount: 2 })).toBe('5 to close, 2 shared');
+    expect(closingClause({ toClose: 0, sharedCount: 0 })).toBe('nothing to close');
+
+    expect(sharedDetail({ shared: [] })).toBeNull();
     expect(
-      closingClause({
-        toClose: 5,
+      sharedDetail({
         shared: [
           { name: 'BA', count: 2 },
           { name: 'SL', count: 1 },
         ],
       }),
-    ).toBe('5 to close, 2 shared with BA and 1 with SL');
-    expect(closingClause({ toClose: 0, shared: [] })).toBe('nothing to close');
+    ).toBe('Also missing for BA (2) and SL (1)');
+  });
+
+  it('counts each shared skill once across the other targets', async () => {
+    const roadmap = await getRoadmap();
+    const lanes = lanesOf(roadmap);
+    const ids = lanes.map((l) => l.target.id);
+    const entries = coverage(await getProfile(), await getMarket(roadmap), ids);
+
+    for (const row of targetSummaries(lanes, entries)) {
+      const others = new Set(
+        entries.filter((c) => c.targetId !== row.target.id).flatMap((c) => c.missing),
+      );
+      const otherIds = new Set([...others].map((m) => m.skill.id));
+      const mine = entries.find((c) => c.targetId === row.target.id)?.missing ?? [];
+      expect(row.sharedCount).toBe(mine.filter((m) => otherIds.has(m.skill.id)).length);
+      expect(row.sharedCount).toBeLessThanOrEqual(row.toClose);
+    }
   });
 });
 

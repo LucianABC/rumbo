@@ -225,7 +225,8 @@ function MilestoneStation({
   readonly onOpen: ((stationId: string) => void) | undefined;
 }) {
   const { milestone } = row;
-  const served = row.cells.filter((cell) => cell.stop);
+  // Every target the station advances, not only the line on show (#148).
+  const served = row.servedLanes;
   const activate = () => onActivate?.(row.serves.map((t) => t.id));
   const release = () => onActivate?.(null);
 
@@ -271,10 +272,10 @@ function MilestoneStation({
         aria-label="Targets"
         className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"
       >
-        {served.map((cell) => (
-          <li key={cell.lane.target.id} className="inline-flex items-center gap-1.5">
-            <span aria-hidden className={cn('size-2 rounded-full', LINE_BG[cell.lane.color])} />
-            {cell.lane.target.roleFamily.name}
+        {served.map((lane) => (
+          <li key={lane.target.id} className="inline-flex items-center gap-1.5">
+            <span aria-hidden className={cn('size-2 rounded-full', LINE_BG[lane.color])} />
+            {lane.target.roleFamily.name}
           </li>
         ))}
       </ul>

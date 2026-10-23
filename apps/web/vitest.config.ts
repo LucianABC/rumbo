@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   test: {
     include: ['test/**/*.test.ts'],
+    setupFiles: ['test/setup.ts'],
     coverage: coverage('app', [
       {
         glob: 'src/components/ui/**',

@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
+import { openRoadmap } from './roadmap-line.js';
 import { gotoRoadmapWithBand } from './summary-band.js';
 
 /**
@@ -24,8 +25,8 @@ const focusedStation = (page: Page) =>
 
 /** Tabs from the top of the page until focus lands on a station; fails if it never does. */
 async function tabIntoStations(page: Page): Promise<string> {
-  // The summary band (#112) adds its links and Change targets before the stations.
-  for (let i = 0; i < 40; i++) {
+  // The summary band (#112) and the line switcher (#148) add links before the stations.
+  for (let i = 0; i < 50; i++) {
     await page.keyboard.press('Tab');
     const id = await focusedStation(page);
     if (id) return id;
@@ -46,7 +47,7 @@ for (const [size, viewport] of SIZES) {
     test.use({ viewport });
 
     test('the station list is one Tab stop, entered at "you are here"', async ({ page }) => {
-      await page.goto('/roadmap');
+      await openRoadmap(page);
       const ids = await stations(page).evaluateAll((els) =>
         els.map((el) => el.getAttribute('data-station-id')),
       );
@@ -64,7 +65,7 @@ for (const [size, viewport] of SIZES) {
     });
 
     test('arrows, Home and End move between stations', async ({ page }) => {
-      await page.goto('/roadmap');
+      await openRoadmap(page);
       const ids = await stations(page).evaluateAll((els) =>
         els.map((el) => el.getAttribute('data-station-id')),
       );
@@ -92,7 +93,7 @@ for (const [size, viewport] of SIZES) {
     });
 
     test('leaves modified keys and keys at the ends to the browser', async ({ page }) => {
-      await page.goto('/roadmap');
+      await openRoadmap(page);
       await tabIntoStations(page);
       // Records, after React handled it, whether each key had its default action blocked.
       await page.evaluate(() => {
@@ -119,7 +120,7 @@ for (const [size, viewport] of SIZES) {
 
     for (const key of ['Enter', 'Space']) {
       test(`${key} opens the station panel and Esc gives focus back`, async ({ page }) => {
-        await page.goto('/roadmap');
+        await openRoadmap(page);
         const start = await tabIntoStations(page);
 
         await page.keyboard.press(key);
@@ -132,15 +133,22 @@ for (const [size, viewport] of SIZES) {
     }
 
     test('has no WCAG 2.1 AA violations', async ({ page }) => {
-      await page.goto('/roadmap');
+      await openRoadmap(page);
       // Let the map finish drawing in, so axe measures the settled page.
       await page.waitForTimeout(1500);
 
       await expectNoViolations(page);
     });
 
-    test('has no WCAG 2.1 AA violations with a station panel open', async ({ page }) => {
+    test('has no WCAG 2.1 AA violations before a line is chosen (#148)', async ({ page }) => {
       await page.goto('/roadmap');
+      await page.waitForTimeout(1500);
+
+      await expectNoViolations(page);
+    });
+
+    test('has no WCAG 2.1 AA violations with a station panel open', async ({ page }) => {
+      await openRoadmap(page);
       await page.getByRole('button', { name: /, you are here$/ }).click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.waitForTimeout(600);

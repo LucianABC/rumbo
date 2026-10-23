@@ -1,3 +1,4 @@
+import { deriveRoadmapView } from '@rumbo/contracts';
 import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -14,37 +15,69 @@ function escaped(text: string): string {
   return renderToStaticMarkup(createElement(Fragment, null, text));
 }
 
-async function render(): Promise<string> {
-  return renderToStaticMarkup(await RoadmapPage());
+async function render(line?: string | string[]): Promise<string> {
+  const searchParams = Promise.resolve(line === undefined ? {} : { line });
+  return renderToStaticMarkup(await RoadmapPage({ searchParams }));
+}
+
+/** The starting point, the target's milestones in plan order, then its terminal (#148). */
+async function titlesOf(targetId: string): Promise<string[]> {
+  const roadmap = await getRoadmap();
+  const route = deriveRoadmapView(roadmap).routes.get(targetId) ?? [];
+  return [
+    roadmap.from,
+    ...roadmap.milestones.filter((m) => route.includes(m.id)).map((m) => m.title),
+    roadmap.targets.find((t) => t.id === targetId)?.roleFamily.name ?? '',
+  ];
+}
+
+function stationTitlesMatch(html: string, titles: readonly string[]) {
+  const stations = html.split('data-testid="station"').slice(1);
+  expect(stations).toHaveLength(titles.length);
+  stations.forEach((station, i) => {
+    // Milestone titles are their station's button (#110); the ends are plain text.
+    const title = `>${escaped(titles[i] ?? '')}</`;
+    expect(station.includes(`${title}button>`) || station.includes(`${title}span>`)).toBe(true);
+  });
 }
 
 describe('roadmap page (#108)', () => {
-  it('lists the starting point, milestones in plan order, then the targets', async () => {
+  it("lists the primary's line by default: start, its milestones, its terminal", async () => {
     const roadmap = await getRoadmap();
+    const primary = roadmap.targets.find((t) => t.isPrimary)?.id ?? '';
     const html = await render();
-    const titles = [
-      roadmap.from,
-      ...roadmap.milestones.map((m) => m.title),
-      ...roadmap.targets.map((t) => t.roleFamily.name),
-    ];
-    const stations = html.split('data-testid="station"').slice(1);
 
     expect(html).toContain('<ol role="list" aria-label="Stations"');
-    expect(stations).toHaveLength(titles.length);
-    // Terminals follow lane order (primary first), which the mock's target order already is.
-    stations.forEach((station, i) => {
-      // Milestone titles are their station's button (#110); the ends are plain text.
-      const title = `>${escaped(titles[i] ?? '')}</`;
-      expect(station.includes(`${title}button>`) || station.includes(`${title}span>`)).toBe(true);
-    });
+    stationTitlesMatch(html, await titlesOf(primary));
   });
 
-  it('gives every milestone a button named with its status, targets and position', async () => {
+  it('marks the chosen line in a single switcher (#148)', async () => {
+    const html = await render('business-analyst');
+    const groups = html.split('role="group" aria-label="Show line"').slice(1);
+
+    expect(groups).toHaveLength(1);
+    const link = /<a [^>]*href="\?line=business-analyst"[^>]*>/.exec(html)?.[0] ?? '';
+    expect(link).toContain('aria-current="true"');
+    expect(html).not.toContain('Choose a line');
+  });
+
+  it('lists the line ?line= names, and the primary for anything else (#148)', async () => {
+    const roadmap = await getRoadmap();
+    const primary = roadmap.targets.find((t) => t.isPrimary)?.id ?? '';
+    const other = roadmap.targets.find((t) => !t.isPrimary)?.id ?? '';
+
+    stationTitlesMatch(await render(other), await titlesOf(other));
+    stationTitlesMatch(await render('not-a-target'), await titlesOf(primary));
+    stationTitlesMatch(await render([other, other]), await titlesOf(primary));
+  });
+
+  it('gives every milestone of the line a button named with its status and targets', async () => {
     const html = await render();
     const names = [...html.matchAll(/<button[^>]*aria-label="([^"]+)"/g)].map((m) => m[1]);
     const roadmap = await getRoadmap();
+    const primary = roadmap.targets.find((t) => t.isPrimary)?.id ?? '';
 
-    expect(names).toHaveLength(roadmap.milestones.length);
+    expect(names).toHaveLength((await titlesOf(primary)).length - 2);
     expect(names.filter((n) => n?.endsWith(', you are here'))).toHaveLength(1);
     expect(names[0]).toMatch(/^Learn the query basics, done, serves /);
   });
@@ -56,10 +89,20 @@ describe('roadmap page (#108)', () => {
     expect(html).toMatch(/class="[^"]*\banimate-here-pulse\b[^"]*\bmotion-reduce:hidden\b/);
   });
 
-  it('names each line next to its color, primary first', async () => {
+  it('names each line next to its color, primary first (#148)', async () => {
     const html = await render();
+    const groups = html.split('role="group" aria-label="Show line"').slice(1);
+    const linksOf = (group: string) => [...group.matchAll(/<a [^>]*href="\?line=([^"]+)"[^>]*>/g)];
+    const ids = ['data-analyst', 'business-analyst', 'support-ops-lead'];
 
-    expect(html).toContain('<ul role="list" aria-label="Lines"');
+    // With nothing chosen: the phone switcher marks the primary its list shows, the desktop one
+    // beside the map marks nothing until the user picks a line.
+    expect(groups).toHaveLength(2);
+    const [phone, desktop] = groups.map((g) => linksOf(g.split('</div>')[0] ?? ''));
+    expect(phone?.map((l) => l[1])).toEqual(ids);
+    expect(desktop?.map((l) => l[1])).toEqual(ids);
+    expect(phone?.map((l) => l[0].includes('aria-current="true"'))).toEqual([true, false, false]);
+    expect(desktop?.some((l) => l[0].includes('aria-current'))).toBe(false);
     expect(html).toMatch(/bg-line-1[^>]*><\/span><span class="font-semibold">Data Analyst<\/span>/);
   });
 

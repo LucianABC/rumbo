@@ -53,6 +53,11 @@ export type SingleLineRow =
       readonly current: boolean;
       /** The targets that stop here, in lane order. */
       readonly serves: readonly Target[];
+      /**
+       * Those targets' lanes, for the station's target chips: kept whole when the list shows one
+       * line, so a station still shows every target it advances (#148).
+       */
+      readonly servedLanes: readonly Lane[];
       readonly cells: readonly LaneCell[];
     }
   | {
@@ -135,6 +140,7 @@ export function singleLine(
       status: statusOf(milestone.id) ?? 'pending',
       current: milestone.id === view.currentMilestoneId,
       serves: lanes.map((l) => l.target).filter((t) => serves.includes(t.id)),
+      servedLanes: lanes.filter((l) => serves.includes(l.target.id)),
       cells: cellsAt(i + 1),
     };
   });
@@ -151,6 +157,54 @@ export function singleLine(
   });
 
   return { lanes, rows: [origin, ...milestoneRows, ...terminalRows] };
+}
+
+/**
+ * The line the user chose: the `line` query param when it names an active target, else null, so
+ * nothing is selected until the user picks a line (#148). Anything else in the URL (unknown,
+ * repeated) counts as no choice.
+ */
+export function selectedTargetId(
+  roadmap: Roadmap,
+  raw: string | string[] | undefined,
+): string | null {
+  const known = typeof raw === 'string' && roadmap.targets.some((t) => t.id === raw);
+  return known ? raw : null;
+}
+
+/**
+ * "You are here" on one line: the first milestone on its route that is not done, or null when the
+ * whole route is (#148). Per line, so every line has its own marker even when the plan's first
+ * open milestone does not serve it.
+ */
+export function lineCurrent(view: RoadmapView, targetId: string): string | null {
+  const route = view.routes.get(targetId) ?? [];
+  // The route ends with the terminal, which is never a milestone.
+  return route.slice(0, -1).find((id) => view.statusByMilestone.get(id) !== 'done') ?? null;
+}
+
+/**
+ * One target's line out of the whole single line (#148): its lane only, and only the rows it
+ * stops at (the starting point, its milestones, its terminal). Its stretches already run between
+ * those stops, so dropping the rows it passes through keeps the track continuous. `serves` stays
+ * whole, so a station still says which other targets it advances.
+ */
+export function lineFor(line: SingleLine, view: RoadmapView, targetId: string): SingleLine {
+  const lane = line.lanes.find((l) => l.target.id === targetId);
+  if (!lane) return line;
+  const current = lineCurrent(view, targetId);
+  const ownCells = (cells: readonly LaneCell[]) =>
+    cells.filter((c) => c.lane.target.id === targetId);
+
+  const rows = line.rows.flatMap((row): SingleLineRow[] => {
+    const cells = ownCells(row.cells);
+    if (row.kind === 'origin') return [{ ...row, cells }];
+    if (row.kind === 'terminal') return row.target.id === targetId ? [{ ...row, cells }] : [];
+    if (!cells[0]?.stop) return [];
+    return [{ ...row, current: row.id === current, cells }];
+  });
+
+  return { lanes: [lane], rows };
 }
 
 /** "A", "A and B", "A, B and C": the spec's wording for station names (spec 01). */

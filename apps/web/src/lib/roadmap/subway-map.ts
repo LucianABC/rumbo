@@ -18,8 +18,8 @@ import { laneOrder, ORIGIN_ID, type Stretch } from './single-line';
 /** Pixels per grid unit, and between parallel lanes on a shared stretch. */
 export const UNIT = 64;
 export const LANE = 10;
-/** Room for the rotated station labels above and the terminal labels to the right. */
-const PAD = { top: 170, right: 250, bottom: 60, left: 60 };
+/** Room for the terminal labels to the right; the top fits the rotated labels (labelTop). */
+const PAD = { right: 250, bottom: 60, left: 60 };
 
 export interface Point {
   readonly x: number;
@@ -71,6 +71,8 @@ export function subwayMap(
   layout: RoadmapLayout,
   view: RoadmapView,
   colors: ReadonlyMap<string, LineColorToken>,
+  /** The station marked "you are here": the selected line's (#148), else the plan's. */
+  currentId: string | null = view.currentMilestoneId,
 ): SubwayMap {
   const targets = laneOrder(roadmap);
   const at = new Map(layout.stations.map((s) => [s.id, s.at]));
@@ -158,7 +160,7 @@ export function subwayMap(
         to: glyphTo,
         color: stopping.length === 1 ? (colors.get(stopping[0]?.id ?? '') ?? null) : null,
         status: milestone ? (view.statusByMilestone.get(id) ?? 'pending') : null,
-        current: id === view.currentMilestoneId,
+        current: id === currentId,
         labelAngle: climbs ? -60 : -35,
       },
     ];
@@ -168,7 +170,9 @@ export function subwayMap(
   const xs = all.map((p) => p.x);
   const ys = all.map((p) => p.y);
   const left = Math.min(...xs) - PAD.left;
-  const top = Math.min(...ys) - PAD.top;
+  // Only as much room above as the tallest rotated label needs, not a fixed band: a fixed one left
+  // a large gap above maps whose top stations carry short labels (#148).
+  const top = Math.min(Math.min(...ys) - PAD.bottom, ...stations.map(labelTop)) - LABEL_MARGIN;
   return {
     viewBox: {
       x: left,
@@ -179,6 +183,37 @@ export function subwayMap(
     segments,
     stations,
   };
+}
+
+/** Label font sizes (subway-map-view's Label): 13px medium, 15px heading bold. */
+const FONT_PX = { station: 13, heading: 15 };
+/**
+ * Per em, on the wide side so the estimate errs high: average glyph width of mixed-case text
+ * (most names run 0.5–0.55em) and ascent. Labels are text in an SVG, so the server cannot measure
+ * them; an estimate that runs short would cut the label off at the top (#148).
+ */
+const GLYPH_EM = 0.62;
+const ASCENT_EM = 0.8;
+/** Half the label's halo stroke (strokeWidth 5). */
+const HALO = 2.5;
+/** The rotated label starts this far above its station (subway-map-view's Label). */
+const LABEL_LIFT = 20;
+const LABEL_MARGIN = 12;
+
+/**
+ * The highest point a station's label reaches, halo included. Terminal labels read straight,
+ * beside their station; the others are rotated and rise with their length, plus the top edge of
+ * their glyphs, which the rotation tilts up too.
+ */
+export function labelTop(station: MapStation): number {
+  const y = (station.from.y + station.to.y) / 2;
+  if (station.kind === 'terminal') return y + 5 - FONT_PX.heading * ASCENT_EM - HALO;
+  const size = station.kind === 'origin' ? FONT_PX.heading : FONT_PX.station;
+  const angle = (Math.abs(station.labelAngle) * Math.PI) / 180;
+  const rise =
+    station.label.length * size * GLYPH_EM * Math.sin(angle) +
+    (size * ASCENT_EM + HALO) * Math.cos(angle);
+  return y - LABEL_LIFT - rise;
 }
 
 /** Grid to pixels. */

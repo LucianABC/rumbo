@@ -33,7 +33,7 @@ describe('rovingIndex (#110)', () => {
 
 describe('station list tab stop', () => {
   it('makes the list one Tab stop, entered at "you are here", with instructions', async () => {
-    const html = renderToStaticMarkup(await RoadmapPage());
+    const html = renderToStaticMarkup(await RoadmapPage({ searchParams: Promise.resolve({}) }));
     const buttons = [...html.matchAll(/<button[^>]*data-station-id[^>]*>/g)].map((m) => m[0]);
     const tabbable = buttons.filter((b) => b.includes('tabindex="0"'));
 

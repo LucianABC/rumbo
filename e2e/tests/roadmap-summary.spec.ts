@@ -28,12 +28,35 @@ for (const [size, viewport] of SIZES) {
       for (const row of await rows.all()) {
         // Coverage, or "see Skills & gaps" when the target has too little market data.
         await expect(row.getByRole('link')).toHaveAttribute('href', /^\/skills\?target=.+/);
-        await expect(row).toContainText(/You cover \d+ of \d+ skills|Not enough market data/);
+        await expect(row).toContainText(/\d+\/\d+ top skills|Not enough market data/);
       }
       await expect(page.getByRole('link', { name: /open profile$/ })).toHaveAttribute(
         'href',
         '/profile',
       );
+    });
+
+    test('keyboard focus shows who shares the gaps without moving the page (#148)', async ({
+      page,
+    }) => {
+      await gotoRoadmapWithBand(page);
+      const link = page
+        .getByRole('region', { name: 'Your targets' })
+        .getByRole('link', { description: /^Also missing for / })
+        .first();
+      // The owner's mocks may share nothing; then there is no detail to show.
+      test.skip((await link.count()) === 0, 'no target shares a gap');
+
+      const tooltip = page.locator(`#${String(await link.getAttribute('aria-describedby'))}`);
+      const band = page.getByRole('region', { name: 'Your targets' });
+      const before = await band.boundingBox();
+      await expect(tooltip).toBeHidden();
+      await link.focus();
+      await page.keyboard.press('Shift+Tab');
+      await page.keyboard.press('Tab');
+
+      await expect(tooltip).toBeVisible();
+      expect(await band.boundingBox()).toEqual(before);
     });
 
     test('the page never scrolls sideways', async ({ page }) => {

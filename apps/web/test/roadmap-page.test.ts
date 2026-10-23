@@ -12,7 +12,7 @@ describe('Roadmap with invalid market data (#112)', () => {
   it('degrades only the summary band and still renders the plan', async () => {
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
 
-    const html = renderToStaticMarkup(await RoadmapPage());
+    const html = renderToStaticMarkup(await RoadmapPage({ searchParams: Promise.resolve({}) }));
 
     expect(html).toContain('Summary unavailable');
     expect(html).not.toContain('Your targets');
