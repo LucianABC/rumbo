@@ -24,8 +24,9 @@ test('pages ship processed Tailwind CSS', async ({ page, request }) => {
   const css = await (await request.get(href ?? '')).text();
   expect(css).toContain('box-sizing:border-box');
   expect(css).not.toContain('@theme');
-  // A utility class only Tailwind can have produced (#108).
-  await expect(page.getByRole('list', { name: 'Stations' })).toHaveCSS('display', 'flex');
+  // A utility class only Tailwind can have produced (#108), on the line switcher, which shows at
+  // every size (#148).
+  await expect(page.getByRole('group', { name: 'Show line' })).toHaveCSS('display', 'flex');
 });
 
 test('the web origin proxies /api/* to the API', async ({ request }) => {

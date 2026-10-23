@@ -71,6 +71,8 @@ export function subwayMap(
   layout: RoadmapLayout,
   view: RoadmapView,
   colors: ReadonlyMap<string, LineColorToken>,
+  /** The station marked "you are here": the selected line's (#148), else the plan's. */
+  currentId: string | null = view.currentMilestoneId,
 ): SubwayMap {
   const targets = laneOrder(roadmap);
   const at = new Map(layout.stations.map((s) => [s.id, s.at]));
@@ -158,7 +160,7 @@ export function subwayMap(
         to: glyphTo,
         color: stopping.length === 1 ? (colors.get(stopping[0]?.id ?? '') ?? null) : null,
         status: milestone ? (view.statusByMilestone.get(id) ?? 'pending') : null,
-        current: id === view.currentMilestoneId,
+        current: id === currentId,
         labelAngle: climbs ? -60 : -35,
       },
     ];

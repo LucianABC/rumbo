@@ -143,7 +143,7 @@ describe('subway map view', () => {
   });
 
   it('shows on the roadmap page from lg, with the list dropping its lanes there', async () => {
-    const html = renderToStaticMarkup(await RoadmapPage());
+    const html = renderToStaticMarkup(await RoadmapPage({ searchParams: Promise.resolve({}) }));
 
     expect(html).toContain('<div class="hidden lg:block"><svg');
     expect(html).toContain('lg:grid-cols-1');

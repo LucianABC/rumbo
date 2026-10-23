@@ -133,6 +133,9 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - subway map on desktop and single line on mobile, one line per active target ending at its terminal;
   - every line leaves from the starting point (the current role), drawn as the origin station;
   - milestones as stations, with interchange glyphs where a milestone serves several targets, and "you are here";
+  - **one line at a time** (#148): a line switcher under the map, which is also its legend, picks the target whose line the station list shows. The choice lives in the URL (`?line=<targetId>`; anything unknown counts as no choice). The list shows the starting point, that target's milestones and its terminal, and choosing a line scrolls to it. Clicking a line or its terminal on the map selects it too, as a mouse shortcut to the switcher;
+  - **nothing is selected by default.** On desktop the map shows the whole plan and the station list stays hidden until the user picks a line. Phones have no map, so their list shows the primary's line until another is chosen. Once a line is chosen, the map dims the others and hovering still previews any line;
+  - "you are here" is per line: the first milestone on the shown route that is not done, on the list, the map and the station sheet. With no line chosen, the map marks the plan's first open milestone;
   - the station sheet shows items, `doneWhen`, tasks (projects), evidence with approval state, and dates.
 - **Analyze my progress:** a streamed summary, the suggested next milestone and one risk.
 - **Full feature adds:**

@@ -51,7 +51,7 @@ Two schemas, because they have different owners and lifetimes:
   - a milestone's targets are the union of the targets in the demand of the gaps its items close. More than one target means it is an interchange;
   - a target's route is every milestone that serves it, in plan order, then its terminal;
   - a milestone's status follows from its items: all done → done; any done or in progress → in progress; else pending;
-  - "you are here" is the first milestone in plan order that is not done.
+  - "you are here" is the first milestone in plan order that is not done. Once a line is chosen, the roadmap view shows one line at a time and marks the first milestone on that line's route that is not done (#148).
 - **No agent will ever produce coordinates.** Keeping geometry out of the domain means the API can replace the domain mock unchanged. The layout can then be computed, stored or dropped on its own.
 - **Line color is presentation.** A target does not "have" a color. The layout assigns each target a color slot (`line-1…3`), which maps to a token. Every tab reads it through `targetColors(roadmap, layout?)`: the layout's slots when the layout passes `checkLayout`, otherwise target order with the primary first. A missing map never costs a target its color (`docs/product/views.md`).
 - Removed from the first draft: `lines`, `routes`, `journey`, `currentStationId`, `Station.kind` and `itemType` on milestones. Each one is now either derived or moved to the layout.
