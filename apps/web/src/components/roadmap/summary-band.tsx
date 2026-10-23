@@ -158,11 +158,19 @@ function TargetRow({ summary: s }: { readonly summary: TargetSummary }) {
           <Meter summary={s} />
           <p className="col-span-2 text-sm text-muted-foreground md:col-span-1 md:text-right">
             {/* Every number in the line links to Skills & gaps, not just the first (#112). */}
-            <Link href={s.href} className={LINK} title={detail ?? undefined}>
+            <Link href={s.href} className={cn(LINK, 'group/link')} title={detail ?? undefined}>
               <span className="font-mono font-semibold tabular-nums">
                 {s.covered}/{s.asked}
               </span>{' '}
               top skills · {closingClause(s)}
+              {/* The tooltip only reaches mouse users: screen readers get it in the link's name
+                  and keyboard users see it while the link has focus (#148). */}
+              {detail ? (
+                <span className="sr-only group-focus-visible/link:not-sr-only group-focus-visible/link:block group-focus-visible/link:text-xs">
+                  {' '}
+                  ({detail})
+                </span>
+              ) : null}
             </Link>
           </p>
         </>

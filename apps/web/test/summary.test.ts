@@ -73,8 +73,10 @@ describe('SummaryBand (#112)', () => {
 
     expect(text).toContain('3/4 top skills');
     expect(text).toContain('1 to close, 1 shared');
-    // Who shares them is in the tooltip, so the line stays short (#148).
+    // Who shares them is in the tooltip, so the line stays short (#148), and in the link's own
+    // text for screen readers and keyboard focus, which a tooltip never reaches.
     expect(tag?.[0]).toContain('title="Also missing for Other (1)"');
+    expect(text).toContain('(Also missing for Other (1))');
     expect(html).not.toContain('role="img"');
   });
 

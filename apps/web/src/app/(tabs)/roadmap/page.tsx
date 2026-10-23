@@ -95,9 +95,7 @@ export default async function RoadmapPage({
         <RoadmapExplorer
           lanes={line.lanes}
           line={lineFor(line, view, listId)}
-          stations={line.rows.flatMap((row) =>
-            row.kind === 'milestone' ? [{ ...row, current: row.id === current }] : [],
-          )}
+          stations={line.rows.flatMap((row) => (row.kind === 'milestone' ? [row] : []))}
           selectedId={selectedId}
           map={
             layout

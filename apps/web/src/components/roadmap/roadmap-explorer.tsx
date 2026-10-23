@@ -37,7 +37,8 @@ export function RoadmapExplorer({
   readonly line: SingleLine;
   /**
    * Every milestone with all its lanes, for the station panel: the map opens stations of any line,
-   * and the panel lists every target a station advances, not just the selected one (#148).
+   * and the panel lists every target a station advances, not just the selected one (#148). Their
+   * `current` is ignored: the panel takes "You are here" from the view that opened it.
    */
   readonly stations: readonly MilestoneRow[];
   readonly map: SubwayMap | null;
@@ -50,10 +51,19 @@ export function RoadmapExplorer({
   // The last station opened stays set after closing, so the panel keeps its content while it
   // animates out; `open` alone says whether it shows (#142).
   const [stationId, setStationId] = useState<string | null>(null);
+  const [openedFrom, setOpenedFrom] = useState<'map' | 'list'>('list');
   const [open, setOpen] = useState(false);
-  const station = stations.find((row) => row.id === stationId);
-  const openStation = (id: string) => {
+  // The panel's "You are here" matches the view that opened it: with no line chosen the map marks
+  // the plan's first open milestone and the phone list the primary's, which can differ (#148).
+  const hereId =
+    openedFrom === 'map'
+      ? (map?.stations.find((s) => s.current)?.id ?? null)
+      : (line.rows.find((r) => r.kind === 'milestone' && r.current)?.id ?? null);
+  const base = stations.find((row) => row.id === stationId);
+  const station = base ? { ...base, current: base.id === hereId } : undefined;
+  const openStation = (from: 'map' | 'list') => (id: string) => {
     setStationId(id);
+    setOpenedFrom(from);
     setOpen(true);
   };
   const router = useRouter();
@@ -85,7 +95,7 @@ export function RoadmapExplorer({
             map={map}
             active={active}
             onActivate={setHovered}
-            onOpen={openStation}
+            onOpen={openStation('map')}
             onSelectLine={selectLine}
           />
         </div>
@@ -112,7 +122,7 @@ export function RoadmapExplorer({
           line={line}
           withMap={map !== null}
           onActivate={setHovered}
-          onOpen={openStation}
+          onOpen={openStation('list')}
         />
       </div>
       <StationSheet

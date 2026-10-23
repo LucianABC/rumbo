@@ -247,3 +247,17 @@ test.describe('choosing a line from the map (#148)', () => {
     await expect(selected(page)).toHaveAttribute('href', `?line=${primary}`);
   });
 });
+
+test.describe('the station panel agrees with the view that opened it (#148)', () => {
+  test.use({ viewport: WIDE });
+
+  test('opened from the map, it marks the station the map marks', async ({ page }) => {
+    await page.goto('/roadmap');
+    const here = page.getByTestId('subway-map').locator('[data-station]:has(.animate-here-pulse)');
+    test.skip((await here.count()) === 0, 'Every milestone of the served roadmap is done');
+
+    // The map is mouse-only decoration; dispatching the click avoids hitting a crossing line.
+    await here.first().dispatchEvent('click');
+    await expect(page.getByRole('dialog')).toContainText('You are here');
+  });
+});
