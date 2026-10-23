@@ -48,3 +48,6 @@ uploads/
 
 # Owner-only local data, e.g. mocks built from a real profile (#137). Never commit it: the repo is public.
 .local/
+
+# Claude Code local permissions, per machine
+.claude/settings.local.json
