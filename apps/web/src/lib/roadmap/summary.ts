@@ -19,10 +19,10 @@ export interface TargetSummary {
   readonly toClose: number;
   /** Other targets missing some of this target's missing skills, with how many. */
   readonly shared: readonly { readonly name: string; readonly count: number }[];
+  /** Postings in the target's snapshot, for the state where none of its skills reach 30%. */
+  readonly postings: number;
   /** Skills & gaps filtered to this target; #111 reads `target`. */
   readonly href: string;
-  /** The whole sentence, for the meter's accessible name. */
-  readonly label: string;
 }
 
 /** One row per target in lane order (primary first), skipping any target without coverage. */
@@ -38,23 +38,19 @@ export function targetSummaries(
       name: names.get(s.targetId) ?? s.targetId,
       count: s.count,
     }));
-    const summary = {
-      target,
-      color,
-      covered: entry.covered.length,
-      asked: entry.asked.length,
-      toClose: entry.missing.length,
-      shared,
-      href: `/skills?target=${encodeURIComponent(target.id)}`,
-    };
-    return [{ ...summary, label: coverageSentence(summary) }];
+    return [
+      {
+        target,
+        color,
+        covered: entry.covered.length,
+        asked: entry.asked.length,
+        toClose: entry.missing.length,
+        shared,
+        postings: entry.snapshot.postingCount,
+        href: `/skills?target=${encodeURIComponent(target.id)}`,
+      },
+    ];
   });
-}
-
-/** "You cover 6 of the 11 skills Data Analyst postings ask for most; 5 to close, 2 shared with …" */
-export function coverageSentence(s: Omit<TargetSummary, 'label' | 'href' | 'color'>): string {
-  const head = `You cover ${String(s.covered)} of the ${String(s.asked)} skills ${s.target.roleFamily.name} postings ask for most`;
-  return `${head}; ${closingClause(s)}`;
 }
 
 /** "5 to close, 2 shared with Business Analyst and 1 with Support Lead", or "nothing to close". */

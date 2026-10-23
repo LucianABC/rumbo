@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 
+import { ASKED_MIN_SHARE } from '../../lib/coverage';
 import { LINE_BG } from '../../lib/line-colors';
 import type { ProfileSummary } from '../../lib/profile-summary';
 import { closingClause, type TargetSummary } from '../../lib/roadmap/summary';
@@ -47,6 +48,24 @@ export function SummaryBand({
   );
 }
 
+/** The band's state when the profile or market data is invalid; the map still renders. */
+export function SummaryUnavailable() {
+  return (
+    <section
+      aria-labelledby="summary-unavailable"
+      className="rounded-xl border border-dashed bg-card p-4 text-sm md:p-5"
+    >
+      <h2 id="summary-unavailable" className="font-semibold">
+        Summary unavailable
+      </h2>
+      <p className="mt-1 text-muted-foreground">
+        Your profile or market data could not be read or does not match this roadmap, so coverage is
+        not shown. The plan below is unaffected.
+      </p>
+    </section>
+  );
+}
+
 function Who({ who }: { readonly who: ProfileSummary }) {
   return (
     <section
@@ -83,9 +102,13 @@ function Who({ who }: { readonly who: ProfileSummary }) {
           <ul role="list" className="flex flex-wrap gap-2">
             {who.strongestSkills.map(({ skill, evidenceCount }) => (
               <li key={skill.id}>
-                <Badge variant="secondary" className="h-6 gap-1.5">
+                {/* Badge never wraps; a long skill name must, or it overflows at 360px. */}
+                <Badge
+                  variant="secondary"
+                  className="h-auto min-h-6 max-w-full shrink flex-wrap justify-start gap-x-1.5 text-left whitespace-normal"
+                >
                   {skill.name}
-                  <span className="font-mono text-2xs tabular-nums text-muted-foreground">
+                  <span className="font-mono text-2xs whitespace-nowrap tabular-nums text-muted-foreground">
                     {evidenceCount} evidence
                   </span>
                 </Badge>
@@ -116,26 +139,41 @@ function TargetRow({ summary: s }: { readonly summary: TargetSummary }) {
         ) : null}
         {meta ? <span className="text-xs text-muted-foreground">{meta}</span> : null}
       </div>
-      <Meter summary={s} />
-      <p className="text-sm text-muted-foreground">
-        You cover{' '}
-        <Link
-          href={s.href}
-          className="rounded-sm font-mono font-semibold text-foreground tabular-nums underline underline-offset-4 outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {s.covered} of {s.asked}
-          <span className="sr-only"> {target.roleFamily.name} skills, see Skills &amp; gaps</span>
-        </Link>{' '}
-        skills its postings ask for most; {closingClause(s)}
-      </p>
+      {s.asked > 0 ? (
+        <>
+          <Meter summary={s} />
+          <p className="text-sm text-muted-foreground">
+            You cover{' '}
+            <Link href={s.href} className={LINK}>
+              {s.covered} of {s.asked} skills
+            </Link>{' '}
+            its postings ask for most; {closingClause(s)}
+          </p>
+        </>
+      ) : (
+        // Without this, a thin snapshot would read "0 of 0, nothing to close": fully covered.
+        <p className="text-sm text-muted-foreground">
+          Not enough market data yet: no skill appears in {Math.round(ASKED_MIN_SHARE * 100)}% of
+          its {s.postings} postings ·{' '}
+          <Link href={s.href} className={LINK}>
+            see Skills &amp; gaps
+          </Link>
+        </p>
+      )}
     </li>
   );
 }
 
-/** One segment per skill asked for most, filled where covered: data, not decoration. */
+const LINK =
+  'rounded-sm font-semibold text-foreground underline underline-offset-4 outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring';
+
+/**
+ * One segment per skill asked for most, filled where covered. Hidden from assistive tech: the
+ * sentence below says the same, and announcing both read it twice.
+ */
 function Meter({ summary: s }: { readonly summary: TargetSummary }) {
   return (
-    <div role="img" aria-label={s.label} className="flex h-2 gap-0.5">
+    <div aria-hidden className="flex h-2 gap-0.5">
       {Array.from({ length: s.asked }, (_, i) => (
         <span
           key={i}

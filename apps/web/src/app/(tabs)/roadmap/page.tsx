@@ -6,7 +6,7 @@ import { PageHeader } from '../../../components/page-header';
 import { ChangeTargets } from '../../../components/roadmap/change-targets';
 import { LineLegend } from '../../../components/roadmap/line-legend';
 import { RoadmapExplorer } from '../../../components/roadmap/roadmap-explorer';
-import { SummaryBand } from '../../../components/roadmap/summary-band';
+import { SummaryBand, SummaryUnavailable } from '../../../components/roadmap/summary-band';
 import { coverage } from '../../../lib/coverage';
 import {
   getMarket,
@@ -30,23 +30,16 @@ export const metadata: Metadata = { title: 'Roadmap · rumbo' };
  */
 export default async function RoadmapPage() {
   const roadmap = await getRoadmap();
-  const [layout, profile, market] = await Promise.all([
+  // The band needs profile and market; the map does not. If either is invalid or does not fit
+  // this roadmap, only the band degrades (#112). Not logged: the error lists data paths (rule 5).
+  const [layout, band] = await Promise.all([
     getRoadmapLayout(roadmap),
-    getProfile(),
-    getMarket(roadmap),
+    Promise.all([getProfile(), getMarket(roadmap)]).catch(() => null),
   ]);
   const colors = getTargetColors(roadmap, layout);
   const view = deriveRoadmapView(roadmap);
   const line = singleLine(roadmap, view, colors);
-  const targets = targetSummaries(
-    line.lanes,
-    coverage(
-      profile,
-      market,
-      line.lanes.map((l) => l.target.id),
-    ),
-  );
-  const provenance = marketProvenance(market);
+  const provenance = band ? marketProvenance(band[1]) : null;
 
   return (
     <>
@@ -65,11 +58,22 @@ export default async function RoadmapPage() {
         }
       />
       <div className="flex flex-col gap-6">
-        <SummaryBand
-          who={getProfileSummary(profile, market, roadmap)}
-          targets={targets}
-          changeTargets={<ChangeTargets preview={changePreview(roadmap, line.lanes)} />}
-        />
+        {band ? (
+          <SummaryBand
+            who={getProfileSummary(band[0], band[1], roadmap)}
+            targets={targetSummaries(
+              line.lanes,
+              coverage(
+                band[0],
+                band[1],
+                line.lanes.map((l) => l.target.id),
+              ),
+            )}
+            changeTargets={<ChangeTargets preview={changePreview(roadmap, line.lanes)} />}
+          />
+        ) : (
+          <SummaryUnavailable />
+        )}
         <LineLegend lanes={line.lanes} />
         <RoadmapExplorer
           line={line}

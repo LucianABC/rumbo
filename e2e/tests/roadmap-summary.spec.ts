@@ -24,13 +24,9 @@ for (const [size, viewport] of SIZES) {
       const rows = targets(page);
       expect(await rows.count()).toBeGreaterThan(0);
       for (const row of await rows.all()) {
-        await expect(
-          row.getByRole('img', { name: /^You cover \d+ of the \d+ skills/ }),
-        ).toBeVisible();
-        await expect(row.getByRole('link', { name: /^\d+ of \d+ .+ skills/ })).toHaveAttribute(
-          'href',
-          /^\/skills\?target=.+/,
-        );
+        // Coverage, or "see Skills & gaps" when the target has too little market data.
+        await expect(row.getByRole('link')).toHaveAttribute('href', /^\/skills\?target=.+/);
+        await expect(row).toContainText(/You cover \d+ of \d+ skills|Not enough market data/);
       }
       await expect(page.getByRole('link', { name: /open profile$/ })).toHaveAttribute(
         'href',

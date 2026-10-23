@@ -1,6 +1,8 @@
 import { deriveRoadmapView, type Roadmap, type RoadmapItem } from '@rumbo/contracts';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { SummaryBand } from '../src/components/roadmap/summary-band';
 import { coverage } from '../src/lib/coverage';
 import { getMarket, getProfile, getRoadmap, getTargetColors } from '../src/lib/data';
 import { singleLine } from '../src/lib/roadmap/single-line';
@@ -35,10 +37,47 @@ describe('targetSummaries (#112)', () => {
       expect(row.asked).toBe(c?.asked.length);
       expect(row.toClose).toBe(c?.missing.length);
       expect(row.href).toBe(`/skills?target=${row.target.id}`);
-      expect(row.label).toContain(
-        `You cover ${String(row.covered)} of the ${String(row.asked)} skills`,
-      );
+      expect(row.postings).toBe(c?.snapshot.postingCount);
     });
+  });
+});
+
+describe('SummaryBand (#112)', () => {
+  const who = {
+    name: 'Sam',
+    currentRole: null,
+    yearsOfExperience: 2,
+    yearsOfRelevantExperience: 1,
+    strongestSkills: [],
+  };
+  const row = (asked: number, covered: number) => ({
+    target: { id: 't', isPrimary: true, roleFamily: { id: 't', name: 'Tester', field: 'QA' } },
+    color: 'line-1' as const,
+    covered,
+    asked,
+    toClose: asked - covered,
+    shared: [],
+    postings: 8,
+    href: '/skills?target=t',
+  });
+  const render = (r: ReturnType<typeof row>) =>
+    renderToStaticMarkup(SummaryBand({ who, targets: [r], changeTargets: null }));
+
+  it('links the coverage numbers and hides the meter from assistive tech', () => {
+    const html = render(row(4, 3));
+
+    expect(html).toContain('href="/skills?target=t"');
+    expect(html).toContain('3 of 4 skills');
+    expect(html).not.toContain('role="img"');
+  });
+
+  it('says there is not enough data instead of "0 of 0" when nothing reaches 30%', () => {
+    const html = render(row(0, 0));
+
+    expect(html).toContain('Not enough market data yet');
+    expect(html).toContain('8 postings');
+    expect(html).not.toContain('0 of 0');
+    expect(html).not.toContain('nothing to close');
   });
 });
 

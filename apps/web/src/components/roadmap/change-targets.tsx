@@ -1,28 +1,12 @@
 'use client';
 
-import { XIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 
 import type { ChangePreview, ItemOutcome } from '../../lib/roadmap/summary';
-import { useMediaQuery } from '../../lib/use-media-query';
+import { ResponsiveSheet } from '../responsive-sheet';
 
 const TITLE = 'Change targets';
 const DESCRIPTION = 'A preview of a later feature. Nothing here is edited or recalculated.';
@@ -30,73 +14,34 @@ const DESCRIPTION = 'A preview of a later feature. Nothing here is edited or rec
 /**
  * Change targets, mocked for the demo (spec 01, #112): a read-only explainer of the flow in
  * docs/product/views.md ("Changing the goal") with a sample preview derived from the loaded plan.
- * Same responsive dialog as the station panel: side sheet from `md`, bottom sheet on phones.
+ * Same panel as a station's (ResponsiveSheet): side sheet from `md`, bottom sheet on phones.
  */
 export function ChangeTargets({ preview }: { readonly preview: ChangePreview | null }) {
   const [open, setOpen] = useState(false);
-  const wide = useMediaQuery('(min-width: 48rem)');
-  const trigger = (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => {
-        setOpen(true);
-      }}
-    >
-      {TITLE}
-    </Button>
-  );
-
-  if (wide) {
-    return (
-      <>
-        {trigger}
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent
-            side="right"
-            className="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-md"
-          >
-            <SheetHeader className="pr-12">
-              <PreviewBadge />
-              <SheetTitle className="text-xl font-bold">{TITLE}</SheetTitle>
-              <SheetDescription>{DESCRIPTION}</SheetDescription>
-            </SheetHeader>
-            <div className="px-4 pb-6">
-              <Explainer preview={preview} />
-            </div>
-          </SheetContent>
-        </Sheet>
-      </>
-    );
-  }
 
   return (
     <>
-      {trigger}
-      <Drawer open={open} onOpenChange={setOpen} showSwipeHandle>
-        <DrawerContent>
-          <DrawerHeader className="relative pr-12 group-data-[swipe-axis=y]/drawer-popup:text-left">
-            <PreviewBadge />
-            <DrawerTitle className="text-xl font-bold">{TITLE}</DrawerTitle>
-            <DrawerDescription>{DESCRIPTION}</DrawerDescription>
-            <DrawerClose
-              render={<Button variant="ghost" size="icon-sm" className="absolute top-3 right-3" />}
-            >
-              <XIcon aria-hidden />
-              <span className="sr-only">Close</span>
-            </DrawerClose>
-          </DrawerHeader>
-          {/* Focusable, so keyboards can scroll it: it holds no link (WCAG 2.1.1, #110). */}
-          <div
-            role="region"
-            aria-label="How changing targets works"
-            tabIndex={0}
-            className="overflow-y-auto rounded-sm px-4 pt-4 pb-8 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-          >
-            <Explainer preview={preview} />
-          </div>
-        </DrawerContent>
-      </Drawer>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          setOpen(true);
+        }}
+      >
+        {TITLE}
+      </Button>
+      <ResponsiveSheet
+        open={open}
+        onClose={() => {
+          setOpen(false);
+        }}
+        title={TITLE}
+        description={DESCRIPTION}
+        eyebrow={<PreviewBadge />}
+        regionLabel="How changing targets works"
+      >
+        <Explainer preview={preview} />
+      </ResponsiveSheet>
     </>
   );
 }
