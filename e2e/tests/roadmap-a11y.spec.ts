@@ -22,7 +22,8 @@ const focusedStation = (page: Page) =>
 
 /** Tabs from the top of the page until focus lands on a station; fails if it never does. */
 async function tabIntoStations(page: Page): Promise<string> {
-  for (let i = 0; i < 30; i++) {
+  // The summary band (#112) adds its links and Change targets before the stations.
+  for (let i = 0; i < 40; i++) {
     await page.keyboard.press('Tab');
     const id = await focusedStation(page);
     if (id) return id;
@@ -140,6 +141,15 @@ for (const [size, viewport] of SIZES) {
       await page.goto('/roadmap');
       await page.getByRole('button', { name: /, you are here$/ }).click();
       await expect(page.getByRole('dialog')).toBeVisible();
+      await page.waitForTimeout(600);
+
+      await expectNoViolations(page);
+    });
+
+    test('has no WCAG 2.1 AA violations with Change targets open (#112)', async ({ page }) => {
+      await page.goto('/roadmap');
+      await page.getByRole('button', { name: 'Change targets' }).click();
+      await expect(page.getByRole('dialog', { name: 'Change targets' })).toBeVisible();
       await page.waitForTimeout(600);
 
       await expectNoViolations(page);
