@@ -80,7 +80,10 @@ async function nodeApp(app) {
 }
 
 try {
-  if (mode === 'web' || mode === 'all') watch('pnpm', ['--filter', '@rumbo/web', 'dev']);
+  // An explicit port: next dev would otherwise take PORT, which .env sets for the API (#76).
+  if (mode === 'web' || mode === 'all') {
+    watch('pnpm', ['--filter', '@rumbo/web', 'dev', '--port', env.WEB_PORT ?? '3000']);
+  }
   if (mode !== 'web') {
     await backend();
     if (mode === 'api' || mode === 'all') await nodeApp('api');

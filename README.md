@@ -46,7 +46,7 @@ pnpm typecheck
 From the repository root, after `pnpm install`:
 
 ```bash
-pnpm dev:web     # web only, at http://localhost:3000
+pnpm dev:web     # web only, at http://localhost:3000 (WEB_PORT)
 pnpm dev:api     # API only, at http://localhost:3001
 pnpm dev:worker  # worker only
 pnpm dev         # web, API and worker together
