@@ -8,6 +8,9 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "dev": "node scripts/dev.mjs all",
+    "dev:web": "node scripts/dev.mjs web",
+    "dev:api": "node scripts/dev.mjs api",
     "build:packages": "pnpm -r --filter \"./packages/**\" --if-present run build",
     "build": "pnpm -r --if-present run build",
     "db:migrate": "pnpm --filter @rumbo/db db:migrate",

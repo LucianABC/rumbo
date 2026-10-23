@@ -41,6 +41,20 @@ pnpm install
 pnpm typecheck
 ```
 
+## Run in development
+
+From the repository root, after `pnpm install`:
+
+```bash
+npm run dev:web  # web only, at http://localhost:3000
+npm run dev:api  # API only, at http://localhost:3001
+npm run dev      # web and API together
+```
+
+The API commands require Docker. They start PostgreSQL, build shared packages, apply migrations,
+then watch and restart the API as its source changes. The web command uses Next.js development
+mode. Node 24 is required. On Windows PowerShell, use `pnpm.cmd install` if `pnpm.ps1` is blocked.
+
 ## Run it locally (prod-like)
 
 Requires Docker. Builds the production images and starts Postgres + pgvector, a one-off migration step, the API, the worker and the web app. Everything binds to `127.0.0.1` only.
