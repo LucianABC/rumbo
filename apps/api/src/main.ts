@@ -13,4 +13,4 @@ const app = configureApp(
     bufferLogs: true,
   }),
 );
-await app.listen(config.port);
+await app.listen(config.port, config.host);

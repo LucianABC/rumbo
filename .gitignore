@@ -52,3 +52,6 @@ uploads/
 # Claude Code, per machine: local permissions, and preview servers with absolute Node paths
 .claude/settings.local.json
 .claude/launch.json
+
+# Written and re-added by `next dev` (agent rules for this Next.js version); per machine (#76)
+apps/web/AGENTS.md

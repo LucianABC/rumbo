@@ -6,6 +6,7 @@ import { DB_PING_TIMEOUT_MS, HealthService } from '../src/health/health.service.
 
 const config: AppConfig = {
   port: 3001,
+  host: '127.0.0.1',
   databaseUrl: 'postgresql://unused',
   version: '1.2.3',
   commit: 'abc1234',

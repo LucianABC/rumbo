@@ -34,6 +34,7 @@ export async function createTestApp({
 }: TestAppOptions): Promise<INestApplication<App>> {
   const config: AppConfig = {
     port: 0,
+    host: '127.0.0.1',
     databaseUrl,
     version: 'test',
     commit: 'test',

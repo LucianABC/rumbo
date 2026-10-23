@@ -50,6 +50,8 @@ services:
     environment:
       DATABASE_URL: *database-url
       PORT: 3001
+      # All interfaces inside the container; the api publishes no port, so only web reaches it.
+      HOST: 0.0.0.0
       LOG_LEVEL: ${LOG_LEVEL:-info}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
     depends_on:
