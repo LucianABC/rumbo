@@ -18,8 +18,8 @@ import { laneOrder, ORIGIN_ID, type Stretch } from './single-line';
 /** Pixels per grid unit, and between parallel lanes on a shared stretch. */
 export const UNIT = 64;
 export const LANE = 10;
-/** Room for the rotated station labels above and the terminal labels to the right. */
-const PAD = { top: 170, right: 250, bottom: 60, left: 60 };
+/** Room for the terminal labels to the right; the top fits the rotated labels (labelTop). */
+const PAD = { right: 250, bottom: 60, left: 60 };
 
 export interface Point {
   readonly x: number;
@@ -170,7 +170,9 @@ export function subwayMap(
   const xs = all.map((p) => p.x);
   const ys = all.map((p) => p.y);
   const left = Math.min(...xs) - PAD.left;
-  const top = Math.min(...ys) - PAD.top;
+  // Only as much room above as the tallest rotated label needs, not a fixed band: a fixed one left
+  // a large gap above maps whose top stations carry short labels (#148).
+  const top = Math.min(Math.min(...ys) - PAD.bottom, ...stations.map(labelTop)) - LABEL_MARGIN;
   return {
     viewBox: {
       x: left,
@@ -181,6 +183,25 @@ export function subwayMap(
     segments,
     stations,
   };
+}
+
+/** Average glyph widths of the label fonts (13px medium, 15px heading bold), for the label fit. */
+const CHAR_PX = { station: 7.2, heading: 9 };
+/** The rotated label starts this far above its station (subway-map-view's Label). */
+const LABEL_LIFT = 20;
+const LABEL_MARGIN = 12;
+
+/**
+ * The highest point a station's label reaches. Terminal labels read straight, beside their
+ * station; the others are rotated and rise with their length.
+ */
+export function labelTop(station: MapStation): number {
+  const y = (station.from.y + station.to.y) / 2;
+  if (station.kind === 'terminal') return y - LABEL_LIFT;
+  const char = station.kind === 'origin' ? CHAR_PX.heading : CHAR_PX.station;
+  const rise =
+    station.label.length * char * Math.sin((Math.abs(station.labelAngle) * Math.PI) / 180);
+  return y - LABEL_LIFT - rise;
 }
 
 /** Grid to pixels. */

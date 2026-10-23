@@ -128,7 +128,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **Summary band** (top):
   - **Who:** current role, years of relevant experience, three strongest skills with their evidence count. Links to Profile. Relevant experience is derived, not tagged: the positions whose approved evidence backs a skill the active targets ask for most (same definition as below), overlaps counted once, so it follows the targets when they change.
   - **Goal:** the primary target and the other active ones (max three), each with role family, field and seniority, and **Change targets** (see Changing the goal).
-  - **How they connect**, per target: "You cover 6 of the 11 skills Data Analyst postings ask for most; 5 to close, 2 shared with Business Analyst". "Ask for most" means the skills in at least 30% of that target's snapshot postings, capped at 12. Covered means the profile has evidence for the skill; the rest are that target's gaps. The numbers link to Skills & gaps, which uses the same definition.
+  - **How they connect**, per target, on one line: a coverage meter and "6/11 top skills · 5 to close, 2 shared", with which targets share them on hover. The band is one wide, low card that reads as the page's header; field and seniority sit in the target name's tooltip. "Top skills" (asked for most) means the skills in at least 30% of that target's snapshot postings, capped at 12. Covered means the profile has evidence for the skill; the rest are that target's gaps. The numbers link to Skills & gaps, which uses the same definition.
 - **Map:**
   - subway map on desktop and single line on mobile, one line per active target ending at its terminal;
   - every line leaves from the starting point (the current role), drawn as the origin station;

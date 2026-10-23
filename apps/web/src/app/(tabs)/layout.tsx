@@ -29,7 +29,7 @@ export default async function TabsLayout({ children }: { readonly children: Reac
         <main
           id="main"
           tabIndex={-1}
-          className="mx-auto w-full max-w-5xl min-w-0 px-4 pt-6 pb-24 outline-none md:px-8 md:pt-8 md:pb-12"
+          className="mx-auto w-full max-w-6xl min-w-0 px-4 pt-6 pb-24 outline-none md:px-8 md:pt-8 md:pb-12"
         >
           {children}
         </main>

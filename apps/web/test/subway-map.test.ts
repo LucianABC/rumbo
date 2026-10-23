@@ -7,7 +7,14 @@ import RoadmapPage from '../src/app/(tabs)/roadmap/page';
 import { SubwayMapView } from '../src/components/roadmap/subway-map-view';
 import { getRoadmap, getRoadmapLayout, getTargetColors } from '../src/lib/data';
 import { ORIGIN_ID } from '../src/lib/roadmap/single-line';
-import { LANE, offsetPolyline, originBend, subwayMap, UNIT } from '../src/lib/roadmap/subway-map';
+import {
+  LANE,
+  labelTop,
+  offsetPolyline,
+  originBend,
+  subwayMap,
+  UNIT,
+} from '../src/lib/roadmap/subway-map';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -89,6 +96,15 @@ describe('subway map (#117)', () => {
     expect(processMap?.color).toBe('line-2');
     expect(station(ORIGIN_ID)?.kind).toBe('origin');
     expect(map.stations.filter((s) => s.kind === 'terminal')).toHaveLength(3);
+  });
+
+  it('fits its top to the tallest label instead of a fixed band (#148)', async () => {
+    const { map } = await build();
+    const tops = map.stations.map(labelTop);
+
+    // Every label is inside, and the top is at most a small margin above the tallest one.
+    expect(tops.every((t) => t >= map.viewBox.y)).toBe(true);
+    expect(Math.min(...tops) - map.viewBox.y).toBeLessThanOrEqual(UNIT);
   });
 
   it('steepens a label where a line climbs to the right, so they never cross', async () => {

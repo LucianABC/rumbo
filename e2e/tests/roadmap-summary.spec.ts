@@ -28,7 +28,7 @@ for (const [size, viewport] of SIZES) {
       for (const row of await rows.all()) {
         // Coverage, or "see Skills & gaps" when the target has too little market data.
         await expect(row.getByRole('link')).toHaveAttribute('href', /^\/skills\?target=.+/);
-        await expect(row).toContainText(/You cover \d+ of \d+ skills|Not enough market data/);
+        await expect(row).toContainText(/\d+\/\d+ top skills|Not enough market data/);
       }
       await expect(page.getByRole('link', { name: /open profile$/ })).toHaveAttribute(
         'href',
