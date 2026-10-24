@@ -101,7 +101,7 @@ export const Gap = z.object({
 
 export const EvidenceRef = z.object({
   id: Id,
-  sourceType: z.enum(['experience', 'project', 'commit', 'education', 'manual']),
+  sourceType: z.enum(['experience', 'project', 'commit', 'education', 'certification', 'manual']),
   sourceRef: z.string().min(1), // checked per sourceType, see rules below
   excerpt: z.string().optional(),
   approvedAt: z.iso.datetime().nullable(), // null = waiting for the user (AI rule 2)
@@ -163,7 +163,7 @@ Rules checked in `superRefine`. Each one fails with a readable message, for exam
 - **F3 rule:** every gap is closed by at least one item;
 - a gap's stored status agrees with its items: `open` when none has started, `in_progress` when one has, `closed` only when one is done;
 - an item is `done` only with at least one approved evidence;
-- evidence `sourceRef` matches its `sourceType`: a commit SHA, an http(s) URL for project and education proof, an id for experience, free text for manual entries (never rendered as a link);
+- evidence `sourceRef` matches its `sourceType`: a commit SHA, an http(s) URL for project and education proof, an id for experience and certification (the profile checks it exists), free text for manual entries (never rendered as a link);
 - every milestone serves at least one known target, through its items' gaps.
 
 ### `RoadmapLayout` (presentation)

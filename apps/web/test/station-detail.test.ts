@@ -104,7 +104,7 @@ describe('Evidence (#111)', () => {
     const names = { 'exp-1': 'Analyst · Acme' };
     const html = (ref: string) =>
       renderToStaticMarkup(
-        createElement(Evidence, { evidence: evidence(ref), experienceNames: names }),
+        createElement(Evidence, { evidence: evidence(ref), sourceNames: names }),
       );
 
     expect(html('exp-1')).toContain('Analyst · Acme');

@@ -57,10 +57,11 @@ const CommitSha = z.string().regex(/^[0-9a-f]{7,40}$/);
 export const EvidenceRef = z
   .object({
     id: Id,
-    sourceType: z.enum(['experience', 'project', 'commit', 'education', 'manual']),
+    sourceType: z.enum(['experience', 'project', 'commit', 'education', 'certification', 'manual']),
     /**
      * Depends on `sourceType`: a commit SHA, an http(s) URL for project and education proof, an
-     * experience id, or free text for manual entries (never rendered as a link).
+     * experience or certification id from the profile, or free text for manual entries (never
+     * rendered as a link). A certificate without a link is still a certificate, not a note (#111).
      */
     sourceRef: z.string().min(1),
     excerpt: z.string().optional(),
@@ -73,6 +74,7 @@ export const EvidenceRef = z
       project: WebUrl,
       education: WebUrl,
       experience: Id,
+      certification: Id,
       manual: z.string(),
     }[evidence.sourceType];
     if (!format.safeParse(evidence.sourceRef).success) {

@@ -12,12 +12,12 @@ import { HEADING, Unavailable } from './shared';
  */
 export function HaveList({
   skills,
-  experienceNames,
+  sourceNames,
   marketAvailable,
 }: {
   /** Null when the profile could not be read. */
   readonly skills: readonly HaveSkill[] | null;
-  readonly experienceNames: Readonly<Record<string, string>>;
+  readonly sourceNames: Readonly<Record<string, string>>;
   readonly marketAvailable: boolean;
 }) {
   return (
@@ -53,7 +53,7 @@ export function HaveList({
                 </p>
               </div>
               {marketAvailable ? <Demand skill={s} /> : null}
-              <Evidence evidence={s.skill.evidence} experienceNames={experienceNames} />
+              <Evidence evidence={s.skill.evidence} sourceNames={sourceNames} />
             </li>
           ))}
         </ul>

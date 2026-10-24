@@ -204,11 +204,14 @@ function Tasks({ tasks }: { readonly tasks: Extract<RoadmapItem, { type: 'projec
  */
 export function Evidence({
   evidence,
-  experienceNames = {},
+  sourceNames = {},
 }: {
   readonly evidence: readonly EvidenceRef[];
-  /** "Title · Organization" per experience id, so experience evidence never shows a raw id. */
-  readonly experienceNames?: Readonly<Record<string, string>>;
+  /**
+   * A readable name per profile entry id ("Title · Organization" for an experience, "Name ·
+   * Issuer" for a certification), so evidence never shows a raw id.
+   */
+  readonly sourceNames?: Readonly<Record<string, string>>;
 }) {
   if (evidence.length === 0) {
     return <p className="text-sm text-muted-foreground">No evidence yet.</p>;
@@ -228,7 +231,7 @@ export function Evidence({
                   <ApprovalChip approvedAt={only.approvedAt} />
                 </span>
                 <span className="text-muted-foreground">
-                  {only.excerpt ?? sourceText(only, experienceNames)}
+                  {only.excerpt ?? sourceText(only, sourceNames)}
                 </span>
               </li>
             );
@@ -260,7 +263,7 @@ export function Evidence({
                   {pieces.map((e) => (
                     <li key={e.id} className="flex flex-col gap-0.5">
                       <span className="text-muted-foreground">
-                        {e.excerpt ?? sourceText(e, experienceNames)}
+                        {e.excerpt ?? sourceText(e, sourceNames)}
                       </span>
                       <span>
                         <ApprovalChip approvedAt={e.approvedAt} />
@@ -305,8 +308,10 @@ function CountChip({ count, awaiting }: { readonly count: number; readonly await
   );
 }
 
-function sourceText(e: EvidenceRef, experienceNames: Readonly<Record<string, string>>): string {
+function sourceText(e: EvidenceRef, sourceNames: Readonly<Record<string, string>>): string {
   if (e.sourceType === 'commit') return e.sourceRef.slice(0, 7);
-  if (e.sourceType === 'experience') return experienceNames[e.sourceRef] ?? e.sourceRef;
+  if (e.sourceType === 'experience' || e.sourceType === 'certification') {
+    return sourceNames[e.sourceRef] ?? e.sourceRef;
+  }
   return e.sourceRef;
 }

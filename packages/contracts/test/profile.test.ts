@@ -70,6 +70,25 @@ describe('Profile (#145)', () => {
     );
   });
 
+  it('accepts certification evidence that points at its own certifications, and nothing else', () => {
+    const skill = base.skills[0];
+    const withCertificate = (sourceRef: string) => ({
+      ...base,
+      certifications: [{ id: 'certification-sql', name: 'SQL fundamentals' }],
+      skills: [
+        {
+          ...skill,
+          evidence: [{ ...skill?.evidence[0], sourceType: 'certification', sourceRef }],
+        },
+      ],
+    });
+
+    expect(messages(withCertificate('certification-sql'))).toEqual([]);
+    expect(messages(withCertificate('certification-missing'))).toContain(
+      'evidence "ev-sql" references unknown certification "certification-missing"',
+    );
+  });
+
   it('rejects a position that ends before it starts', () => {
     const experience = { ...base.experiences[0], end: '2020-12' };
 

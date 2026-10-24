@@ -217,6 +217,7 @@ describe('Roadmap', () => {
     ['project', 'not a url'],
     ['commit', 'https://github.com/x/y/commit/abc'],
     ['experience', 'Has Spaces'],
+    ['certification', 'Certificate of completion: SQL'],
   ] as const)('rejects a %s evidence with sourceRef %s', (sourceType, sourceRef) => {
     const r = roadmap();
     at(at(r.milestones, 0).items, 0).evidence = [{ ...approved, sourceType, sourceRef } as never];

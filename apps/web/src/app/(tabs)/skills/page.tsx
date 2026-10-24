@@ -1,4 +1,4 @@
-import { deriveRoadmapView } from '@rumbo/contracts';
+import { deriveRoadmapView, type Profile } from '@rumbo/contracts';
 
 import { MarketProvenance } from '../../../components/market-provenance';
 import { PageHeader } from '../../../components/page-header';
@@ -85,13 +85,23 @@ export default async function SkillsPage({
           <GapList cards={cards} />
           <HaveList
             skills={skills}
-            experienceNames={Object.fromEntries(
-              (profile?.experiences ?? []).map((e) => [e.id, `${e.title} · ${e.organization}`]),
-            )}
+            sourceNames={profile ? sourceNames(profile) : {}}
             marketAvailable={market !== null}
           />
         </div>
       </div>
     </>
   );
+}
+
+/** Readable names for the profile entries evidence points at (#111). */
+function sourceNames(profile: Profile): Record<string, string> {
+  const entries: [string, string][] = [
+    ...profile.experiences.map((e): [string, string] => [e.id, `${e.title} · ${e.organization}`]),
+    ...profile.certifications.map((c): [string, string] => [
+      c.id,
+      c.issuer ? `${c.name} · ${c.issuer}` : c.name,
+    ]),
+  ];
+  return Object.fromEntries(entries);
 }
