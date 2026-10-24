@@ -193,8 +193,10 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 
 - **For:** see what the user has, what is missing for their targets, and the market evidence that justifies each gap.
 - **How gaps are inferred**, shown on the page in one sentence: for each active target, rumbo reads a market snapshot of real postings for that role family and region. The skills those postings ask for that the profile lacks evidence for become gaps. Gaps needed by several targets rank higher.
+- **Filter:** every target by default; picking one (`?target=`, which the Roadmap summary band links to) narrows the market, the gaps and the skills to that target.
+- **Layout:** market across the top (every target's snapshot side by side, or one target's across the full width), then gaps beside the skills the user has, with "on this page" links so the skills stay reachable when the gaps run long.
 - **Shows:**
-  - **Market per target:** the snapshot (role family, region, date, posting count) and the top requested skills as a ranked bar list with percentages, readable without the bars. Each skill is marked _you have it_ (with evidence count) or _gap_.
+  - **Market per target:** the snapshot (role family, region, date, posting count) and the top requested skills as a ranked bar list with percentages, readable without the bars, and a line saying each percentage is the share of the target's postings that ask for the skill. Each skill is marked _you have it_ (with evidence count) or _gap_.
   - **Gaps** in priority order, each with:
     - the skill and its status;
     - per target, "asked in 64% of 140 Data Analyst postings";

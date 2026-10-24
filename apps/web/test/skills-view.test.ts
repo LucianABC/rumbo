@@ -9,9 +9,9 @@ import {
   gapCards,
   haveSkills,
   isStale,
-  marketTargetId,
   marketView,
   stationHref,
+  targetFilter,
 } from '../src/lib/skills/skills-view';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -71,15 +71,14 @@ const gap = (id: string, status: 'open' | 'in_progress' | 'closed' = 'open') => 
   demand: [{ targetId: 't', snapshotId: 'snap-t', share: 0.5, postingCount: 50 }],
 });
 
-describe('marketTargetId', () => {
-  it('takes a known target, else the primary', async () => {
+describe('targetFilter', () => {
+  it('takes a known target, else shows every target', async () => {
     const { roadmap } = await loaded();
-    const primary = roadmap.targets.find((t) => t.isPrimary)?.id;
     const other = roadmap.targets.find((t) => !t.isPrimary)?.id;
-    expect(marketTargetId(roadmap, other)).toBe(other);
-    expect(marketTargetId(roadmap, undefined)).toBe(primary);
-    expect(marketTargetId(roadmap, 'nobody')).toBe(primary);
-    expect(marketTargetId(roadmap, [other ?? '', other ?? ''])).toBe(primary);
+    expect(targetFilter(roadmap, other)).toBe(other);
+    expect(targetFilter(roadmap, undefined)).toBeNull();
+    expect(targetFilter(roadmap, 'nobody')).toBeNull();
+    expect(targetFilter(roadmap, [other ?? '', other ?? ''])).toBeNull();
   });
 });
 
@@ -144,9 +143,8 @@ describe('gapCards', () => {
     const selected = lanes[1]?.target.id ?? '';
     const cards = gapCards(roadmap, view, lanes, selected);
 
-    expect(cards.map((c) => c.gap.priority)).toEqual(
-      [...roadmap.gaps].map((g) => g.priority).sort((a, b) => a - b),
-    );
+    const priorities = cards.map((c) => c.gap.priority);
+    expect(priorities).toEqual([...priorities].sort((a, b) => a - b));
     const laneIds = lanes.map((l) => l.target.id);
     for (const card of cards) {
       const order = card.demand.map((d) => laneIds.indexOf(d.lane.target.id));
@@ -159,6 +157,21 @@ describe('gapCards', () => {
         expect(item.gapIds).toContain(card.gap.id);
         expect(href).toContain(`station=${milestone.id}`);
       }
+    }
+  });
+
+  it("lists every gap without a target and only that target's gaps with one", async () => {
+    const { roadmap, view, lanes } = await loaded();
+    const all = gapCards(roadmap, view, lanes, null);
+    expect(all).toHaveLength(roadmap.gaps.length);
+    expect(all.flatMap((c) => c.demand).some((d) => d.selected)).toBe(false);
+
+    for (const lane of lanes) {
+      const id = lane.target.id;
+      const mine = gapCards(roadmap, view, lanes, id);
+      expect(mine.map((c) => c.gap.id)).toEqual(
+        all.filter((c) => c.gap.demand.some((d) => d.targetId === id)).map((c) => c.gap.id),
+      );
     }
   });
 });
@@ -177,6 +190,10 @@ describe('stationHref', () => {
 
   it('falls back to the first target the station serves', () => {
     expect(stationHref('m1', 'z', served)).toBe('/roadmap?line=a&station=m1');
+  });
+
+  it('takes the first target it serves when nothing is selected', () => {
+    expect(stationHref('m1', null, served)).toBe('/roadmap?line=a&station=m1');
   });
 
   it('opens the station alone when it serves nobody known', () => {
@@ -202,6 +219,18 @@ describe('haveSkills', () => {
     expect(list.map((s) => s.skill.skill.id)).toEqual([top, 'alpha', 'zeta', 'waiting']);
     expect(list[0]?.demand?.[0]?.lane.target.id).toBe(target);
     expect(list.at(-1)?.approved).toBe(0);
+  });
+
+  it("narrows to the skills a target's postings list, unless there is no market", async () => {
+    const { lanes, market } = await loaded();
+    const target = lanes[0]?.target.id ?? '';
+    const listed = market.snapshots.find((s) => s.targetId === target)?.skills[0]?.skill.id ?? '';
+    const profile = profileWith({ [listed]: [APPROVED], 'not-listed-anywhere': [APPROVED] });
+
+    expect(haveSkills(profile, market, lanes, target).map((s) => s.skill.skill.id)).toEqual([
+      listed,
+    ]);
+    expect(haveSkills(profile, null, lanes, target)).toHaveLength(2);
   });
 
   it('has no demand without market data', async () => {

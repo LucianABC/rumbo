@@ -40,30 +40,39 @@ async function render(target?: string) {
 }
 
 describe('Skills & gaps (#111)', () => {
-  it("shows the primary's market, every gap and the skills the user has", async () => {
+  it("shows every target's market, every gap and the skills the user has by default", async () => {
     const roadmap = await getRoadmap();
-    const primary = roadmap.targets.find((t) => t.isPrimary);
     const html = await render();
 
     expect(html).toContain('>Skills &amp; gaps</h1>');
-    expect(html).toContain(
-      `aria-label="Skills ${primary?.roleFamily.name ?? ''} postings ask for most"`,
-    );
+    for (const target of roadmap.targets) {
+      expect(html).toContain(`aria-label="Skills ${target.roleFamily.name} postings ask for most"`);
+    }
+    expect(html).toMatch(/aria-current="true"[^>]*><span class="font-semibold">All targets/);
     for (const gap of roadmap.gaps) expect(html).toContain(`id="gap-${gap.id}"`);
     expect(html).toContain('rumbo&#x27;s reading');
     expect(html).toContain('/roadmap?line=');
     expect(html).toContain('Skills you have');
+    expect(html).toContain('share of that target&#x27;s postings');
     expect(html).not.toContain('unavailable');
   });
 
-  it('picks the market of the target in the URL, and the primary for an unknown one', async () => {
+  it('narrows market and gaps to the target in the URL, and ignores an unknown one', async () => {
     const roadmap = await getRoadmap();
-    const primary = roadmap.targets.find((t) => t.isPrimary);
     const other = roadmap.targets.find((t) => !t.isPrimary);
+    const primary = roadmap.targets.find((t) => t.isPrimary);
+    const html = await render(other?.id);
 
-    expect(await render(other?.id)).toContain(
+    expect(html).toContain(
       `aria-label="Skills ${other?.roleFamily.name ?? ''} postings ask for most"`,
     );
+    expect(html).not.toContain(
+      `aria-label="Skills ${primary?.roleFamily.name ?? ''} postings ask for most"`,
+    );
+    for (const gap of roadmap.gaps) {
+      const needed = gap.demand.some((d) => d.targetId === other?.id);
+      expect(html.includes(`id="gap-${gap.id}"`)).toBe(needed);
+    }
     expect(await render('nobody')).toContain(
       `aria-label="Skills ${primary?.roleFamily.name ?? ''} postings ask for most"`,
     );

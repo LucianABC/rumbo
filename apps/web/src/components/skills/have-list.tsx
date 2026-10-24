@@ -21,9 +21,14 @@ export function HaveList({
   readonly marketAvailable: boolean;
 }) {
   return (
-    <section aria-labelledby="have-heading" className="flex min-w-0 flex-col gap-3">
+    <section
+      id="skills-you-have"
+      aria-labelledby="have-heading"
+      className="@container flex min-w-0 scroll-mt-20 flex-col gap-3"
+    >
       <h2 id="have-heading" className={HEADING}>
         Skills you have
+        {skills ? <span className="font-mono tabular-nums"> ({skills.length})</span> : null}
       </h2>
       {skills === null ? (
         <Unavailable title="Profile unavailable">
@@ -34,7 +39,7 @@ export function HaveList({
           No skills in your profile yet.
         </p>
       ) : (
-        <ul role="list" className="grid gap-3 md:grid-cols-2">
+        <ul role="list" className="grid gap-3 @2xl:grid-cols-2">
           {skills.map((s) => (
             <li
               key={s.skill.id}

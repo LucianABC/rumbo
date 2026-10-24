@@ -24,16 +24,12 @@ import { type Lane, selectedTargetId } from '../roadmap/single-line';
 export const STALE_AFTER_DAYS = 30;
 
 /**
- * Which target's market the tab shows: the `target` query param when it names an active target,
- * else the primary, so the band's links and a bare `/skills` both land on a market (#111).
+ * The target the tab is narrowed to: the `target` query param when it names an active target,
+ * else null, which shows every target's market, gaps and skills (owner, #111). The Roadmap
+ * summary band links here with one target.
  */
-export function marketTargetId(roadmap: Roadmap, raw: string | string[] | undefined): string {
-  return (
-    selectedTargetId(roadmap, raw) ??
-    roadmap.targets.find((t) => t.isPrimary)?.id ??
-    roadmap.targets[0]?.id ??
-    ''
-  );
+export function targetFilter(roadmap: Roadmap, raw: string | string[] | undefined): string | null {
+  return selectedTargetId(roadmap, raw);
 }
 
 export function isStale(checkedAt: string, now: Date): boolean {
@@ -121,7 +117,7 @@ export interface GapDemandRow {
   readonly lane: Lane;
   readonly share: number;
   readonly postingCount: number;
-  /** The target whose market the tab shows: its row is emphasized. */
+  /** The target the tab is narrowed to: its row is emphasized. */
   readonly selected: boolean;
 }
 
@@ -142,14 +138,18 @@ export interface GapCard {
   readonly items: readonly ClosingItem[];
 }
 
-/** Every gap by priority, each with its numbers per target and the items that close it. */
+/**
+ * The gaps by priority, each with its numbers per target and the items that close it: every gap,
+ * or only those the selected target needs.
+ */
 export function gapCards(
   roadmap: Roadmap,
   view: RoadmapView,
   lanes: readonly Lane[],
-  selectedId: string,
+  selectedId: string | null,
 ): GapCard[] {
   return [...roadmap.gaps]
+    .filter((gap) => selectedId === null || gap.demand.some((d) => d.targetId === selectedId))
     .sort((a, b) => a.priority - b.priority)
     .map((gap) => {
       const demand = lanes.flatMap((lane): GapDemandRow[] => {
@@ -175,12 +175,16 @@ export function gapCards(
 }
 
 /**
- * A station on Roadmap with its panel open (#111): on the target the tab shows when the station
- * serves it, else on the first target it serves, so the list behind the panel holds the station.
+ * A station on Roadmap with its panel open (#111): on the selected target when the station serves
+ * it, else on the first target it serves, so the list behind the panel holds the station.
  */
-export function stationHref(milestoneId: string, selectedId: string, view: RoadmapView): string {
+export function stationHref(
+  milestoneId: string,
+  selectedId: string | null,
+  view: RoadmapView,
+): string {
   const serves = view.targetsByMilestone.get(milestoneId) ?? [];
-  const line = serves.includes(selectedId) ? selectedId : serves[0];
+  const line = selectedId && serves.includes(selectedId) ? selectedId : serves[0];
   const params = new URLSearchParams();
   if (line) params.set('line', line);
   params.set('station', milestoneId);
@@ -197,12 +201,14 @@ export interface HaveSkill {
 
 /**
  * The profile's skills, the ones the market asks for most first, then by name. Skills whose
- * evidence all awaits approval stay listed, marked as not counted yet.
+ * evidence all awaits approval stay listed, marked as not counted yet. Narrowed to a target, only
+ * the skills its postings list; without market data there is nothing to narrow by.
  */
 export function haveSkills(
   profile: Profile,
   market: Market | null,
   lanes: readonly Lane[],
+  selectedId: string | null = null,
 ): HaveSkill[] {
   const entries = profile.skills.map((skill): HaveSkill => {
     const demand = market
@@ -216,12 +222,18 @@ export function haveSkills(
     return { skill, approved: approvedCount(skill), demand };
   });
   const top = (e: HaveSkill) => Math.max(0, ...(e.demand ?? []).map((d) => d.share));
-  return entries.sort(
-    (a, b) =>
-      Number(b.approved > 0) - Number(a.approved > 0) ||
-      top(b) - top(a) ||
-      a.skill.skill.name.localeCompare(b.skill.skill.name),
-  );
+  const listed = (e: HaveSkill) =>
+    selectedId === null ||
+    e.demand === null ||
+    e.demand.some((d) => d.lane.target.id === selectedId);
+  return entries
+    .filter(listed)
+    .sort(
+      (a, b) =>
+        Number(b.approved > 0) - Number(a.approved > 0) ||
+        top(b) - top(a) ||
+        a.skill.skill.name.localeCompare(b.skill.skill.name),
+    );
 }
 
 function approvedCount(skill: ProfileSkill): number {

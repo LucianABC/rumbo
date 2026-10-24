@@ -16,9 +16,13 @@ import { HEADING } from './shared';
  */
 export function GapList({ cards }: { readonly cards: readonly GapCard[] }) {
   return (
-    <section aria-labelledby="gaps-heading" className="flex min-w-0 flex-col gap-3">
+    <section
+      id="gaps"
+      aria-labelledby="gaps-heading"
+      className="flex min-w-0 scroll-mt-20 flex-col gap-3"
+    >
       <h2 id="gaps-heading" className={HEADING}>
-        Gaps
+        Gaps <span className="font-mono tabular-nums">({cards.length})</span>
       </h2>
       {cards.length > 0 ? (
         <ol aria-label="Gaps in priority order" className="flex flex-col gap-3">

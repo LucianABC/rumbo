@@ -15,16 +15,16 @@ const SIZES = [
 /** WCAG 2.1 A and AA, the level the project targets. */
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
-const switcher = (page: Page) => page.getByRole('group', { name: 'Show market for' });
+const switcher = (page: Page) => page.getByRole('group', { name: 'Show' });
 const gaps = (page: Page) =>
   page.getByRole('list', { name: 'Gaps in priority order' }).locator(':scope > li');
 
 /** Opens /skills and skips when the served market data does not fit the roadmap (#137). */
 async function gotoSkillsWithMarket(page: Page, query = ''): Promise<void> {
   await page.goto(`/skills${query}`);
-  const ranked = page.getByRole('list', { name: /postings ask for most$/ });
+  const ranked = page.getByRole('list', { name: /postings ask for most$/ }).first();
   const unavailable = page.getByText('Market data unavailable');
-  const thin = page.getByText(/No skill appears in \d+% of these postings/);
+  const thin = page.getByText(/No skill appears in \d+% of these postings/).first();
   await expect(ranked.or(unavailable).or(thin)).toBeVisible();
   test.skip(await unavailable.isVisible(), 'Market data unavailable for the served mocks');
 }
@@ -60,12 +60,20 @@ for (const [size, viewport] of SIZES) {
       }
     });
 
-    test('the switcher picks a market by keyboard and the choice survives a reload', async ({
+    test('shows every target by default and narrows to one by keyboard, surviving a reload', async ({
       page,
     }) => {
       await gotoSkillsWithMarket(page);
       const options = switcher(page).getByRole('link');
-      test.skip((await options.count()) < 2, 'Only one target');
+      await expect(options.first()).toHaveText('All targets');
+      await expect(options.first()).toHaveAttribute('aria-current', 'true');
+      const targets = (await options.count()) - 1;
+      // One snapshot card per target, each headed by its name.
+      const markets = page
+        .getByRole('region', { name: 'Market' })
+        .getByRole('heading', { level: 3 });
+      expect(await markets.count()).toBe(targets);
+      test.skip(targets < 2, 'Only one target');
 
       const last = options.last();
       await last.focus();
@@ -73,8 +81,10 @@ for (const [size, viewport] of SIZES) {
 
       await expect(page).toHaveURL(/\/skills\?target=.+/);
       await expect(last).toHaveAttribute('aria-current', 'true');
+      await expect(markets).toHaveCount(1);
       await page.reload();
       await expect(switcher(page).getByRole('link').last()).toHaveAttribute('aria-current', 'true');
+      await expect(markets).toHaveCount(1);
     });
 
     test("an item's link opens its station on Roadmap", async ({ page }) => {

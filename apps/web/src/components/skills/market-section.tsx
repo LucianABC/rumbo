@@ -11,30 +11,50 @@ import { LineSwitcher } from '../roadmap/line-switcher';
 import { HEADING, LINK, Unavailable } from './shared';
 
 /**
- * One target's market (docs/product/views.md, #111): the snapshot, then the skills its postings
- * ask for most as a ranked list. Each row has its percentage as text, so the bars are decoration
- * and the list reads the same without them.
+ * The market across the top of Skills & gaps (docs/product/views.md, #111): every target's
+ * snapshot side by side, or one target's across the full width with its ranking in two columns.
+ * Each row has its percentage as text, so the bars are decoration and the list reads the same
+ * without them.
  */
 export function MarketSection({
   lanes,
   selectedId,
-  market,
+  markets,
 }: {
   readonly lanes: readonly Lane[];
-  /** The target whose market shows: `?target=`, else the primary. */
-  readonly selectedId: string;
-  /** Null when the market data could not be read. */
-  readonly market: MarketView | null;
+  /** The target the tab is narrowed to, or null for every target. */
+  readonly selectedId: string | null;
+  /** One per target shown, in lane order; null when the market data could not be read. */
+  readonly markets: readonly { readonly lane: Lane; readonly view: MarketView }[] | null;
 }) {
-  const color = lanes.find((l) => l.target.id === selectedId)?.color ?? 'line-1';
   return (
-    <section aria-labelledby="market-heading" className="flex min-w-0 flex-col gap-3">
+    <section
+      id="market"
+      aria-labelledby="market-heading"
+      className="flex min-w-0 scroll-mt-20 flex-col gap-3"
+    >
       <h2 id="market-heading" className={HEADING}>
         Market
       </h2>
-      <LineSwitcher lanes={lanes} selectedId={selectedId} param="target" label="Show market for" />
-      {market ? (
-        <Snapshot market={market} color={color} />
+      <LineSwitcher
+        lanes={lanes}
+        selectedId={selectedId}
+        param="target"
+        label="Show"
+        all={{ label: 'All targets', href: '/skills' }}
+      />
+      {markets ? (
+        <>
+          {/* The percentage alone read as a score; this says what it counts (#111). */}
+          <p className="text-sm text-muted-foreground">
+            Each percentage is the share of that target&apos;s postings that ask for the skill.
+          </p>
+          <div className={cn('grid gap-3', selectedId === null && 'md:grid-cols-2 xl:grid-cols-3')}>
+            {markets.map(({ lane, view }) => (
+              <Snapshot key={lane.target.id} market={view} color={lane.color} />
+            ))}
+          </div>
+        </>
       ) : (
         <Unavailable title="Market data unavailable">
           The market snapshots could not be read or do not match your targets. The gaps below still
@@ -54,9 +74,12 @@ function Snapshot({
 }) {
   const name = snapshot.roleFamily.name;
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4">
+    <div className="@container flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4">
       <div>
-        <h3 className="font-semibold">{name}</h3>
+        <h3 className="flex items-center gap-2 font-semibold">
+          <span aria-hidden className={cn('h-1 w-4 shrink-0 rounded-full', LINE_BG[color])} />
+          {name}
+        </h3>
         <p className="text-sm text-muted-foreground">
           {snapshot.region} ·{' '}
           <span className="font-mono tabular-nums text-foreground">{snapshot.postingCount}</span>{' '}
@@ -69,20 +92,26 @@ function Snapshot({
         ) : null}
       </div>
       {asked.length > 0 ? (
-        <RankedList rows={asked} color={color} label={`Skills ${name} postings ask for most`} />
+        <RankedList
+          rows={asked}
+          color={color}
+          postings={snapshot.postingCount}
+          label={`Skills ${name} postings ask for most`}
+        />
       ) : (
         <p className="text-sm text-muted-foreground">
           No skill appears in {Math.round(ASKED_MIN_SHARE * 100)}% of these postings yet.
         </p>
       )}
       {less.length > 0 ? (
-        <details className="group text-sm">
+        <details className="text-sm">
           <summary className="cursor-pointer rounded-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
             Asked less often ({less.length})
           </summary>
           <RankedList
             rows={less}
             color={color}
+            postings={snapshot.postingCount}
             label={`Skills ${name} postings ask for less often`}
             className="mt-3"
           />
@@ -92,36 +121,50 @@ function Snapshot({
   );
 }
 
+/**
+ * Two columns once the card is wide (one target across the page), read top to bottom then
+ * across, like the rank. Rows put the bar beside the name when the card has room, else under it.
+ */
 function RankedList({
   rows,
   color,
+  postings,
   label,
   className,
 }: {
   readonly rows: readonly MarketRow[];
   readonly color: LineColorToken;
+  readonly postings: number;
   readonly label: string;
   readonly className?: string;
 }) {
   return (
-    <ol aria-label={label} start={rows[0]?.rank} className={cn('flex flex-col gap-3', className)}>
+    <ol
+      aria-label={label}
+      start={rows[0]?.rank}
+      className={cn('gap-x-10 @3xl:columns-2', className)}
+    >
       {rows.map((row) => (
         <li
           key={row.skill.id}
-          className="grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-baseline gap-x-2 gap-y-1 md:grid-cols-[1.5rem_minmax(0,16rem)_minmax(4rem,1fr)_3rem] md:items-center"
+          className="mb-3 grid break-inside-avoid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-baseline gap-x-2 gap-y-1 last:mb-0 @lg:grid-cols-[1.5rem_minmax(0,16rem)_minmax(4rem,1fr)_3rem] @lg:items-center"
         >
           <span className="font-mono text-xs tabular-nums text-muted-foreground">{row.rank}</span>
           <div className="min-w-0">
             <p className="text-sm font-medium break-words">{row.skill.name}</p>
             <Mark row={row} />
           </div>
-          <span className="text-right font-mono text-sm font-semibold tabular-nums md:order-last">
+          <span
+            className="text-right font-mono text-sm font-semibold tabular-nums @lg:order-last"
+            title={`Asked in ${formatShare(row.share)} of ${String(postings)} postings`}
+          >
             {formatShare(row.share)}
+            <span className="sr-only"> of {postings} postings</span>
           </span>
           {/* Decoration: the percentage beside it says the same. */}
           <div
             aria-hidden
-            className="col-start-2 col-end-4 h-1.5 overflow-hidden rounded-full bg-muted md:col-auto"
+            className="col-start-2 col-end-4 h-1.5 overflow-hidden rounded-full bg-muted @lg:col-auto"
           >
             <div
               className={cn('h-full rounded-full', LINE_BG[color])}
