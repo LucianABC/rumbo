@@ -91,7 +91,7 @@ function GapItem({ card: { gap, demand, sharedBy, items } }: { readonly card: Ga
       <div className="flex flex-col gap-1.5">
         <p className="text-xs font-medium text-muted-foreground">Closed by</p>
         <ul role="list" className="flex flex-col gap-1.5">
-          {items.map(({ item, milestone, href, destination }) => (
+          {items.map(({ item, milestone, href }) => (
             <li key={item.id}>
               <Link
                 href={href}
@@ -101,14 +101,10 @@ function GapItem({ card: { gap, demand, sharedBy, items } }: { readonly card: Ga
                 <span className="min-w-0 font-medium break-words">{item.title}</span>
                 <StatusChip status={item.status} />
                 <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground">
-                  {destination === 'projects' ? 'Projects' : milestone.title}
+                  {milestone.title}
                   <ChevronRight aria-hidden className="size-3.5" />
                 </span>
-                <span className="sr-only">
-                  {destination === 'projects'
-                    ? ', open it in Projects'
-                    : ', open its station on Roadmap'}
-                </span>
+                <span className="sr-only">, open its station on Roadmap</span>
               </Link>
             </li>
           ))}

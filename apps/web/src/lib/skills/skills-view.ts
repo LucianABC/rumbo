@@ -81,7 +81,11 @@ export function marketView(
   const approved = new Map(
     (profile?.skills ?? []).map((s) => [s.skill.id, approvedCount(s)] as const),
   );
-  const gapBySkill = new Map(gaps.map((g) => [g.skill.id, { id: g.id, status: g.status }]));
+  const gapBySkill = new Map(
+    gaps
+      .filter((g) => g.demand.some((d) => d.targetId === snapshot.targetId))
+      .map((g) => [g.skill.id, { id: g.id, status: g.status }]),
+  );
 
   const markOf = (skillId: string): MarketMark => {
     const gap = gapBySkill.get(skillId) ?? null;
@@ -122,9 +126,8 @@ export interface GapDemandRow {
 export interface ClosingItem {
   readonly item: RoadmapItem;
   readonly milestone: Milestone;
-  /** Where the item lives: a practice project on Projects, anything else at its Roadmap station. */
+  /** The Roadmap station containing this item. */
   readonly href: string;
-  readonly destination: 'projects' | 'roadmap';
 }
 
 export interface GapCard {
@@ -158,23 +161,14 @@ export function gapCards(
       const items = roadmap.milestones.flatMap((milestone) =>
         milestone.items
           .filter((item) => item.gapIds.includes(gap.id))
-          .map((item): ClosingItem => {
-            const project = item.type === 'project';
-            return {
-              item,
-              milestone,
-              href: project ? projectHref(item.id) : stationHref(milestone.id, selectedId, view),
-              destination: project ? 'projects' : 'roadmap',
-            };
-          }),
+          .map((item): ClosingItem => ({
+            item,
+            milestone,
+            href: stationHref(milestone.id, selectedId, view),
+          })),
       );
       return { gap, demand, sharedBy: gap.demand.length, items };
     });
-}
-
-/** A practice project's card on Projects, which renders `id="project-<itemId>"` (#114). */
-export function projectHref(itemId: string): string {
-  return `/projects#project-${encodeURIComponent(itemId)}`;
 }
 
 /**

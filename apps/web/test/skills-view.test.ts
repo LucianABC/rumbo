@@ -126,6 +126,23 @@ describe('marketView', () => {
     expect(view.asked[0]?.mark).toEqual({ kind: 'unknown' });
   });
 
+  it('only links a market skill to a gap demanded by that target', () => {
+    const otherTargetGap = {
+      ...gap('a'),
+      demand: [{ targetId: 'other', snapshotId: 'snap-other', share: 0.5, postingCount: 50 }],
+    };
+    const view = marketView(snapshot({ a: 0.7 }), profileWith({}), [otherTargetGap], NOW);
+    expect(view.asked[0]?.mark).toEqual({ kind: 'missing' });
+
+    const covered = marketView(
+      snapshot({ a: 0.7 }),
+      profileWith({ a: [APPROVED] }),
+      [otherTargetGap],
+      NOW,
+    );
+    expect(covered.asked[0]?.mark).toEqual({ kind: 'have', evidenceCount: 1, gap: null });
+  });
+
   it('agrees with the coverage the Roadmap band shows', async () => {
     const { roadmap, profile, market } = await loaded();
     const ids = roadmap.targets.map((t) => t.id);
@@ -151,15 +168,10 @@ describe('gapCards', () => {
       expect(card.sharedBy).toBe(card.gap.demand.length);
       // F3 rule: every gap has a way to close it, and each links to its station.
       expect(card.items.length).toBeGreaterThan(0);
-      for (const { item, milestone, href, destination } of card.items) {
+      for (const { item, milestone, href } of card.items) {
         expect(item.gapIds).toContain(card.gap.id);
-        // Practice projects live on Projects; everything else at its Roadmap station.
-        if (item.type === 'project') {
-          expect([href, destination]).toEqual([`/projects#project-${item.id}`, 'projects']);
-        } else {
-          expect(href).toContain(`station=${milestone.id}`);
-          expect(destination).toBe('roadmap');
-        }
+        expect(href).toContain(`station=${milestone.id}`);
+        expect(href).toMatch(/^\/roadmap\?/);
       }
     }
   });
