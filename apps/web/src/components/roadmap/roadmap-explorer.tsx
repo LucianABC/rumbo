@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from 'cn';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import type { Lane, SingleLine, SingleLineRow } from '../../lib/roadmap/single-line';
@@ -29,6 +29,7 @@ export function RoadmapExplorer({
   stations,
   map,
   selectedId,
+  initialStationId = null,
   gapNames,
 }: {
   /** Every target's lane, for the switcher. */
@@ -44,15 +45,19 @@ export function RoadmapExplorer({
   readonly map: SubwayMap | null;
   /** The line the user picked, or null: the map highlights it unless the user hovers. */
   readonly selectedId: string | null;
+  /** A station to open on load, from `?station=` (#111). */
+  readonly initialStationId?: string | null;
   readonly gapNames: Readonly<Record<string, string>>;
 }) {
   const [hovered, setHovered] = useState<readonly string[] | null>(null);
   const active = hovered ?? (selectedId ? [selectedId] : null);
   // The last station opened stays set after closing, so the panel keeps its content while it
   // animates out; `open` alone says whether it shows (#142).
-  const [stationId, setStationId] = useState<string | null>(null);
+  const [stationId, setStationId] = useState<string | null>(initialStationId);
   const [openedFrom, setOpenedFrom] = useState<'map' | 'list'>('list');
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialStationId !== null);
+  // A station opened from the URL leaves it on close, so a reload does not open it again (#111).
+  const fromUrl = useRef(initialStationId !== null);
   // The panel's "You are here" matches the view that opened it: with no line chosen the map marks
   // the plan's first open milestone and the phone list the primary's, which can differ (#148).
   const hereId =
@@ -67,6 +72,7 @@ export function RoadmapExplorer({
     setOpen(true);
   };
   const router = useRouter();
+  const pathname = usePathname();
   // Same URL as the switcher's links, so a click on the map and on the switcher agree (#148).
   const selectLine = (targetId: string) => {
     router.replace(`?line=${encodeURIComponent(targetId)}`, { scroll: false });
@@ -131,6 +137,11 @@ export function RoadmapExplorer({
         gapNames={gapNames}
         onClose={() => {
           setOpen(false);
+          if (fromUrl.current) {
+            fromUrl.current = false;
+            const query = selectedId ? `?line=${encodeURIComponent(selectedId)}` : '';
+            router.replace(`${pathname}${query}`, { scroll: false });
+          }
         }}
       />
     </>

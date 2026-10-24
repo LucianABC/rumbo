@@ -7,26 +7,32 @@ import type { Lane } from '../../lib/roadmap/single-line';
 /**
  * Which target's line the station list shows (#148), and the map's legend: color always next to
  * the name (docs/product/views.md). Links to `?line=<id>`, so the choice survives a reload, can
- * be shared, and works before the page hydrates.
+ * be shared, and works before the page hydrates. Skills & gaps picks its market with the same
+ * control on `?target=` (#111).
  */
 export function LineSwitcher({
   lanes,
   selectedId,
+  param = 'line',
+  label = 'Show line',
   className,
 }: {
   readonly lanes: readonly Lane[];
   /** Null while the user has not picked a line (#148). */
   readonly selectedId: string | null;
+  /** The query param the links set. */
+  readonly param?: string;
+  readonly label?: string;
   readonly className?: string;
 }) {
   return (
-    <div role="group" aria-label="Show line" className={cn('flex flex-wrap gap-2', className)}>
+    <div role="group" aria-label={label} className={cn('flex flex-wrap gap-2', className)}>
       {lanes.map(({ target, color }) => {
         const selected = target.id === selectedId;
         return (
           <Link
             key={target.id}
-            href={`?line=${encodeURIComponent(target.id)}`}
+            href={`?${param}=${encodeURIComponent(target.id)}`}
             scroll={false}
             replace
             aria-current={selected ? 'true' : undefined}

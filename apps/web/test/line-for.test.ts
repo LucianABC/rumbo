@@ -6,6 +6,7 @@ import {
   lineCurrent,
   lineFor,
   ORIGIN_ID,
+  selectedStationId,
   selectedTargetId,
   singleLine,
 } from '../src/lib/roadmap/single-line';
@@ -104,6 +105,20 @@ describe('selectedTargetId (#148)', () => {
     expect(selectedTargetId(roadmap, undefined)).toBeNull();
     expect(selectedTargetId(roadmap, 'nope')).toBeNull();
     expect(selectedTargetId(roadmap, [other])).toBeNull();
+  });
+});
+
+describe('selectedStationId (#111)', () => {
+  it('takes a milestone of this roadmap and opens nothing for anything else', async () => {
+    const { roadmap } = await setup();
+    const milestone = roadmap.milestones[0]?.id ?? '';
+    const target = roadmap.targets[0]?.id ?? '';
+
+    expect(selectedStationId(roadmap, milestone)).toBe(milestone);
+    expect(selectedStationId(roadmap, undefined)).toBeNull();
+    // A target's terminal shares the map's namespace but has no panel.
+    expect(selectedStationId(roadmap, target)).toBeNull();
+    expect(selectedStationId(roadmap, [milestone])).toBeNull();
   });
 });
 

@@ -1,7 +1,7 @@
-import type { ItemStatus } from '@rumbo/contracts';
+import type { Gap, ItemStatus } from '@rumbo/contracts';
 import { cn } from 'cn';
 
-import { ITEM_STATUS_LABEL } from '../lib/labels';
+import { GAP_STATUS_LABEL, ITEM_STATUS_LABEL } from '../lib/labels';
 
 const STYLE: Readonly<Record<ItemStatus, string>> = {
   done: 'border-success/40 text-success',
@@ -20,15 +20,44 @@ export function StatusChip({
   readonly status: ItemStatus;
   readonly className?: string;
 }) {
+  return <Chip style={STYLE[status]} label={ITEM_STATUS_LABEL[status]} className={className} />;
+}
+
+const GAP_STYLE: Readonly<Record<Gap['status'], string>> = {
+  open: STYLE.pending,
+  in_progress: STYLE.in_progress,
+  closed: STYLE.done,
+};
+
+/** A gap's status in the same chip as items, with the gap's own words (#111). */
+export function GapStatusChip({
+  status,
+  className,
+}: {
+  readonly status: Gap['status'];
+  readonly className?: string;
+}) {
+  return <Chip style={GAP_STYLE[status]} label={GAP_STATUS_LABEL[status]} className={className} />;
+}
+
+function Chip({
+  style,
+  label,
+  className,
+}: {
+  readonly style: string;
+  readonly label: string;
+  readonly className?: string | undefined;
+}) {
   return (
     <span
       className={cn(
         'inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-2xs font-medium whitespace-nowrap',
-        STYLE[status],
+        style,
         className,
       )}
     >
-      {ITEM_STATUS_LABEL[status]}
+      {label}
     </span>
   );
 }

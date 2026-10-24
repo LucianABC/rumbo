@@ -19,6 +19,7 @@ import { formatDay } from '../../../lib/format';
 import {
   lineCurrent,
   lineFor,
+  selectedStationId,
   selectedTargetId,
   singleLine,
 } from '../../../lib/roadmap/single-line';
@@ -33,11 +34,12 @@ export const metadata: Metadata = { title: 'Roadmap · rumbo' };
  * layout (M2, #108). Either one opens a station's panel (#109). The list shows one target's line,
  * chosen with `?line=` from the switcher under the map or the map itself, and the map highlights
  * it. With no choice the desktop list waits for one, and phones show the primary's (#148).
+ * `?station=` opens that station's panel on load, for links from Skills & gaps (#111).
  */
 export default async function RoadmapPage({
   searchParams,
 }: {
-  readonly searchParams: Promise<{ line?: string | string[] }>;
+  readonly searchParams: Promise<{ line?: string | string[]; station?: string | string[] }>;
 }) {
   // The profile does not depend on the roadmap, so it loads alongside it (#112).
   const pendingProfile = getProfile();
@@ -52,7 +54,8 @@ export default async function RoadmapPage({
   const colors = getTargetColors(roadmap, layout);
   const view = deriveRoadmapView(roadmap);
   const line = singleLine(roadmap, view, colors);
-  const selectedId = selectedTargetId(roadmap, (await searchParams).line);
+  const params = await searchParams;
+  const selectedId = selectedTargetId(roadmap, params.line);
   // Without a choice the phone list still needs a line, so it shows the primary's; the desktop
   // list stays hidden until the user picks one, and the map marks the plan's current milestone.
   const listId = selectedId ?? line.lanes[0]?.target.id ?? '';
@@ -97,6 +100,7 @@ export default async function RoadmapPage({
           line={lineFor(line, view, listId)}
           stations={line.rows.flatMap((row) => (row.kind === 'milestone' ? [row] : []))}
           selectedId={selectedId}
+          initialStationId={selectedStationId(roadmap, params.station)}
           map={
             layout
               ? subwayMap(

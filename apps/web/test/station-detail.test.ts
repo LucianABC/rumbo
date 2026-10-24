@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { StationDetail } from '../src/components/roadmap/station-detail';
+import { Evidence, StationDetail } from '../src/components/roadmap/station-detail';
 import { getRoadmap, getRoadmapLayout, getTargetColors } from '../src/lib/data';
 import { type SingleLineRow, singleLine } from '../src/lib/roadmap/single-line';
 
@@ -93,5 +93,22 @@ describe('station detail (#109)', () => {
     expect(render(withItems(base, []), gapNames)).toContain(
       'No items planned for this station yet.',
     );
+  });
+});
+
+describe('Evidence (#111)', () => {
+  const evidence = (sourceRef: string) =>
+    [{ id: 'ev-1', sourceType: 'experience', sourceRef, approvedAt: null }] as const;
+
+  it('names an experience instead of showing its id, and falls back to the id', () => {
+    const names = { 'exp-1': 'Analyst · Acme' };
+    const html = (ref: string) =>
+      renderToStaticMarkup(
+        createElement(Evidence, { evidence: evidence(ref), experienceNames: names }),
+      );
+
+    expect(html('exp-1')).toContain('Analyst · Acme');
+    expect(html('exp-1')).not.toContain('exp-1');
+    expect(html('exp-9')).toContain('exp-9');
   });
 });

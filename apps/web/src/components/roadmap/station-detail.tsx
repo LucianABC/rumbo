@@ -195,8 +195,18 @@ function Tasks({ tasks }: { readonly tasks: Extract<RoadmapItem, { type: 'projec
   );
 }
 
-/** Evidence and whether the user approved it: nothing counts until they do (AI rule 2). */
-function Evidence({ evidence }: { readonly evidence: readonly EvidenceRef[] }) {
+/**
+ * Evidence and whether the user approved it: nothing counts until they do (AI rule 2). Skills &
+ * gaps reuses it (#111).
+ */
+export function Evidence({
+  evidence,
+  experienceNames = {},
+}: {
+  readonly evidence: readonly EvidenceRef[];
+  /** "Title · Organization" per experience id, so experience evidence never shows a raw id. */
+  readonly experienceNames?: Readonly<Record<string, string>>;
+}) {
   if (evidence.length === 0) {
     return <p className="text-sm text-muted-foreground">No evidence yet.</p>;
   }
@@ -222,7 +232,7 @@ function Evidence({ evidence }: { readonly evidence: readonly EvidenceRef[] }) {
                 </span>
               </span>
               <span className="text-muted-foreground">
-                {e.excerpt ?? (e.sourceType === 'commit' ? e.sourceRef.slice(0, 7) : e.sourceRef)}
+                {e.excerpt ?? sourceText(e, experienceNames)}
               </span>
             </li>
           );
@@ -230,4 +240,10 @@ function Evidence({ evidence }: { readonly evidence: readonly EvidenceRef[] }) {
       </ul>
     </div>
   );
+}
+
+function sourceText(e: EvidenceRef, experienceNames: Readonly<Record<string, string>>): string {
+  if (e.sourceType === 'commit') return e.sourceRef.slice(0, 7);
+  if (e.sourceType === 'experience') return experienceNames[e.sourceRef] ?? e.sourceRef;
+  return e.sourceRef;
 }
