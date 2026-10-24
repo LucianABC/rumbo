@@ -83,7 +83,7 @@ describe('theme tokens', () => {
     });
 
     // Line colors identify targets (docs/product/views.md); errors and focus must not look like one.
-    it.each(['destructive', 'ring'])('%s is not a target line color', (name) => {
+    it.each(['destructive', 'ring', 'success'])('%s is not a target line color', (name) => {
       for (const line of ['line-1', 'line-2', 'line-3']) {
         expect(get(name)).not.toBe(get(line));
       }

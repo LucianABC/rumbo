@@ -107,7 +107,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 
 - **Why this direction:** a hand-drawn map in a notebook feels personal and calm, which suits a long job search more than a dashboard; muted inks leave strong color for status, so "awaiting approval" stands out.
 - **Palette:** paper background (`#f3eee4` light, `#1a1814` dark), lighter paper cards, warm ink text, deep green primary.
-  - lines: terracotta, slate blue and plum (`line-1…3`), each ≥ 3:1 against the background in both themes;
+  - lines: green, slate blue and plum (`line-1…3`), each ≥ 3:1 against the background in both themes. The primary line is green because the first terracotta read as an error (owner, 2026-10-23); it is a brighter, bluer green than `success`, so the two never share a value;
   - status: success (green), attention (amber) and pending (warm gray); status text ≥ 4.5:1 on background and cards;
   - errors use crimson (`destructive`) and focus rings the primary green, never a line color, so neither reads as a target;
   - hover fills, skeletons and secondary buttons use a darker paper (`muted`), never the background itself;
