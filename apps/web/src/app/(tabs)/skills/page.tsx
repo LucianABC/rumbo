@@ -1,13 +1,12 @@
 import { deriveRoadmapView } from '@rumbo/contracts';
-import Link from 'next/link';
 
+import { MarketProvenance } from '../../../components/market-provenance';
 import { PageHeader } from '../../../components/page-header';
 import { tabMetadata } from '../../../components/planned';
 import { GapList } from '../../../components/skills/gap-list';
 import { HaveList } from '../../../components/skills/have-list';
 import { MarketSection } from '../../../components/skills/market-section';
 import { getRoadmap, getRoadmapLayout, getSkillsData, getTargetColors } from '../../../lib/data';
-import { formatDay } from '../../../lib/format';
 import { lanesOf } from '../../../lib/roadmap/single-line';
 import { marketProvenance } from '../../../lib/roadmap/summary';
 import { gapCards, haveSkills, marketView, targetFilter } from '../../../lib/skills/skills-view';
@@ -51,17 +50,7 @@ export default async function SkillsPage({
     <>
       <PageHeader
         title="Skills & gaps"
-        provenance={
-          provenance ? (
-            <>
-              Market data from {provenance.postings} postings, checked{' '}
-              {formatDay(provenance.checkedAt)} ·{' '}
-              <Link href="/sources" className="underline underline-offset-4 hover:text-foreground">
-                see Sources
-              </Link>
-            </>
-          ) : null
-        }
+        provenance={provenance ? <MarketProvenance {...provenance} /> : null}
       />
       <p className="-mt-3 mb-3 max-w-prose text-sm text-muted-foreground">
         For each target, rumbo reads real postings for that role and region. The skills they ask for

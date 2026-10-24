@@ -87,6 +87,14 @@ for (const [size, viewport] of SIZES) {
       await expect(markets).toHaveCount(1);
     });
 
+    test('the manual market check says it is not available yet', async ({ page }) => {
+      await gotoSkillsWithMarket(page);
+
+      await page.getByRole('button', { name: 'Check market again' }).click();
+
+      await expect(page.getByRole('status').filter({ hasText: 'Not available yet' })).toBeVisible();
+    });
+
     test("an item's link opens its station on Roadmap", async ({ page }) => {
       await gotoSkillsWithMarket(page);
       const link = page.getByRole('link', { name: /open its station on Roadmap/ }).first();

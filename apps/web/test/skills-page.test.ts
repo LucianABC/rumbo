@@ -54,6 +54,9 @@ describe('Skills & gaps (#111)', () => {
     expect(html).toContain('/roadmap?line=');
     expect(html).toContain('Skills you have');
     expect(html).toContain('share of that target&#x27;s postings');
+    // The header offers a manual market check; it says nothing until clicked.
+    expect(html).toContain('Check market again</button>');
+    expect(html).toContain('<span role="status" class="ml-2 text-xs"></span>');
     expect(html).not.toContain('unavailable');
   });
 

@@ -1,7 +1,7 @@
 import { deriveRoadmapView } from '@rumbo/contracts';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
+import { MarketProvenance } from '../../../components/market-provenance';
 import { PageHeader } from '../../../components/page-header';
 import { ChangeTargets } from '../../../components/roadmap/change-targets';
 import { RoadmapExplorer } from '../../../components/roadmap/roadmap-explorer';
@@ -15,7 +15,6 @@ import {
   getSummaryData,
   getTargetColors,
 } from '../../../lib/data';
-import { formatDay } from '../../../lib/format';
 import {
   lineCurrent,
   lineFor,
@@ -66,17 +65,7 @@ export default async function RoadmapPage({
     <>
       <PageHeader
         title="Roadmap"
-        provenance={
-          provenance ? (
-            <>
-              Market data from {provenance.postings} postings, checked{' '}
-              {formatDay(provenance.checkedAt)} ·{' '}
-              <Link href="/sources" className="underline underline-offset-4 hover:text-foreground">
-                see Sources
-              </Link>
-            </>
-          ) : null
-        }
+        provenance={provenance ? <MarketProvenance {...provenance} /> : null}
       />
       <div className="flex flex-col gap-6">
         {band ? (
