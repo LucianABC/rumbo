@@ -138,10 +138,9 @@ describe('marketView', () => {
 });
 
 describe('gapCards', () => {
-  it('lists gaps by priority with demand in lane order and the selected target marked', async () => {
+  it('lists gaps by priority with demand in lane order and items linked to stations', async () => {
     const { roadmap, view, lanes } = await loaded();
-    const selected = lanes[1]?.target.id ?? '';
-    const cards = gapCards(roadmap, view, lanes, selected);
+    const cards = gapCards(roadmap, view, lanes, null);
 
     const priorities = cards.map((c) => c.gap.priority);
     expect(priorities).toEqual([...priorities].sort((a, b) => a - b));
@@ -150,12 +149,17 @@ describe('gapCards', () => {
       const order = card.demand.map((d) => laneIds.indexOf(d.lane.target.id));
       expect(order).toEqual([...order].sort((a, b) => a - b));
       expect(card.sharedBy).toBe(card.gap.demand.length);
-      for (const d of card.demand) expect(d.selected).toBe(d.lane.target.id === selected);
       // F3 rule: every gap has a way to close it, and each links to its station.
       expect(card.items.length).toBeGreaterThan(0);
-      for (const { item, milestone, href } of card.items) {
+      for (const { item, milestone, href, destination } of card.items) {
         expect(item.gapIds).toContain(card.gap.id);
-        expect(href).toContain(`station=${milestone.id}`);
+        // Practice projects live on Projects; everything else at its Roadmap station.
+        if (item.type === 'project') {
+          expect([href, destination]).toEqual([`/projects#project-${item.id}`, 'projects']);
+        } else {
+          expect(href).toContain(`station=${milestone.id}`);
+          expect(destination).toBe('roadmap');
+        }
       }
     }
   });
@@ -164,7 +168,6 @@ describe('gapCards', () => {
     const { roadmap, view, lanes } = await loaded();
     const all = gapCards(roadmap, view, lanes, null);
     expect(all).toHaveLength(roadmap.gaps.length);
-    expect(all.flatMap((c) => c.demand).some((d) => d.selected)).toBe(false);
 
     for (const lane of lanes) {
       const id = lane.target.id;
@@ -172,6 +175,11 @@ describe('gapCards', () => {
       expect(mine.map((c) => c.gap.id)).toEqual(
         all.filter((c) => c.gap.demand.some((d) => d.targetId === id)).map((c) => c.gap.id),
       );
+      // Narrowed, a gap shows only that target's numbers; who else needs it stays a count.
+      for (const card of mine) {
+        expect(card.demand.map((d) => d.lane.target.id)).toEqual([id]);
+        expect(card.sharedBy).toBe(card.gap.demand.length);
+      }
     }
   });
 });
@@ -227,9 +235,9 @@ describe('haveSkills', () => {
     const listed = market.snapshots.find((s) => s.targetId === target)?.skills[0]?.skill.id ?? '';
     const profile = profileWith({ [listed]: [APPROVED], 'not-listed-anywhere': [APPROVED] });
 
-    expect(haveSkills(profile, market, lanes, target).map((s) => s.skill.skill.id)).toEqual([
-      listed,
-    ]);
+    const narrowed = haveSkills(profile, market, lanes, target);
+    expect(narrowed.map((s) => s.skill.skill.id)).toEqual([listed]);
+    expect(narrowed[0]?.demand?.map((d) => d.lane.target.id)).toEqual([target]);
     expect(haveSkills(profile, null, lanes, target)).toHaveLength(2);
   });
 

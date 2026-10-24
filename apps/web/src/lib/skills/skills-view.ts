@@ -117,20 +117,19 @@ export interface GapDemandRow {
   readonly lane: Lane;
   readonly share: number;
   readonly postingCount: number;
-  /** The target the tab is narrowed to: its row is emphasized. */
-  readonly selected: boolean;
 }
 
 export interface ClosingItem {
   readonly item: RoadmapItem;
   readonly milestone: Milestone;
-  /** The item's station on Roadmap, with its panel open. */
+  /** Where the item lives: a practice project on Projects, anything else at its Roadmap station. */
   readonly href: string;
+  readonly destination: 'projects' | 'roadmap';
 }
 
 export interface GapCard {
   readonly gap: Gap;
-  /** In lane order: primary first. */
+  /** In lane order, primary first; only the selected target's when the tab is narrowed. */
   readonly demand: readonly GapDemandRow[];
   /** How many targets need it; shared gaps rank higher (views.md). */
   readonly sharedBy: number;
@@ -140,7 +139,7 @@ export interface GapCard {
 
 /**
  * The gaps by priority, each with its numbers per target and the items that close it: every gap,
- * or only those the selected target needs.
+ * or only those the selected target needs, with only that target's numbers (owner, #111).
  */
 export function gapCards(
   roadmap: Roadmap,
@@ -152,26 +151,30 @@ export function gapCards(
     .filter((gap) => selectedId === null || gap.demand.some((d) => d.targetId === selectedId))
     .sort((a, b) => a.priority - b.priority)
     .map((gap) => {
-      const demand = lanes.flatMap((lane): GapDemandRow[] => {
+      const demand = shownLanes(lanes, selectedId).flatMap((lane): GapDemandRow[] => {
         const d = gap.demand.find((x) => x.targetId === lane.target.id);
-        return d
-          ? [
-              {
-                lane,
-                share: d.share,
-                postingCount: d.postingCount,
-                selected: lane.target.id === selectedId,
-              },
-            ]
-          : [];
+        return d ? [{ lane, share: d.share, postingCount: d.postingCount }] : [];
       });
       const items = roadmap.milestones.flatMap((milestone) =>
         milestone.items
           .filter((item) => item.gapIds.includes(gap.id))
-          .map((item) => ({ item, milestone, href: stationHref(milestone.id, selectedId, view) })),
+          .map((item): ClosingItem => {
+            const project = item.type === 'project';
+            return {
+              item,
+              milestone,
+              href: project ? projectHref(item.id) : stationHref(milestone.id, selectedId, view),
+              destination: project ? 'projects' : 'roadmap',
+            };
+          }),
       );
       return { gap, demand, sharedBy: gap.demand.length, items };
     });
+}
+
+/** A practice project's card on Projects, which renders `id="project-<itemId>"` (#114). */
+export function projectHref(itemId: string): string {
+  return `/projects#project-${encodeURIComponent(itemId)}`;
 }
 
 /**
@@ -195,7 +198,10 @@ export interface HaveSkill {
   readonly skill: ProfileSkill;
   /** Only approved evidence counts (AI rule 2); a skill with none is listed but not counted. */
   readonly approved: number;
-  /** How often each target's postings ask for it, in lane order; null without market data. */
+  /**
+   * How often each target's postings ask for it, in lane order, or only the selected target's;
+   * null without market data.
+   */
   readonly demand: readonly { readonly lane: Lane; readonly share: number }[] | null;
 }
 
@@ -212,7 +218,7 @@ export function haveSkills(
 ): HaveSkill[] {
   const entries = profile.skills.map((skill): HaveSkill => {
     const demand = market
-      ? lanes.flatMap((lane) => {
+      ? shownLanes(lanes, selectedId).flatMap((lane) => {
           const share = market.snapshots
             .find((s) => s.targetId === lane.target.id)
             ?.skills.find((s) => s.skill.id === skill.skill.id)?.share;
@@ -222,10 +228,7 @@ export function haveSkills(
     return { skill, approved: approvedCount(skill), demand };
   });
   const top = (e: HaveSkill) => Math.max(0, ...(e.demand ?? []).map((d) => d.share));
-  const listed = (e: HaveSkill) =>
-    selectedId === null ||
-    e.demand === null ||
-    e.demand.some((d) => d.lane.target.id === selectedId);
+  const listed = (e: HaveSkill) => selectedId === null || e.demand === null || e.demand.length > 0;
   return entries
     .filter(listed)
     .sort(
@@ -234,6 +237,11 @@ export function haveSkills(
         top(b) - top(a) ||
         a.skill.skill.name.localeCompare(b.skill.skill.name),
     );
+}
+
+/** Every target, or only the one the tab is narrowed to. */
+function shownLanes(lanes: readonly Lane[], selectedId: string | null): readonly Lane[] {
+  return selectedId === null ? lanes : lanes.filter((l) => l.target.id === selectedId);
 }
 
 function approvedCount(skill: ProfileSkill): number {
