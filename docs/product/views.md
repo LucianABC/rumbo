@@ -107,7 +107,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 
 - **Why this direction:** a hand-drawn map in a notebook feels personal and calm, which suits a long job search more than a dashboard; muted inks leave strong color for status, so "awaiting approval" stands out.
 - **Palette:** paper background (`#f3eee4` light, `#1a1814` dark), lighter paper cards, warm ink text, deep green primary.
-  - lines: terracotta, slate blue and plum (`line-1…3`), each ≥ 3:1 against the background in both themes;
+  - lines: green, slate blue and plum (`line-1…3`), each ≥ 3:1 against the background in both themes. The primary line is green because the first terracotta read as an error (owner, 2026-10-23); it is a brighter, bluer green than `success`, so the two never share a value;
   - status: success (green), attention (amber) and pending (warm gray); status text ≥ 4.5:1 on background and cards;
   - errors use crimson (`destructive`) and focus rings the primary green, never a line color, so neither reads as a target;
   - hover fills, skeletons and secondary buttons use a darker paper (`muted`), never the background itself;
@@ -193,8 +193,10 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 
 - **For:** see what the user has, what is missing for their targets, and the market evidence that justifies each gap.
 - **How gaps are inferred**, shown on the page in one sentence: for each active target, rumbo reads a market snapshot of real postings for that role family and region. The skills those postings ask for that the profile lacks evidence for become gaps. Gaps needed by several targets rank higher.
+- **Filter:** every target by default; picking one (`?target=`, which the Roadmap summary band links to) narrows the market, the gaps and the skills to that target.
+- **Layout:** market across the top (every target's snapshot side by side, or one target's across the full width), then gaps beside the skills the user has, with "on this page" links so the skills stay reachable when the gaps run long.
 - **Shows:**
-  - **Market per target:** the snapshot (role family, region, date, posting count) and the top requested skills as a ranked bar list with percentages, readable without the bars. Each skill is marked _you have it_ (with evidence count) or _gap_.
+  - **Market per target:** the snapshot (role family, region, date, posting count) and the top requested skills as a ranked bar list with percentages, readable without the bars, and a line saying each percentage is the share of the target's postings that ask for the skill. Each skill is marked _you have it_ (with evidence count) or _gap_.
   - **Gaps** in priority order, each with:
     - the skill and its status;
     - per target, "asked in 64% of 140 Data Analyst postings";

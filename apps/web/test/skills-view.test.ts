@@ -1,0 +1,261 @@
+import { deriveRoadmapView, type Profile, type RoadmapView } from '@rumbo/contracts';
+import type { MarketSnapshotView } from '@rumbo/contracts/provisional';
+import { describe, expect, it, vi } from 'vitest';
+
+import { coverage } from '../src/lib/coverage';
+import { getMarket, getProfile, getRoadmap, getTargetColors } from '../src/lib/data';
+import { lanesOf } from '../src/lib/roadmap/single-line';
+import {
+  gapCards,
+  haveSkills,
+  isStale,
+  marketView,
+  stationHref,
+  targetFilter,
+} from '../src/lib/skills/skills-view';
+
+vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
+
+const NOW = new Date('2026-10-23T12:00:00.000Z');
+
+async function loaded() {
+  const roadmap = await getRoadmap();
+  const [profile, market] = await Promise.all([getProfile(), getMarket(roadmap)]);
+  const lanes = lanesOf(roadmap, getTargetColors(roadmap, null));
+  return { roadmap, profile, market, lanes, view: deriveRoadmapView(roadmap) };
+}
+
+function snapshot(shares: Record<string, number>, checkedAt = '2026-10-20T00:00:00.000Z') {
+  return {
+    id: 'snap-t',
+    targetId: 't',
+    roleFamily: { id: 't', name: 'T', field: 'Field' },
+    region: 'Remote',
+    checkedAt,
+    postingCount: 50,
+    skills: Object.entries(shares).map(([id, share]) => ({ skill: { id, name: id }, share })),
+  } satisfies MarketSnapshotView;
+}
+
+function profileWith(skills: Record<string, readonly (string | null)[]>): Profile {
+  return {
+    name: 'Sam',
+    headline: 'Example',
+    experiences: [],
+    education: [],
+    certifications: [],
+    languages: [],
+    skills: Object.entries(skills).map(([id, approvals]) => ({
+      id: `ps-${id}`,
+      skill: { id, name: id },
+      category: 'Any',
+      evidence: approvals.map((approvedAt, i) => ({
+        id: `ev-${id}-${String(i)}`,
+        sourceType: 'manual' as const,
+        sourceRef: 'note',
+        approvedAt,
+      })),
+    })),
+    sources: [],
+    updatedAt: '2026-10-01T00:00:00.000Z',
+  };
+}
+
+const APPROVED = '2026-10-01T00:00:00.000Z';
+const gap = (id: string, status: 'open' | 'in_progress' | 'closed' = 'open') => ({
+  id: `gap-${id}`,
+  skill: { id, name: id },
+  priority: 1,
+  rationale: 'Because.',
+  status,
+  demand: [{ targetId: 't', snapshotId: 'snap-t', share: 0.5, postingCount: 50 }],
+});
+
+describe('targetFilter', () => {
+  it('takes a known target, else shows every target', async () => {
+    const { roadmap } = await loaded();
+    const other = roadmap.targets.find((t) => !t.isPrimary)?.id;
+    expect(targetFilter(roadmap, other)).toBe(other);
+    expect(targetFilter(roadmap, undefined)).toBeNull();
+    expect(targetFilter(roadmap, 'nobody')).toBeNull();
+    expect(targetFilter(roadmap, [other ?? '', other ?? ''])).toBeNull();
+  });
+});
+
+describe('isStale', () => {
+  it('flags snapshots older than 30 days', () => {
+    expect(isStale('2026-09-24T12:00:00.000Z', NOW)).toBe(false);
+    expect(isStale('2026-09-22T12:00:00.000Z', NOW)).toBe(true);
+  });
+});
+
+describe('marketView', () => {
+  it('splits asked-for-most from the rest with one continuous rank', () => {
+    const view = marketView(snapshot({ a: 0.7, b: 0.4, c: 0.3, d: 0.29 }), null, [], NOW);
+    expect(view.asked.map((r) => [r.rank, r.skill.id])).toEqual([
+      [1, 'a'],
+      [2, 'b'],
+      [3, 'c'],
+    ]);
+    expect(view.less.map((r) => [r.rank, r.skill.id])).toEqual([[4, 'd']]);
+  });
+
+  it('marks what the user has, what a gap covers and what nothing covers', () => {
+    const profile = profileWith({ a: [APPROVED, APPROVED, null], b: [null], c: [APPROVED] });
+    const view = marketView(
+      snapshot({ a: 0.7, b: 0.6, c: 0.5, d: 0.4 }),
+      profile,
+      [gap('b'), gap('c', 'in_progress')],
+      NOW,
+    );
+    const marks = Object.fromEntries(view.asked.map((r) => [r.skill.id, r.mark]));
+    // Only approved evidence counts (AI rule 2).
+    expect(marks.a).toEqual({ kind: 'have', evidenceCount: 2, gap: null });
+    expect(marks.b).toEqual({ kind: 'gap', gap: { id: 'gap-b', status: 'open' } });
+    // Covered and still worked on: both, so neither the evidence nor the plan is hidden.
+    expect(marks.c).toEqual({
+      kind: 'have',
+      evidenceCount: 1,
+      gap: { id: 'gap-c', status: 'in_progress' },
+    });
+    expect(marks.d).toEqual({ kind: 'missing' });
+  });
+
+  it('marks nothing without a profile', () => {
+    const view = marketView(snapshot({ a: 0.7 }), null, [gap('a')], NOW);
+    expect(view.asked[0]?.mark).toEqual({ kind: 'unknown' });
+  });
+
+  it('only links a market skill to a gap demanded by that target', () => {
+    const otherTargetGap = {
+      ...gap('a'),
+      demand: [{ targetId: 'other', snapshotId: 'snap-other', share: 0.5, postingCount: 50 }],
+    };
+    const view = marketView(snapshot({ a: 0.7 }), profileWith({}), [otherTargetGap], NOW);
+    expect(view.asked[0]?.mark).toEqual({ kind: 'missing' });
+
+    const covered = marketView(
+      snapshot({ a: 0.7 }),
+      profileWith({ a: [APPROVED] }),
+      [otherTargetGap],
+      NOW,
+    );
+    expect(covered.asked[0]?.mark).toEqual({ kind: 'have', evidenceCount: 1, gap: null });
+  });
+
+  it('agrees with the coverage the Roadmap band shows', async () => {
+    const { roadmap, profile, market } = await loaded();
+    const ids = roadmap.targets.map((t) => t.id);
+    for (const entry of coverage(profile, market, ids)) {
+      const view = marketView(entry.snapshot, profile, roadmap.gaps, NOW);
+      expect(view.asked).toHaveLength(entry.asked.length);
+      expect(view.asked.filter((r) => r.mark.kind === 'have')).toHaveLength(entry.covered.length);
+    }
+  });
+});
+
+describe('gapCards', () => {
+  it('lists gaps by priority with demand in lane order and items linked to stations', async () => {
+    const { roadmap, view, lanes } = await loaded();
+    const cards = gapCards(roadmap, view, lanes, null);
+
+    const priorities = cards.map((c) => c.gap.priority);
+    expect(priorities).toEqual([...priorities].sort((a, b) => a - b));
+    const laneIds = lanes.map((l) => l.target.id);
+    for (const card of cards) {
+      const order = card.demand.map((d) => laneIds.indexOf(d.lane.target.id));
+      expect(order).toEqual([...order].sort((a, b) => a - b));
+      expect(card.sharedBy).toBe(card.gap.demand.length);
+      // F3 rule: every gap has a way to close it, and each links to its station.
+      expect(card.items.length).toBeGreaterThan(0);
+      for (const { item, milestone, href } of card.items) {
+        expect(item.gapIds).toContain(card.gap.id);
+        expect(href).toContain(`station=${milestone.id}`);
+        expect(href).toMatch(/^\/roadmap\?/);
+      }
+    }
+  });
+
+  it("lists every gap without a target and only that target's gaps with one", async () => {
+    const { roadmap, view, lanes } = await loaded();
+    const all = gapCards(roadmap, view, lanes, null);
+    expect(all).toHaveLength(roadmap.gaps.length);
+
+    for (const lane of lanes) {
+      const id = lane.target.id;
+      const mine = gapCards(roadmap, view, lanes, id);
+      expect(mine.map((c) => c.gap.id)).toEqual(
+        all.filter((c) => c.gap.demand.some((d) => d.targetId === id)).map((c) => c.gap.id),
+      );
+      // Narrowed, a gap shows only that target's numbers; who else needs it stays a count.
+      for (const card of mine) {
+        expect(card.demand.map((d) => d.lane.target.id)).toEqual([id]);
+        expect(card.sharedBy).toBe(card.gap.demand.length);
+      }
+    }
+  });
+});
+
+describe('stationHref', () => {
+  const served: RoadmapView = {
+    targetsByMilestone: new Map([['m1', ['a', 'b']]]),
+    routes: new Map(),
+    statusByMilestone: new Map(),
+    currentMilestoneId: null,
+  };
+
+  it('opens the station on the selected line when it serves it', () => {
+    expect(stationHref('m1', 'b', served)).toBe('/roadmap?line=b&station=m1');
+  });
+
+  it('falls back to the first target the station serves', () => {
+    expect(stationHref('m1', 'z', served)).toBe('/roadmap?line=a&station=m1');
+  });
+
+  it('takes the first target it serves when nothing is selected', () => {
+    expect(stationHref('m1', null, served)).toBe('/roadmap?line=a&station=m1');
+  });
+
+  it('opens the station alone when it serves nobody known', () => {
+    expect(stationHref('m9', 'a', served)).toBe('/roadmap?station=m9');
+  });
+});
+
+describe('haveSkills', () => {
+  it('puts counted skills first, then the most asked, then by name', async () => {
+    const { lanes, market } = await loaded();
+    const target = lanes[0]?.target.id ?? '';
+    const shares = market.snapshots.find((s) => s.targetId === target)?.skills ?? [];
+    const top = shares[0]?.skill.id ?? '';
+    const profile = profileWith({
+      zeta: [APPROVED],
+      [top]: [APPROVED],
+      alpha: [APPROVED],
+      waiting: [null],
+    });
+
+    const list = haveSkills(profile, market, lanes);
+
+    expect(list.map((s) => s.skill.skill.id)).toEqual([top, 'alpha', 'zeta', 'waiting']);
+    expect(list[0]?.demand?.[0]?.lane.target.id).toBe(target);
+    expect(list.at(-1)?.approved).toBe(0);
+  });
+
+  it("narrows to the skills a target's postings list, unless there is no market", async () => {
+    const { lanes, market } = await loaded();
+    const target = lanes[0]?.target.id ?? '';
+    const listed = market.snapshots.find((s) => s.targetId === target)?.skills[0]?.skill.id ?? '';
+    const profile = profileWith({ [listed]: [APPROVED], 'not-listed-anywhere': [APPROVED] });
+
+    const narrowed = haveSkills(profile, market, lanes, target);
+    expect(narrowed.map((s) => s.skill.skill.id)).toEqual([listed]);
+    expect(narrowed[0]?.demand?.map((d) => d.lane.target.id)).toEqual([target]);
+    expect(haveSkills(profile, null, lanes, target)).toHaveLength(2);
+  });
+
+  it('has no demand without market data', async () => {
+    const { lanes } = await loaded();
+    const [entry] = haveSkills(profileWith({ a: [APPROVED] }), null, lanes);
+    expect(entry?.demand).toBeNull();
+  });
+});

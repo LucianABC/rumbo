@@ -111,6 +111,29 @@ export async function getSummaryData(
 }
 
 /**
+ * Profile and market for Skills & gaps, each null when it is invalid or does not fit the roadmap:
+ * gaps carry their own numbers, so each section degrades on its own instead of the whole tab
+ * failing (#111). Failures are logged like getSummaryData's.
+ */
+export async function getSkillsData(
+  forRoadmap: Roadmap,
+): Promise<{ profile: Profile | null; market: Market | null }> {
+  const [profile, market] = await Promise.allSettled([getProfile(), getMarket(forRoadmap)]);
+  for (const [source, result] of [
+    ['profile', profile],
+    ['market', market],
+  ] as const) {
+    if (result.status === 'rejected') {
+      logger.warn({ err: result.reason, source }, 'skills data unavailable');
+    }
+  }
+  return {
+    profile: profile.status === 'fulfilled' ? profile.value : null,
+    market: market.status === 'fulfilled' ? market.value : null,
+  };
+}
+
+/**
  * Each target's color slot for every tab: one source, so a target looks the same on the map, gap
  * chips and market bars, and keeps its color without a layout (views.md, #102). Takes the data the
  * view already loaded instead of parsing it again.

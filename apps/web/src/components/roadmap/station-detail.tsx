@@ -2,6 +2,7 @@ import type { EvidenceRef, RoadmapItem } from '@rumbo/contracts';
 import { cn } from 'cn';
 import {
   BriefcaseBusiness,
+  ChevronRight,
   CircleCheck,
   Circle,
   FolderGit2,
@@ -195,39 +196,122 @@ function Tasks({ tasks }: { readonly tasks: Extract<RoadmapItem, { type: 'projec
   );
 }
 
-/** Evidence and whether the user approved it: nothing counts until they do (AI rule 2). */
-function Evidence({ evidence }: { readonly evidence: readonly EvidenceRef[] }) {
+/**
+ * Evidence and whether the user approved it: nothing counts until they do (AI rule 2). Skills &
+ * gaps reuses it (#111). Several pieces from the same kind of source collapse into one line that
+ * says so and expands on demand, so a skill backed by five jobs does not fill the card; what still
+ * awaits approval stays visible in that line.
+ */
+export function Evidence({
+  evidence,
+  sourceNames = {},
+}: {
+  readonly evidence: readonly EvidenceRef[];
+  /**
+   * A readable name per profile entry id ("Title · Organization" for an experience, "Name ·
+   * Issuer" for a certification), so evidence never shows a raw id.
+   */
+  readonly sourceNames?: Readonly<Record<string, string>>;
+}) {
   if (evidence.length === 0) {
     return <p className="text-sm text-muted-foreground">No evidence yet.</p>;
   }
+  const groups = bySource(evidence);
   return (
     <div className="flex flex-col gap-1.5">
       <p className="text-xs font-medium text-muted-foreground">Evidence</p>
       <ul role="list" className="flex flex-col gap-2 text-sm">
-        {evidence.map((e) => {
-          const awaiting = e.approvedAt === null;
-          return (
-            <li key={e.id} className="flex flex-col gap-0.5">
-              <span className="flex flex-wrap items-center gap-2">
-                <span className="font-medium">{EVIDENCE_SOURCE_LABEL[e.sourceType]}</span>
-                <span
-                  className={cn(
-                    'inline-flex h-5 items-center rounded-full border px-2 text-2xs font-medium',
-                    awaiting
-                      ? 'border-attention/40 text-attention'
-                      : 'border-success/40 text-success',
-                  )}
-                >
-                  {evidenceStatusLabel(e.approvedAt)}
+        {groups.map(([type, pieces]) => {
+          const [only] = pieces;
+          if (pieces.length === 1 && only) {
+            return (
+              <li key={only.id} className="flex flex-col gap-0.5">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{EVIDENCE_SOURCE_LABEL[type]}</span>
+                  <ApprovalChip approvedAt={only.approvedAt} />
                 </span>
-              </span>
-              <span className="text-muted-foreground">
-                {e.excerpt ?? (e.sourceType === 'commit' ? e.sourceRef.slice(0, 7) : e.sourceRef)}
-              </span>
+                <span className="text-muted-foreground">
+                  {only.excerpt ?? sourceText(only, sourceNames)}
+                </span>
+              </li>
+            );
+          }
+          const awaiting = pieces.filter((e) => e.approvedAt === null).length;
+          const approved = pieces.length - awaiting;
+          return (
+            <li key={type}>
+              <details className="group">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center gap-2 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                  <ChevronRight
+                    aria-hidden
+                    className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+                  />
+                  <span className="font-medium">{EVIDENCE_SOURCE_LABEL[type]}</span>
+                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                    ×{pieces.length}
+                  </span>
+                  {approved > 0 ? <CountChip count={approved} awaiting={false} /> : null}
+                  {awaiting > 0 ? <CountChip count={awaiting} awaiting /> : null}
+                  <span className="text-xs text-muted-foreground group-open:hidden">
+                    collapsed · show all
+                  </span>
+                  <span className="hidden text-xs text-muted-foreground group-open:inline">
+                    hide
+                  </span>
+                </summary>
+                <ul role="list" className="mt-2 flex flex-col gap-2 border-l pl-3">
+                  {pieces.map((e) => (
+                    <li key={e.id} className="flex flex-col gap-0.5">
+                      <span className="text-muted-foreground">
+                        {e.excerpt ?? sourceText(e, sourceNames)}
+                      </span>
+                      <span>
+                        <ApprovalChip approvedAt={e.approvedAt} />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             </li>
           );
         })}
       </ul>
     </div>
   );
+}
+
+/** Evidence by source type, in the order each type first appears. */
+function bySource(evidence: readonly EvidenceRef[]): [EvidenceRef['sourceType'], EvidenceRef[]][] {
+  const groups = new Map<EvidenceRef['sourceType'], EvidenceRef[]>();
+  for (const e of evidence) groups.set(e.sourceType, [...(groups.get(e.sourceType) ?? []), e]);
+  return [...groups];
+}
+
+const CHIP = 'inline-flex h-5 items-center rounded-full border px-2 text-2xs font-medium';
+const AWAITING = 'border-attention/40 text-attention';
+const APPROVED = 'border-success/40 text-success';
+
+function ApprovalChip({ approvedAt }: { readonly approvedAt: string | null }) {
+  return (
+    <span className={cn(CHIP, approvedAt === null ? AWAITING : APPROVED)}>
+      {evidenceStatusLabel(approvedAt)}
+    </span>
+  );
+}
+
+/** "4 approved", "1 awaiting approval": a collapsed group never hides what needs the user. */
+function CountChip({ count, awaiting }: { readonly count: number; readonly awaiting: boolean }) {
+  return (
+    <span className={cn(CHIP, awaiting ? AWAITING : APPROVED)}>
+      {count} {evidenceStatusLabel(awaiting ? null : '')}
+    </span>
+  );
+}
+
+function sourceText(e: EvidenceRef, sourceNames: Readonly<Record<string, string>>): string {
+  if (e.sourceType === 'commit') return e.sourceRef.slice(0, 7);
+  if (e.sourceType === 'experience' || e.sourceType === 'certification') {
+    return sourceNames[e.sourceRef] ?? e.sourceRef;
+  }
+  return e.sourceRef;
 }

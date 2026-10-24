@@ -34,6 +34,7 @@ export const EVIDENCE_SOURCE_LABEL: Readonly<Record<EvidenceRef['sourceType'], s
   project: 'Project',
   experience: 'Work experience',
   education: 'Education',
+  certification: 'Certification',
   manual: 'Added by you',
 };
 

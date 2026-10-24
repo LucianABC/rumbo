@@ -7,7 +7,6 @@ import nextConfig from '../next.config';
 import TabsLayout from '../src/app/(tabs)/layout';
 import ProfilePage from '../src/app/(tabs)/profile/page';
 import ProjectsPage from '../src/app/(tabs)/projects/page';
-import SkillsPage from '../src/app/(tabs)/skills/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
 import { getRoadmap } from '../src/lib/data';
@@ -145,7 +144,6 @@ describe('tab shell', () => {
 describe('planned tabs', () => {
   it.each([
     ['profile', ProfilePage, ['F1', 'F4']],
-    ['skills', SkillsPage, ['F1', 'F2', 'F3']],
     ['projects', ProjectsPage, ['F3', 'F5']],
     ['sources', SourcesPage, ['F1', 'F2']],
   ] as const)('%s shows its title and the Planned state naming its features', (id, Page, ids) => {

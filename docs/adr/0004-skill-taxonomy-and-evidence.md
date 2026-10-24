@@ -1,6 +1,6 @@
 # ADR 0004 — Skill taxonomy and evidence model
 
-- **Status:** Accepted (2026-10-07, revision 4: role families as a catalog; up to three parallel targets)
+- **Status:** Accepted (2026-10-07, revision 4: role families as a catalog; up to three parallel targets; revision 5, 2026-10-23: `certification` evidence source, #111)
 - **Date:** 2026-10-07
 
 ## Context
@@ -28,7 +28,7 @@ Requirement      id, postingId, skillId, importance(must|nice), rawText
 
 -- Owned by a user (userId on every row, every query scoped)
 ProfileSkill     id, userId, skillId, selfLevel?, assessedLevel?
-Evidence         id, userId, profileSkillId, roadmapItemId?, sourceType(experience|project|commit|education|manual),
+Evidence         id, userId, profileSkillId, roadmapItemId?, sourceType(experience|project|commit|education|certification|manual),
                  sourceRef, excerpt, occurredAt?, confidence, createdBy(agent|user), approvedAt?
 Target           id, userId, roleFamilyId, seniority?, workMode?, region?, isPrimary, status(active|archived)   -- max 3 active
 MarketSnapshot   id, userId, roleFamilyId, region, createdAt  +  SnapshotSkillFreq(snapshotId, skillId, frequency)
@@ -47,6 +47,7 @@ RoadmapItemGap   (roadmapItemId, gapId)                            -- the F3 rul
 - **Seed catalogs** versioned in the repo, so evals and tests are deterministic: a **role family catalog** spanning any field (`RoleFamily` with a `field` attribute; seeded tech-first for the MVP) and a **skill catalog** sized to those families. Neither is tied to the owner's own targets; evals cover several role families, not only the persona's.
 - **Evidence is one table for all sources.** A commit that completes a project task (F5), a certificate for a finished course, or a new experience added to the profile all create `Evidence` linked to the roadmap item that produced it. The weekly recalculation reads it the same way; no special cases.
 - **F3 rule (hard, in code):** every gap in a persisted roadmap has **at least one `RoadmapItem` of any type** that addresses it, and every item has a verifiable `doneWhen`. Enforced in the domain service that persists a roadmap, inside a transaction, with tests; it returns a readable error ("gap _Evals_ has no roadmap item") so the roadmap agent can retry. Not a DB trigger.
+- **A certificate is its own evidence source.** `certification` evidence points at a certification in the user's profile, the way `experience` points at a position, so a certificate without a public link is not filed as a free-text `manual` note (owner, 2026-10-23, #111).
 - **Closing a gap requires evidence**, not just ticking a box: a roadmap item becomes `done` only with an approved `Evidence` row (commit, certificate link/file, or new experience entry). Agent-created evidence needs user approval (AI rule 2).
 - **Evidence strength depends on its source.** Gap scoring weighs evidence by `sourceType` (e.g., work experience and shipped projects count more than a short course). Weights are config, set in the F3 spec and tuned with evals.
 - Raw model outputs are kept (`raw` JSONB / `LlmCall` payload refs) for audit and eval building, never as the source of truth.

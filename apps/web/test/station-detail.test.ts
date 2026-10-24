@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
-import { StationDetail } from '../src/components/roadmap/station-detail';
+import { Evidence, StationDetail } from '../src/components/roadmap/station-detail';
 import { getRoadmap, getRoadmapLayout, getTargetColors } from '../src/lib/data';
 import { type SingleLineRow, singleLine } from '../src/lib/roadmap/single-line';
 
@@ -93,5 +93,45 @@ describe('station detail (#109)', () => {
     expect(render(withItems(base, []), gapNames)).toContain(
       'No items planned for this station yet.',
     );
+  });
+});
+
+describe('Evidence (#111)', () => {
+  const evidence = (sourceRef: string) =>
+    [{ id: 'ev-1', sourceType: 'experience', sourceRef, approvedAt: null }] as const;
+
+  it('names an experience instead of showing its id, and falls back to the id', () => {
+    const names = { 'exp-1': 'Analyst · Acme' };
+    const html = (ref: string) =>
+      renderToStaticMarkup(
+        createElement(Evidence, { evidence: evidence(ref), sourceNames: names }),
+      );
+
+    expect(html('exp-1')).toContain('Analyst · Acme');
+    expect(html('exp-1')).not.toContain('exp-1');
+    expect(html('exp-9')).toContain('exp-9');
+  });
+
+  it('collapses several pieces of one source type and keeps what awaits approval in sight', () => {
+    const piece = (id: string, approvedAt: string | null) =>
+      ({ id, sourceType: 'experience', sourceRef: id, approvedAt }) as const;
+    const html = renderToStaticMarkup(
+      createElement(Evidence, {
+        evidence: [
+          piece('exp-1', '2026-10-01T00:00:00.000Z'),
+          piece('exp-2', '2026-10-01T00:00:00.000Z'),
+          piece('exp-3', null),
+          { id: 'm-1', sourceType: 'manual', sourceRef: 'A course', approvedAt: null },
+        ],
+      }),
+    );
+
+    expect(html.match(/<details/g)).toHaveLength(1);
+    expect(html).toContain('×3');
+    expect(html).toContain('2 approved');
+    expect(html).toContain('1 awaiting approval');
+    expect(html).toContain('collapsed · show all');
+    // A single piece of a type stays a plain line.
+    expect(html).toMatch(/Added by you<\/span>/);
   });
 });

@@ -127,8 +127,8 @@ export const profile = {
       evidence: [
         {
           id: 'ev-sql-certificate',
-          sourceType: 'education',
-          sourceRef: 'https://certificates.example.com/sql-fundamentals/4821',
+          sourceType: 'certification',
+          sourceRef: 'certification-sql',
           excerpt: 'Passed with 91%.',
           approvedAt: '2026-09-27T14:05:00.000Z',
         },

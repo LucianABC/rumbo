@@ -124,17 +124,23 @@ export const Profile = ProfileShape.superRefine((profile, ctx) => {
     }
   });
 
-  // Experience evidence must point at an experience in this profile, or it proves nothing.
-  const experienceIds = new Set(profile.experiences.map((e) => e.id));
+  // Experience and certification evidence must point at an entry in this profile, or it proves
+  // nothing.
+  const known = {
+    experience: new Set(profile.experiences.map((e) => e.id)),
+    certification: new Set(profile.certifications.map((c) => c.id)),
+  };
   profile.skills.forEach((skill, i) => {
     skill.evidence.forEach((evidence, j) => {
-      if (evidence.sourceType === 'experience' && !experienceIds.has(evidence.sourceRef)) {
-        issue(`evidence "${evidence.id}" references unknown experience "${evidence.sourceRef}"`, [
-          'skills',
-          i,
-          'evidence',
-          j,
-        ]);
+      const { sourceType } = evidence;
+      if (
+        (sourceType === 'experience' || sourceType === 'certification') &&
+        !known[sourceType].has(evidence.sourceRef)
+      ) {
+        issue(
+          `evidence "${evidence.id}" references unknown ${sourceType} "${evidence.sourceRef}"`,
+          ['skills', i, 'evidence', j],
+        );
       }
     });
   });

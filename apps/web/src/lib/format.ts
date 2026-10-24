@@ -16,3 +16,8 @@ export function formatDay(isoDate: string): string {
     parts.find((p) => p.type === type)?.value ?? '';
   return `${part('day')} ${part('month')} ${part('year')}`;
 }
+
+/** "64%" from a share of postings (0–1), rounded: market numbers never claim more precision. */
+export function formatShare(share: number): string {
+  return `${String(Math.round(share * 100))}%`;
+}

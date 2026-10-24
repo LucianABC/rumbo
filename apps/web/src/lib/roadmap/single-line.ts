@@ -79,17 +79,22 @@ export function laneOrder(roadmap: Roadmap): Target[] {
   return [...roadmap.targets].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
 }
 
-export function singleLine(
-  roadmap: Roadmap,
-  view: RoadmapView,
-  colors: ReadonlyMap<string, LineColorToken>,
-): SingleLine {
-  const lanes = laneOrder(roadmap).map((target, i) => ({
+/** Every target with its color, primary first: the order every tab lists targets in. */
+export function lanesOf(roadmap: Roadmap, colors: ReadonlyMap<string, LineColorToken>): Lane[] {
+  return laneOrder(roadmap).map((target, i) => ({
     target,
     // getTargetColors covers every target (at most three, one slot each); the fallback only keeps
     // the type honest.
     color: colors.get(target.id) ?? (['line-1', 'line-2', 'line-3'] as const)[i] ?? 'line-1',
   }));
+}
+
+export function singleLine(
+  roadmap: Roadmap,
+  view: RoadmapView,
+  colors: ReadonlyMap<string, LineColorToken>,
+): SingleLine {
+  const lanes = lanesOf(roadmap, colors);
 
   const ids = [ORIGIN_ID, ...roadmap.milestones.map((m) => m.id), ...lanes.map((l) => l.target.id)];
   const rowOf = new Map(ids.map((id, i) => [id, i]));
@@ -169,6 +174,18 @@ export function selectedTargetId(
   raw: string | string[] | undefined,
 ): string | null {
   const known = typeof raw === 'string' && roadmap.targets.some((t) => t.id === raw);
+  return known ? raw : null;
+}
+
+/**
+ * The station to open on load: the `station` query param when it names a milestone of this
+ * roadmap, else null. Skills & gaps links each item to its station this way (#111).
+ */
+export function selectedStationId(
+  roadmap: Roadmap,
+  raw: string | string[] | undefined,
+): string | null {
+  const known = typeof raw === 'string' && roadmap.milestones.some((m) => m.id === raw);
   return known ? raw : null;
 }
 
