@@ -1,6 +1,6 @@
 # ADR 0001 — Agent orchestration
 
-- **Status:** Accepted (2026-10-07)
+- **Status:** Accepted (2026-10-07; amendment 1, 2026-10-30: full run-type list and agent catalog, #154)
 - **Date:** 2026-10-07
 
 ## Context
@@ -29,7 +29,7 @@ Current API facts that shape the choice (verified 2026-10-07):
 
 **Option A: own orchestrator and tool loop on `@anthropic-ai/sdk`.**
 
-1. **Orchestrator is deterministic code, not an LLM.** Each run type (`profile.import`, `market.snapshot`, `gaps.analyze`, `roadmap.build`, `drafts.propose`, `push.analyze`) is a typed sequence of steps with persisted state, so steps are resumable and budget is enforced across them. **This departs from the brief**, which routes "orchestration" to Sonnet: our flows are known in advance, and an LLM choosing the next subagent would add cost, latency and non-determinism without adding capability. An LLM planner can be added later for open-ended requests if a real one appears.
+1. **Orchestrator is deterministic code, not an LLM.** Each run type (`profile.import`, `market.snapshot`, `gaps.analyze`, `roadmap.build`, `drafts.propose`, `push.analyze`; the full list is in amendment 1) is a typed sequence of steps with persisted state, so steps are resumable and budget is enforced across them. **This departs from the brief**, which routes "orchestration" to Sonnet: our flows are known in advance, and an LLM choosing the next subagent would add cost, latency and non-determinism without adding capability. An LLM planner can be added later for open-ended requests if a real one appears.
 2. **Subagents** are `AgentDefinition`s in `packages/agents` (versioned prompt, Zod tools, output schema, routing task key). They run a manual tool loop; tool execution is ours, and write tools are never exposed to agents that read untrusted content.
 3. **Every model call** goes through `packages/router`: resolve route → apply model capability profile → call → validate with Zod → on failure retry once with the validation error → then escalate along the route's cascade → record `LlmCall` (model, tokens in/out, cache tokens, cost, run id, prompt version) → check run budget → emit OTel span.
 4. **Routing table** is a versioned, Zod-validated config file in `packages/router`, not a DB table: a routing change is a PR, which triggers evals (AI rule 6). Swapping in telco-router results is a config change.
@@ -42,3 +42,25 @@ Current API facts that shape the choice (verified 2026-10-07):
 - No built-in memory, UI or eval dashboards; Langfuse covers traces, `evals/` covers evals.
 - If a future feature needs a coding agent with a sandbox (e.g., running a user's repo tests), the Claude Agent SDK becomes the right tool **for that feature only**; this ADR does not prevent it.
 - Cascades forfeit cache reuse across models. Evals must also compare "stronger model at lower effort" vs. "cheap model + escalation" before the cascade is kept for a route.
+
+## Amendment 1 (2026-10-30, #154)
+
+The six kinds of agent work above predate target discovery (F2b), profile enrichment and assisted apply. The agents behind every run type, and the steps that are deliberately code, are listed in the [agent catalog](../product/agents.md). The orchestrator stays deterministic; the amendment only adds run types.
+
+| Run type           | Feature          | Agents (in order)                                           |
+| ------------------ | ---------------- | ----------------------------------------------------------- |
+| `profile.import`   | F1               | Document classifier → Profile extractor → Skill normalizer  |
+| `profile.enrich`   | F1, F3, F4       | Profile interviewer (general, gap check or draft mode)      |
+| `market.snapshot`  | F2               | Market scout → Requirement extractor → Skill normalizer     |
+| `targets.discover` | F2b              | Path advisor                                                |
+| `gaps.analyze`     | F3, F5           | Gap analyst                                                 |
+| `roadmap.build`    | F3, F5           | Roadmap planner (build or revise mode)                      |
+| `drafts.propose`   | F4               | Drafter (propose mode) → Fidelity checker                   |
+| `push.analyze`     | F5               | Push triage → Progress judge → Skill normalizer             |
+| `matches.scan`     | jobs inbox (#57) | Market scout → Requirement extractor, then matching in code |
+| `apply.tailor`     | assisted apply   | Drafter (tailor mode) → Fidelity checker                    |
+
+- **`profile.enrich` is a conversation.** It is still one run with a budget and a cap on turns; each user answer resumes the run at its next step, so the orchestrator stays a sequence of persisted steps and the agent never decides what runs next. What the user sees of each mode is defined in [mvp-scope.md](../product/mvp-scope.md) (F1 general mode and the no-CV path, still pending #155; F3 gap check; F4 draft mode) and [views.md](../product/views.md) (onboarding steps 2, 3 and 7; Profile).
+- **The Fidelity checker runs at runtime**, not only in evals: a draft reaches the user only after its claims are checked against the approved profile. The product side is in [mvp-scope.md](../product/mvp-scope.md) (F4, assisted apply), [views.md](../product/views.md) (Profile, Suggested changes) and [cross-cutting.md](../product/cross-cutting.md) (F4).
+- **Those product docs and this table change together:** a slice spec that changes a mode or a run type updates the [agent catalog](../product/agents.md), which links back here.
+- **`matches.scan` and the weekly recalculation are cron-driven.** The weekly recalculation enqueues existing run types (`gaps.analyze`, `roadmap.build` in revise mode); `matches.scan` gets its own cron when #57 is built, and ADR 0005's queue list grows then.
