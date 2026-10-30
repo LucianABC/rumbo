@@ -23,7 +23,7 @@ The app is multi-user and secure from day one, and has a demo user with sample d
 
 ## The journey (one path, end to end)
 
-1. **Upload** the LinkedIn PDF export (or a CV). rumbo extracts a structured profile: experiences, skills and, per skill, the evidence of where and how it was used, then asks a few questions about what the CV leaves thin. Someone with no CV builds the profile by answering those questions instead. The user reviews and corrects it.
+1. **Upload** the LinkedIn PDF export (or a CV). rumbo extracts a structured profile: experiences, skills and, per skill, the evidence of where and how it was used, then asks a few questions about what the CV leaves thin. Someone with no CV builds the profile by answering those questions instead (proposed; where it lands is decided in #155). The user reviews and corrects it.
 2. **Survey the market** for the chosen role families and region. rumbo collects real postings from public sources, normalizes their requirements and builds a snapshot with frequencies per role family.
 3. **Choose a target**: rumbo suggests 3–5 career paths inferred from the profile, asks a short questionnaire about preferences the CV does not show, and compares the paths (pros and cons for this person, real market data, time to ready). The user chooses one to three targets to pursue in parallel and can change them later.
 4. **See the gaps**: profile vs. the chosen targets and their market, with gaps shared by several targets first, prioritized and justified ("asked in 62% of AI Solutions Engineer postings; no evidence in your profile"). Before planning, rumbo asks about those gaps only, so a skill that was simply not written down is not mistaken for one to learn.

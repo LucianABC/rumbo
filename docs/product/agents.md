@@ -2,6 +2,10 @@
 
 Which steps of rumbo are agents (a model call behind `packages/router`) and which are plain code, per feature. ADR 0001 fixes how agents run: a deterministic orchestrator runs each run type as typed steps, and every call goes through the router (route, Zod-validated output, retry once with the error, then escalate, ledger, budget). This page fixes **which** agents exist. Each agent's detailed design (inputs, output schema, tools, budget, prompt version, evals) is #156; slice specs reference it instead of re-deciding it.
 
+> **Status: design intent, nothing here is built yet.** The no-CV path (a profile built only from the Profile interviewer's answers, then a ready-to-send CV) is **proposed, pending #155**: this page assumes #155's option A (the no-CV interview in F1, the ready-to-send CV in F4). Until #155 is decided, read every mention of building a profile or a CV from scratch as proposed, not committed behavior.
+
+**Names used across the product docs:** the agent is the **Profile interviewer**; its modes are **general**, **gap check** and **draft**. The Drafter's modes are **propose** and **tailor**; the Roadmap planner's are **build** and **revise**. The **Fidelity checker** is the agent; the **runtime fidelity check** is the step it runs.
+
 ## Agents
 
 | Agent                   | Feature    | Run type                                            | Route          | Shape                                     | Untrusted input                                                  | Approval path                                                                                                                                                                     |
@@ -27,7 +31,7 @@ Every agent that reads untrusted content has no write tools, and its prompt says
 Two agents serve several slices with one design and one prompt family, switched by a mode input:
 
 - **Profile interviewer.** It exists because a thin profile produces false gaps, and no extraction can recover what the CV never said.
-  - **general** (F1): enrich the profile after extraction, or build it from scratch for a user with no CV;
+  - **general** (F1): enrich the profile after extraction, or build it from scratch for a user with no CV (proposed, pending #155);
   - **gap check** (F3): between gaps and roadmap, ask only about the gaps, so a skill the user has but never wrote down is not planned as something to learn;
   - **draft** (F4): ask for the facts the Drafter flagged as missing (metrics, scope, impact) instead of inventing them.
 - **Drafter.**
@@ -65,4 +69,4 @@ The full list is in ADR 0001, amendment 1. Runs that serve a conversation (`prof
 ## Open
 
 - **Analyze my progress** (Roadmap, #118) runs on mock output in the demo. Which agent produces it, and on which route, is decided when #121 leaves standby.
-- Where building a CV from scratch lands is #155. This catalog assumes its proposed option: the no-CV interview in F1 and the ready-to-send CV in F4.
+- Where building a CV from scratch lands is #155, still open. This catalog assumes its proposed option A (the no-CV interview in F1, the ready-to-send CV in F4); if #155 picks another option, this page, `mvp-scope.md` (F1, F4), `views.md` (onboarding step 2, Profile) and `problem.md` change with it.
