@@ -18,10 +18,15 @@ export const GAP_STATUS_LABEL: Readonly<Record<Gap['status'], string>> = {
 };
 
 export const ITEM_TYPE_LABEL: Readonly<Record<RoadmapItem['type'], string>> = {
-  project: 'practice project',
-  education: 'education',
-  work_experience: 'work experience',
+  project: 'Practice project',
+  education: 'Education',
+  work_experience: 'Work experience',
 };
+
+/** What an item is, as every view names it (#149): education says which kind. */
+export function itemKindLabel(item: RoadmapItem): string {
+  return item.type === 'education' ? EDUCATION_KIND_LABEL[item.kind] : ITEM_TYPE_LABEL[item.type];
+}
 
 /** Evidence is either waiting for the user (AI rule 2) or approved. */
 export function evidenceStatusLabel(approvedAt: string | null): string {

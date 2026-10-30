@@ -1,33 +1,15 @@
 import type { EvidenceRef, RoadmapItem } from '@rumbo/contracts';
 import { cn } from 'cn';
-import {
-  BriefcaseBusiness,
-  ChevronRight,
-  CircleCheck,
-  Circle,
-  FolderGit2,
-  GraduationCap,
-  type LucideIcon,
-} from 'lucide-react';
+import { ChevronRight, CircleCheck, Circle } from 'lucide-react';
 
 import { formatDay } from '../../lib/format';
-import {
-  EDUCATION_KIND_LABEL,
-  EVIDENCE_SOURCE_LABEL,
-  evidenceStatusLabel,
-  ITEM_TYPE_LABEL,
-} from '../../lib/labels';
+import { EVIDENCE_SOURCE_LABEL, evidenceStatusLabel, itemKindLabel } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
 import type { SingleLineRow } from '../../lib/roadmap/single-line';
 import { StatusChip } from '../status-chip';
+import { ITEM_ICON } from './item-icon';
 
 type MilestoneRow = Extract<SingleLineRow, { kind: 'milestone' }>;
-
-const ITEM_ICON: Readonly<Record<RoadmapItem['type'], LucideIcon>> = {
-  project: FolderGit2,
-  education: GraduationCap,
-  work_experience: BriefcaseBusiness,
-};
 
 /**
  * What a station holds (spec 01, M2, #109): the targets it advances, then each item with its
@@ -100,9 +82,7 @@ function Item({
 }) {
   const Icon = ITEM_ICON[item.type];
   const kind =
-    item.type === 'education'
-      ? `${EDUCATION_KIND_LABEL[item.kind]} · ${item.provider}`
-      : ITEM_TYPE_LABEL[item.type];
+    item.type === 'education' ? `${itemKindLabel(item)} · ${item.provider}` : itemKindLabel(item);
 
   return (
     <article className="flex flex-col gap-3 rounded-lg border bg-card p-4">

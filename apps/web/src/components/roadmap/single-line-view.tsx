@@ -1,11 +1,10 @@
 'use client';
 
-import type { RoadmapItem } from '@rumbo/contracts';
 import { cn } from 'cn';
-import { BriefcaseBusiness, FolderGit2, GraduationCap, type LucideIcon } from 'lucide-react';
 import { type CSSProperties, type KeyboardEvent, useId, useRef, useState } from 'react';
 
 import { formatDay } from '../../lib/format';
+import { itemKindLabel } from '../../lib/labels';
 import { rovingIndex } from '../../lib/roadmap/roving';
 import { LINE_BG, LINE_BG_AHEAD, LINE_BORDER } from '../../lib/line-colors';
 import {
@@ -15,6 +14,7 @@ import {
   stationLabel,
 } from '../../lib/roadmap/single-line';
 import { StatusChip } from '../status-chip';
+import { ITEM_ICON } from './item-icon';
 
 /*
  * Track geometry in px. MARKER_Y is the middle of a station's title line (card margin 4 + padding
@@ -25,12 +25,6 @@ const LANE_GAP = 20;
 const MARKER_Y = 24;
 
 const laneX = (index: number) => LANE_START + index * LANE_GAP;
-
-const ITEM_ICON: Readonly<Record<RoadmapItem['type'], LucideIcon>> = {
-  project: FolderGit2,
-  education: GraduationCap,
-  work_experience: BriefcaseBusiness,
-};
 
 const WORK_MODE_LABEL = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On site' } as const;
 
@@ -285,7 +279,13 @@ function MilestoneStation({
           return (
             <li key={item.id} className="flex items-start gap-2 text-sm">
               <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1">{item.title}</span>
+              {/* A visible name, not a hover tooltip: the button's ::after covers the card, so
+                  hover never reaches the icon, and touch and keyboard have no hover (#149). */}
+              <span className="min-w-0 flex-1">
+                <span className="mr-1.5 text-xs text-muted-foreground">{itemKindLabel(item)}</span>
+                <span className="sr-only">: </span>
+                {item.title}
+              </span>
               {item.expectedEnd ? (
                 <span className="shrink-0 font-mono text-2xs leading-5 text-muted-foreground tabular-nums">
                   {formatDay(item.expectedEnd)}

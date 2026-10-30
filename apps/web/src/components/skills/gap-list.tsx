@@ -3,7 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 import { formatShare } from '../../lib/format';
-import { ITEM_TYPE_LABEL } from '../../lib/labels';
+import { itemKindLabel } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
 import type { GapCard } from '../../lib/skills/skills-view';
 import { GapStatusChip, StatusChip } from '../status-chip';
@@ -97,7 +97,7 @@ function GapItem({ card: { gap, demand, sharedBy, items } }: { readonly card: Ga
                 href={href}
                 className="group flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 rounded-md border px-3 py-2 text-sm outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <span className="text-xs text-muted-foreground">{ITEM_TYPE_LABEL[item.type]}</span>
+                <span className="text-xs text-muted-foreground">{itemKindLabel(item)}</span>
                 <span className="min-w-0 font-medium break-words">{item.title}</span>
                 <StatusChip status={item.status} />
                 <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground group-hover:text-foreground">
