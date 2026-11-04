@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import {
+  afterReview,
   type BadgeCount,
   isActiveTab,
   type TabBadge,
@@ -13,6 +14,7 @@ import {
   TABS,
   type TabId,
 } from '../../lib/tabs';
+import { useDraftDecisions } from '../profile/draft-decisions';
 
 const ICONS: Readonly<Record<TabId, LucideIcon>> = {
   roadmap: Route,
@@ -28,6 +30,7 @@ const ICONS: Readonly<Record<TabId, LucideIcon>> = {
  */
 export function TabNav({ badges }: { readonly badges: TabBadges }) {
   const pathname = usePathname();
+  const reviewed = Object.keys(useDraftDecisions().decisions).length;
 
   return (
     <nav
@@ -38,7 +41,8 @@ export function TabNav({ badges }: { readonly badges: TabBadges }) {
         {TABS.map((tab) => {
           const active = isActiveTab(tab, pathname);
           const Icon = ICONS[tab.id];
-          const badge = badges[tab.id];
+          const badge =
+            tab.id === 'profile' ? afterReview(badges[tab.id], reviewed) : badges[tab.id];
           return (
             <li key={tab.id}>
               <Link

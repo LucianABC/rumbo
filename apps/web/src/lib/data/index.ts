@@ -6,10 +6,11 @@ import {
   RoadmapLayout,
   targetColors,
 } from '@rumbo/contracts';
-import { checkMarket, Market } from '@rumbo/contracts/provisional';
+import { checkDrafts, checkMarket, Drafts, Market } from '@rumbo/contracts/provisional';
 import { connection } from 'next/server';
 import type { z } from 'zod';
 
+import { drafts as bundledDrafts } from '../../mocks/drafts';
 import { market as bundledMarket } from '../../mocks/market';
 import { profile } from '../../mocks/profile';
 import { roadmap } from '../../mocks/roadmap';
@@ -131,6 +132,36 @@ export async function getSkillsData(
     profile: profile.status === 'fulfilled' ? profile.value : null,
     market: market.status === 'fulfilled' ? market.value : null,
   };
+}
+
+/**
+ * Suggested profile changes; provisional until the F4 spec (#44). Drafts that do not fit this
+ * profile and roadmap reject like invalid data: a diff of text the profile no longer has would
+ * mislead (#113).
+ */
+export async function getDrafts(forProfile: Profile, forRoadmap: Roadmap): Promise<Drafts> {
+  await connection();
+  const drafts = parse(Drafts, await localOr('drafts', bundledDrafts), 'drafts');
+  const problems = checkDrafts(drafts, forProfile, forRoadmap);
+  if (problems.length > 0) throw new Error(`Invalid drafts:\n${problems.join('\n')}`);
+  return drafts;
+}
+
+/**
+ * The changes for the Profile tab and its badge, or null when the profile or the drafts cannot be
+ * read: the tab still shows the profile, and no other tab needs them (#113). Logged like
+ * getSummaryData's failures. Takes the profile in flight, like getSummaryData.
+ */
+export async function getSuggestedChanges(
+  pendingProfile: Promise<Profile>,
+  forRoadmap: Roadmap,
+): Promise<Drafts['changes'] | null> {
+  try {
+    return (await getDrafts(await pendingProfile, forRoadmap)).changes;
+  } catch (err) {
+    logger.warn({ err }, 'suggested changes unavailable');
+    return null;
+  }
 }
 
 /**

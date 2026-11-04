@@ -4,14 +4,20 @@ import type { ReactNode } from 'react';
 export function PageHeader({
   title,
   provenance,
+  action,
 }: {
   readonly title: string;
   readonly provenance?: ReactNode;
+  /** Something to do from here, beside the title (#113). */
+  readonly action?: ReactNode;
 }) {
   return (
-    <header className="mb-6">
-      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
-      {provenance ? <p className="mt-1 text-sm text-muted-foreground">{provenance}</p> : null}
+    <header className="mb-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
+        {provenance ? <p className="mt-1 text-sm text-muted-foreground">{provenance}</p> : null}
+      </div>
+      {action}
     </header>
   );
 }

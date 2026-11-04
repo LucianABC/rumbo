@@ -33,6 +33,15 @@ export function evidenceStatusLabel(approvedAt: string | null): string {
   return approvedAt === null ? 'awaiting approval' : 'approved';
 }
 
+/** A suggested change: waiting for the user, or decided on this visit (#113). */
+export type DraftStatus = 'awaiting' | 'approved' | 'rejected';
+
+export const DRAFT_STATUS_LABEL: Readonly<Record<DraftStatus, string>> = {
+  awaiting: evidenceStatusLabel(null),
+  approved: evidenceStatusLabel(''),
+  rejected: 'rejected',
+};
+
 /** Where a piece of evidence comes from, as the station sheet names it (#109). */
 export const EVIDENCE_SOURCE_LABEL: Readonly<Record<EvidenceRef['sourceType'], string>> = {
   commit: 'Commit',

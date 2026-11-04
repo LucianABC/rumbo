@@ -156,12 +156,13 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 ## Profile — F1 (#41), F4 (#44)
 
 - **For:** the user's full professional profile, presented as well as a good CV, and where it came from.
+- **Layout:** one page that reads in about a screen on desktop. A strip of profile sources with their update links comes first, then the CV. Suggested changes live behind a bell with what is left to review, as a panel of notifications (#113).
 - **Shows:**
   - header: name, headline, location, linked LinkedIn URL;
   - about;
   - experience as a timeline (role, organization, period, highlights);
   - education and certifications;
-  - skills grouped by category, each with an evidence count (details in Skills & gaps).
+  - skills in lines by category, best-backed first, with dots counting their evidence (details in Skills & gaps).
 - **Sources of the profile:**
   - **Upload CV** (PDF).
   - **Build by interview** (proposed, pending #155): for a user with no CV, the Profile interviewer (general mode) builds the profile from answers.

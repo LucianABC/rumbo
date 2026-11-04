@@ -5,12 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import nextConfig from '../next.config';
 import TabsLayout from '../src/app/(tabs)/layout';
-import ProfilePage from '../src/app/(tabs)/profile/page';
 import ProjectsPage from '../src/app/(tabs)/projects/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
 import { getRoadmap } from '../src/lib/data';
-import { getTab, isActiveTab, tabBadges, TABS } from '../src/lib/tabs';
+import { afterReview, getTab, isActiveTab, tabBadges, TABS } from '../src/lib/tabs';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -73,6 +72,15 @@ describe('tabs', () => {
     expect(open).toBeGreaterThan(0);
     expect(badges.projects?.count?.value).toBe(open);
     expect(badges.projects?.attention?.value).toBe(projects.length);
+  });
+
+  it('counts suggested changes on Profile, minus the ones already reviewed', async () => {
+    const badges = tabBadges(await getRoadmap(), 3);
+
+    expect(badges.profile?.attention?.value).toBe(3);
+    expect(afterReview(badges.profile, 1)?.attention?.value).toBe(2);
+    expect(afterReview(badges.profile, 9)?.attention?.value).toBe(0);
+    expect(afterReview(undefined, 1)).toBeUndefined();
   });
 
   it('counts nothing when the roadmap has no projects', async () => {
@@ -143,7 +151,6 @@ describe('tab shell', () => {
 
 describe('planned tabs', () => {
   it.each([
-    ['profile', ProfilePage, ['F1', 'F4']],
     ['projects', ProjectsPage, ['F3', 'F5']],
     ['sources', SourcesPage, ['F1', 'F2']],
   ] as const)('%s shows its title and the Planned state naming its features', (id, Page, ids) => {
