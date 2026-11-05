@@ -250,13 +250,14 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - one card per project, in a single column so each reads whole, never per deliverable: a project is its repo, and a deliverable with no repo stands alone. Every card reads the same, with one deliverable or many;
   - a deliverable per Roadmap station, folded with the current one open. The station's name, which links to it, its lines (the target's color with its initials) and the gaps it closes (linked to Skills & gaps) always show, closed or not; inside are `doneWhen` and its tasks. Tasks have no gaps of their own: they serve their deliverable's, which is how each one traces back to a skill, a gap and a station;
   - a link to the repo on any host, under the title, with the host in its text; last activity and tasks with done state;
-  - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject; approving it is what completes that task;
+  - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject; approving it completes that task. Whether a clear match needs this too is open (`mvp-scope.md`, F5);
   - a completed section with approved evidence.
 - **Badges:** an attention badge for evidence awaiting approval. The header spells out open tasks and evidence awaiting approval.
 - **Same story as Roadmap:** both tabs read the same deliverables and tasks, and every practice project on Roadmap links to its deliverable here: in the station list, in the station's panel and, on desktop before a line is picked, in a list under the map. The decisions made here show on the station too.
 - **Demo interaction:** Approve/Reject is local state only.
 - **Full feature adds:**
-  - GitHub App push analysis;
+  - GitHub App push analysis, and **Check repo now** on each project to run it on demand (`agents.md`);
+  - proposals for skills and objectives the repo shows and the plan lacks, with Approve/Reject;
   - linking a repo;
   - weekly recalculation summary;
   - application log (until the jobs inbox, #57, has its own place).

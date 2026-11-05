@@ -22,7 +22,7 @@ Which steps of rumbo are agents (a model call behind `packages/router`) and whic
 | Drafter                 | F1, F4, apply | `profile.import`, `drafts.propose`, `apply.tailor`  | Sonnet         | single call                               | the profile; in tailor mode, the posting text                    | every proposed change is approved or rejected one by one; nothing is copied, exported or sent before that; review mode (proposed, #113) is labeled opinion and changes nothing    |
 | Fidelity checker        | F1, F4, apply | `profile.import`, `drafts.propose`, `apply.tailor`  | Haiku          | judge                                     | the draft and the profile                                        | none of its own: a claim it rejects is regenerated or dropped before the user sees the draft, never shown as if it passed                                                         |
 | Push triage             | F5            | `push.analyze`                                      | Haiku          | single call                               | commit messages and diff summaries                               | none: it only decides whether a push is worth judging                                                                                                                             |
-| Progress judge          | F5            | `push.analyze`                                      | Sonnet         | read-only tool loop                       | diffs and repository files                                       | a clear match completes the task with the commit as evidence; a doubtful one is shown as "awaiting approval" (AI rule 2)                                                          |
+| Progress judge          | F5            | `push.analyze`                                      | Sonnet         | read-only tool loop                       | diffs and repository files                                       | a clear match completes the task with the commit as evidence; a doubtful one is shown as "awaiting approval" (AI rule 2); what it finds beyond the plan is only ever a proposal   |
 
 Every agent that reads untrusted content has no write tools, and its prompt says that content is data, not instructions (AI rule 1). The two tool loops only read: the Market scout searches postings (through `packages/mcp-jobs`) and the web; the Progress judge reads the repository through the GitHub App's read-only access.
 
@@ -39,7 +39,18 @@ Two agents serve several slices with one design and one prompt family, switched 
   - **propose** (F4): LinkedIn and CV text for the primary target or a blend, and one CV variant per active target;
   - **tailor** (assisted apply, #57): a CV, and an optional cover letter, for one posting, using the posting's terms only where they are true for the user;
   - in both modes it outputs the drafts plus a list of **missing facts**, which the Profile interviewer's draft mode asks about.
-- **Roadmap planner** has a **revise** mode for target changes and the weekly recalculation: it starts from the current roadmap and keeps done items and approved evidence.
+- **Roadmap planner** has a **revise** mode for target changes, the weekly recalculation and work found in a repo: it starts from the current roadmap and keeps done items and approved evidence.
+
+### Reading a repo beyond the plan
+
+The Progress judge does not only check the plan against the repo. It also looks for what the plan and the profile do not cover yet (owner, 2026-11-05, #45):
+
+- **New skills:** a skill or tool the code uses that the profile lacks goes through the Skill normalizer and becomes a proposed profile skill, with the commit as its evidence.
+- **New objectives:** work that fits no deliverable becomes a proposed task, deliverable or station. The Roadmap planner's revise mode places it, and the user confirms the preview.
+
+Both are proposals: nothing reaches the profile or the roadmap until the user approves it (AI rule 2). A skill must show in the code that uses it: a commit message, a README or a dependency list is untrusted content and proves nothing on its own (AI rule 1). An approved skill then feeds the gaps like any other evidence, so it can close one.
+
+Analysis runs on every push and on demand: **Check repo now** on a project runs `push.analyze` over the commits not analyzed yet, which covers work from before the repo was linked and pushes that never arrived. Analyzed commits are skipped, so it spends nothing when there is nothing new.
 
 The Fidelity checker runs on every draft at runtime, not only in evals: it compares each claim against the approved profile and rejects achievements, metrics or technologies the profile does not have.
 
@@ -70,5 +81,6 @@ The full list is in ADR 0001, amendment 1. Runs that serve a conversation (`prof
 
 ## Open
 
+- Whether a clear match can complete a task alone is open: see F5 in `mvp-scope.md`.
 - **Analyze my progress** (Roadmap, #118) runs on mock output in the demo. Which agent produces it, and on which route, is decided when #121 leaves standby.
 - Where building a CV from scratch lands is #155, still open. This catalog assumes its proposed option A (the no-CV interview in F1, the ready-to-send CV in F4); if #155 picks another option, this page, `mvp-scope.md` (F1, F4), `views.md` (onboarding step 2, Profile) and `problem.md` change with it.
