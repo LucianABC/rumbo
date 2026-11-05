@@ -5,12 +5,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import nextConfig from '../next.config';
 import TabsLayout from '../src/app/(tabs)/layout';
-import ProjectsPage from '../src/app/(tabs)/projects/page';
 import JobsPage from '../src/app/(tabs)/jobs/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
 import { getRoadmap } from '../src/lib/data';
-import { getTab, isActiveTab, profileBadge, tabBadges, TABS } from '../src/lib/tabs';
+import {
+  badgeSummary,
+  countText,
+  getTab,
+  isActiveTab,
+  profileBadge,
+  tabBadges,
+  TABS,
+} from '../src/lib/tabs';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -75,12 +82,13 @@ describe('tabs', () => {
     };
     const projects = roadmap.milestones.flatMap((m) => m.items).filter((i) => i.type === 'project');
     const open = projects.flatMap((p) => p.tasks).filter((t) => !t.done).length;
+    const awaiting = projects.flatMap((p) => p.evidence).filter((e) => e.approvedAt === null);
 
     const badges = tabBadges(withCommits);
 
     expect(open).toBeGreaterThan(0);
     expect(badges.projects?.count?.value).toBe(open);
-    expect(badges.projects?.attention?.value).toBe(projects.length);
+    expect(badges.projects?.attention?.value).toBe(projects.length + awaiting.length);
   });
 
   it('counts suggested changes on Profile, minus the ones already reviewed', () => {
@@ -156,6 +164,27 @@ describe('tab navigation', () => {
     expect(html).toContain('<span class="sr-only">, 3 open tasks, 1 awaiting approval</span>');
     expect(html).not.toContain('suggested changes');
   });
+
+  it('shows a pill only for what waits on the user, and says both in the tooltip', () => {
+    const html = nav({
+      projects: {
+        count: { value: 3, label: 'open tasks' },
+        attention: { value: 1, label: 'awaiting approval' },
+      },
+    });
+
+    expect(html).toContain('title="3 open tasks, 1 awaiting approval"');
+    expect(html).toMatch(/bg-attention px-1\.5[^>]*>1<\/span>/);
+    expect(html).not.toMatch(/>3<\/span>/);
+  });
+
+  it('says a count of one in the singular and leaves an empty badge out', () => {
+    expect(countText({ value: 1, label: 'open tasks' })).toBe('1 open task');
+    expect(countText({ value: 2, label: 'open tasks' })).toBe('2 open tasks');
+    expect(countText({ value: 1, label: 'awaiting approval' })).toBe('1 awaiting approval');
+    expect(badgeSummary({ attention: { value: 0, label: 'awaiting approval' } })).toBeUndefined();
+    expect(badgeSummary(undefined)).toBeUndefined();
+  });
 });
 
 describe('tab shell', () => {
@@ -177,7 +206,6 @@ describe('tab shell', () => {
 
 describe('planned tabs', () => {
   it.each([
-    ['projects', ProjectsPage, ['F3', 'F5']],
     ['sources', SourcesPage, ['F1', 'F2']],
     ['jobs', JobsPage, ['#57']],
   ] as const)('%s shows its title and the Planned state naming its features', (id, Page, ids) => {

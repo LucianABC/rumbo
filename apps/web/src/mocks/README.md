@@ -10,6 +10,7 @@ Data for one fictional user after onboarding (spec 01). The user is a customer s
 | `market.ts`         | One snapshot per target (F2)  | `Market` (`@rumbo/contracts/provisional`)          |
 | `drafts.ts`         | Suggested changes (F4)        | `Drafts` (`@rumbo/contracts/provisional`)          |
 | `analysis.ts`       | Profile analysis (F1)         | `ProfileAnalysis` (`@rumbo/contracts/provisional`) |
+| `progress.ts`       | Project activity (F5)         | `Progress` (`@rumbo/contracts/provisional`)        |
 
 The other tabs add their files here as they are built (#111–#115). Contracts that no spec backs yet go in a `@rumbo/contracts/provisional` export, created by the first tab that needs one.
 
@@ -25,9 +26,9 @@ Cross-mock references must resolve once both files exist. For example, the evide
 
 To see the demo with your own data without committing it (#137), put JSON files in `.local/mocks/` at the repo root. The folder is gitignored; never commit it, because the repo is public and its history keeps everything.
 
-- Each file is named after the mock it replaces: `roadmap.json`, `roadmap-layout.json`, `profile.json`, `market.json`, `drafts.json`, `analysis.json`. A missing file falls back to the fictional mock.
+- Each file is named after the mock it replaces: `roadmap.json`, `roadmap-layout.json`, `profile.json`, `market.json`, `drafts.json`, `analysis.json`, `progress.json`. A missing file falls back to the fictional mock.
 - `lib/data` reads them when `LOCAL_MOCKS_DIR` points at the folder. `docker compose` sets it and mounts the folder read-only. For `next dev`, set `LOCAL_MOCKS_DIR=../../.local/mocks` in `apps/web/.env.local`.
-- They are validated with the same schemas: invalid data fails the same way. A roadmap with different milestones or targets needs its own `roadmap-layout.json`, or the map degrades to the single-line view. A `profile.json` needs its own `drafts.json` and `analysis.json`, or Suggested changes and the analysis show as unavailable: drafts must match the profile's text, and an analysis its `updatedAt`.
+- They are validated with the same schemas: invalid data fails the same way. A roadmap with different milestones or targets needs its own `roadmap-layout.json`, or the map degrades to the single-line view. A `profile.json` needs its own `drafts.json` and `analysis.json`, or Suggested changes and the analysis show as unavailable: drafts must match the profile's text, and an analysis its `updatedAt`. A `roadmap.json` needs its own `progress.json`, or Projects shows activity as unavailable: activity must name that roadmap's projects.
 - Unit tests and CI always use the fictional user. The local e2e run goes through `docker compose`, so it sees your files: e2e tests must not depend on mock content.
 
 ## Replacing with real data

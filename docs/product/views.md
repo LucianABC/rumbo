@@ -66,7 +66,7 @@ The weekly recalculation (F5) recomputes the plan for the current targets (as in
   - a bell with suggested changes to review (#113);
   - a user menu with Settings and "Delete all my data" (`DELETE /api/v1/me`, #37).
 - **Order of tabs** follows the user's loop: see the plan, see who I am, see why, do the work, check the data, apply.
-- **Badges:** neutral **count** pills for collections (Projects: open tasks). A distinct **attention** badge for things waiting on the user (Projects: evidence awaiting approval; Profile: suggested changes to review, also on the header's bell).
+- **Badges:** only things waiting on the user get a visible **attention** pill (Projects: evidence awaiting approval; Profile: suggested changes to review, also on the header's bell). A bare count means nothing in the rail (owner, #114), so counts for collections (Projects: open tasks) go in the tab's tooltip and screen-reader text, and each tab spells its numbers out in its header.
 - **Routes:**
   - `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`, `/jobs`;
   - `/onboarding`, outside the shell; a user with no profile or no active targets is sent there from any tab;
@@ -232,19 +232,19 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 
 - **For:** follow the practice projects in the roadmap and what proves their progress.
 - **Shows:**
-  - one card per project item: title, the gaps it closes and their targets, `doneWhen`;
-  - repo, last activity, tasks with done state;
-  - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject;
+  - one card per project, never per roadmap item: a project is its repo, so items on the same repo show as folded stages of one card, the current one open, and an item with no repo stands alone. Each card has its title, the gaps it closes and their targets, and each stage its `doneWhen`;
+  - a link to the repo on any host, under the title, with the host in its text; last activity and tasks with done state;
+  - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject; approving it is what completes that task;
   - a completed section with approved evidence.
-- **Badges:** open-task count, plus an attention badge for evidence awaiting approval.
+- **Badges:** an attention badge for evidence awaiting approval. The header spells out open tasks and evidence awaiting approval.
 - **Demo interaction:** Approve/Reject is local state only.
 - **Full feature adds:**
   - GitHub App push analysis;
   - linking a repo;
   - weekly recalculation summary;
   - application log (until the jobs inbox, #57, has its own place).
-- **States:** empty: no project items in the roadmap; repo not linked: a hint.
-- **Data:** `getRoadmap()` (project items, tasks, evidence) and `getProgress()` for activity (provisional until the F5 spec). Evidence reuses `EvidenceRef`.
+- **States:** empty: no project items in the roadmap; repo not linked: a hint; activity unavailable: the cards still show everything the roadmap holds.
+- **Data:** `getRoadmap()` (project items, tasks, evidence) and `getProgress()` for activity (provisional until the F5 spec). Evidence reuses `EvidenceRef`, whose `taskId` names the task it proves.
 
 ## Sources — F1 (#41), F2 (#42)
 
