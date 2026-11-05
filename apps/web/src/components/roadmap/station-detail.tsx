@@ -1,20 +1,25 @@
 import type { EvidenceRef, RoadmapItem } from '@rumbo/contracts';
 import { cn } from 'cn';
-import { ChevronRight, CircleCheck, Circle } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 import { formatDay } from '../../lib/format';
 import { EVIDENCE_SOURCE_LABEL, evidenceStatusLabel, itemKindLabel } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
+import { decidedEvidence, type TaskRow, taskRows } from '../../lib/projects/projects-view';
 import type { SingleLineRow } from '../../lib/roadmap/single-line';
+import { useEvidenceDecisions } from '../../lib/store';
 import { StatusChip } from '../status-chip';
+import { TaskList } from '../task-list';
 import { ITEM_ICON } from './item-icon';
+import { ProjectLink } from './project-link';
 
 type MilestoneRow = Extract<SingleLineRow, { kind: 'milestone' }>;
 
 /**
  * What a station holds (spec 01, M2, #109): the targets it advances, then each item with its
  * type, status, `doneWhen`, the gaps it closes, tasks, evidence with its approval state, and
- * dates, with an explicit state wherever something is missing.
+ * dates, with an explicit state wherever something is missing. A project links to its place on
+ * Projects and reads the decisions made there, so both tabs tell the same story (#114).
  */
 export function StationDetail({
   row,
@@ -55,10 +60,12 @@ export function StationDetail({
 
       <section aria-labelledby="station-items" className="flex flex-col gap-3">
         <h3 id="station-items" className="text-xs font-semibold text-muted-foreground uppercase">
-          What closes it
+          Deliverables
         </h3>
         {row.milestone.items.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No items planned for this station yet.</p>
+          <p className="text-sm text-muted-foreground">
+            No deliverables planned for this station yet.
+          </p>
         ) : (
           <ul role="list" className="flex flex-col gap-3">
             {row.milestone.items.map((item) => (
@@ -80,6 +87,7 @@ function Item({
   readonly item: RoadmapItem;
   readonly gapNames: Readonly<Record<string, string>>;
 }) {
+  const { decisions } = useEvidenceDecisions();
   const Icon = ITEM_ICON[item.type];
   const kind =
     item.type === 'education' ? `${itemKindLabel(item)} · ${item.provider}` : itemKindLabel(item);
@@ -98,6 +106,7 @@ function Item({
         {item.type === 'work_experience' ? (
           <p className="text-sm text-muted-foreground">{item.context}</p>
         ) : null}
+        {item.type === 'project' ? <ProjectLink item={item} /> : null}
       </header>
 
       <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-sm">
@@ -140,13 +149,19 @@ function Item({
         ) : null}
       </dl>
 
-      {item.type === 'project' ? <Tasks tasks={item.tasks} /> : null}
-      <Evidence evidence={item.evidence} />
+      {item.type === 'project' ? <Tasks tasks={taskRows(item, decisions)} /> : null}
+      <Evidence
+        evidence={
+          item.type === 'project'
+            ? decidedEvidence(item.evidence, decisions, new Date().toISOString())
+            : item.evidence
+        }
+      />
     </article>
   );
 }
 
-function Tasks({ tasks }: { readonly tasks: Extract<RoadmapItem, { type: 'project' }>['tasks'] }) {
+function Tasks({ tasks }: { readonly tasks: readonly TaskRow[] }) {
   if (tasks.length === 0) {
     return <p className="text-sm text-muted-foreground">No tasks yet.</p>;
   }
@@ -157,21 +172,7 @@ function Tasks({ tasks }: { readonly tasks: Extract<RoadmapItem, { type: 'projec
         Tasks ·{' '}
         <span className="font-mono tabular-nums">{`${String(done)}/${String(tasks.length)}`}</span>
       </p>
-      <ul role="list" className="flex flex-col gap-1 text-sm">
-        {tasks.map((task) => (
-          <li key={task.id} className="flex items-start gap-2">
-            {task.done ? (
-              <CircleCheck aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
-            ) : (
-              <Circle aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-            )}
-            <span className={cn(task.done && 'text-muted-foreground line-through')}>
-              <span className="sr-only">{task.done ? 'Done: ' : 'To do: '}</span>
-              {task.title}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <TaskList tasks={tasks} />
     </div>
   );
 }

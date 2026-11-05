@@ -1,7 +1,7 @@
 'use client';
 
+import { useEvidenceDecisions } from '../../lib/store';
 import { countText, projectsBadge, type TabBadge } from '../../lib/tabs';
-import { useEvidenceDecisions } from './evidence-decisions';
 
 const CHIP = 'inline-flex h-6 items-center rounded-full border px-2.5 text-xs font-medium';
 

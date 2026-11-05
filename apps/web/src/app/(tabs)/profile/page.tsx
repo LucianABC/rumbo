@@ -1,8 +1,5 @@
-import { PageHeader } from '../../../components/page-header';
 import { tabMetadata } from '../../../components/planned';
-import { CompletenessBar } from '../../../components/profile/completeness-bar';
-import { ProfileCv } from '../../../components/profile/profile-cv';
-import { ProfileSources } from '../../../components/profile/profile-sources';
+import { ProfileView } from '../../../components/profile/profile-view';
 import {
   getProfile,
   getProfileAnalysis,
@@ -11,11 +8,7 @@ import {
   getSuggestedChanges,
   getTargetColors,
 } from '../../../lib/data';
-import {
-  profileCompleteness,
-  profileProvenance,
-  suggestions,
-} from '../../../lib/profile/profile-view';
+import { suggestions } from '../../../lib/profile/profile-view';
 import { lanesOf } from '../../../lib/roadmap/single-line';
 
 export const metadata = tabMetadata('profile');
@@ -36,24 +29,13 @@ export default async function ProfilePage() {
     getProfileAnalysis(pendingProfile),
   ]);
   const lanes = lanesOf(roadmap, getTargetColors(roadmap, layout));
-  const { percent, next } = profileCompleteness(profile);
 
   return (
-    <>
-      <PageHeader
-        title="Profile"
-        provenance={profileProvenance(profile)}
-        action={
-          <CompletenessBar
-            percent={percent}
-            next={next}
-            suggestions={changes ? suggestions(changes, profile, lanes) : []}
-            className="w-full sm:w-96"
-          />
-        }
-      />
-      <ProfileSources profile={profile} />
-      <ProfileCv profile={profile} analysis={analysis} now={new Date()} />
-    </>
+    <ProfileView
+      imported={profile}
+      analysis={analysis}
+      suggestions={changes ? suggestions(changes, profile, lanes) : []}
+      now={new Date()}
+    />
   );
 }

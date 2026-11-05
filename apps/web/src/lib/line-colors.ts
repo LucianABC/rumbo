@@ -23,6 +23,13 @@ export const LINE_BORDER: Readonly<Record<LineColorToken, string>> = {
   'line-3': 'border-line-3',
 };
 
+/** A chip in a line's color: the text stays `foreground`, so it holds AA on any line (#114). */
+export const LINE_TINT: Readonly<Record<LineColorToken, string>> = {
+  'line-1': 'border-line-1/50 bg-line-1/15',
+  'line-2': 'border-line-2/50 bg-line-2/15',
+  'line-3': 'border-line-3/50 bg-line-3/15',
+};
+
 /** SVG strokes and fills for the subway map (#117). */
 export const LINE_STROKE: Readonly<Record<LineColorToken, string>> = {
   'line-1': 'stroke-line-1',

@@ -26,6 +26,7 @@ export { Id, WebUrl } from './ids.js';
 export {
   Certification,
   Education,
+  endsBeforeStart,
   Experience,
   Language,
   PartialDate,

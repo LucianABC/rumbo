@@ -209,6 +209,7 @@ apps/web/src/
 ```
 
 - **Typed at compile time and checked at runtime.** Each mock is a `.ts` object declared with `satisfies` its contract type. A test parses every mock with its schema and runs `checkLayout`.
+- **Client state more than one tab reads lives in `src/lib/store.ts` (Zustand).** Server data does not: it stays in `lib/data`.
 - **Components never import from `mocks/`.** An ESLint `no-restricted-imports` rule enforces it outside `lib/data`.
 - **`lib/data` functions are async and return contract types.** Swapping a mock for the typed API client (#79) changes only that function.
 - **Contracts that ADRs already back** (`Roadmap`, `RoadmapLayout`, `Profile`) live in `packages/contracts/src/`.

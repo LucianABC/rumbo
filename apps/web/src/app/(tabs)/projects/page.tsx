@@ -109,7 +109,7 @@ function ProjectSection({
         {title} <span className="font-mono tabular-nums">({cards.length})</span>
       </h2>
       {cards.length > 0 ? (
-        <ul role="list" className="grid items-start gap-4 lg:grid-cols-2">
+        <ul role="list" className="flex flex-col gap-4">
           {cards.map((card) => (
             <ProjectCard key={card.id} card={card} activityAvailable={activityAvailable} />
           ))}

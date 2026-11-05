@@ -3,6 +3,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { StationProjects } from '../src/components/roadmap/project-link';
 import { Evidence, StationDetail } from '../src/components/roadmap/station-detail';
 import { getRoadmap, getRoadmapLayout, getTargetColors } from '../src/lib/data';
 import { type SingleLineRow, singleLine } from '../src/lib/roadmap/single-line';
@@ -37,6 +38,36 @@ function withItems(row: MilestoneRow, items: RoadmapItem[]): MilestoneRow {
 }
 
 describe('station detail (#109)', () => {
+  it('lists every project beside its station for the view with no line picked', async () => {
+    const { row } = await setup();
+    const stations = [row('query-basics'), row('public-dashboard'), row('weekly-report')];
+
+    const html = renderToStaticMarkup(createElement(StationProjects, { stations }));
+
+    expect(html).toContain('Practice projects by station');
+    expect(html).toContain('href="/projects#project-practice-queries"');
+    expect(html).toContain('href="/projects#project-sales-dashboard"');
+    expect(html).toContain('Build a public dashboard');
+    expect(html).not.toContain('Automate the weekly support report');
+  });
+
+  it('shows no such list without projects', async () => {
+    const { row } = await setup();
+
+    expect(
+      renderToStaticMarkup(createElement(StationProjects, { stations: [row('weekly-report')] })),
+    ).toBe('');
+  });
+
+  it('links a project to its place on Projects, and nothing else', async () => {
+    const { row, gapNames } = await setup();
+
+    expect(render(row('public-dashboard'), gapNames)).toContain(
+      'href="/projects#project-sales-dashboard"',
+    );
+    expect(render(row('weekly-report'), gapNames)).not.toContain('/projects#');
+  });
+
   it('lists the targets the station moves toward and every item with its type and status', async () => {
     const { row, gapNames } = await setup();
     const weekly = row('weekly-report');
@@ -91,7 +122,7 @@ describe('station detail (#109)', () => {
     expect(html).toContain('No evidence yet.');
 
     expect(render(withItems(base, []), gapNames)).toContain(
-      'No items planned for this station yet.',
+      'No deliverables planned for this station yet.',
     );
   });
 });

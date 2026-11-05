@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, use } from 'react';
 
+import { useDraftDecisions, useEvidenceDecisions } from '../../lib/store';
 import {
   badgeSummary,
   type BadgeCount,
@@ -27,8 +28,6 @@ import {
   TABS,
   type TabId,
 } from '../../lib/tabs';
-import { useDraftDecisions } from '../profile/draft-decisions';
-import { useEvidenceDecisions } from '../projects/evidence-decisions';
 
 const ICONS: Readonly<Record<TabId, LucideIcon>> = {
   roadmap: Route,
