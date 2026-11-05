@@ -29,19 +29,16 @@ const laneX = (index: number) => LANE_START + index * LANE_GAP;
 const WORK_MODE_LABEL = { remote: 'Remote', hybrid: 'Hybrid', onsite: 'On site' } as const;
 
 /**
- * The roadmap as one vertical line (spec 01, M2): the permanent phone view and the fallback when
- * there is no map layout. One lane per target; a target that does not stop at a station passes
- * through it (#108).
+ * The roadmap as one vertical line (spec 01, M2), on every screen: beside the map too, because
+ * the stations joined by their line are what make the list read as a route. One lane per target;
+ * a target that does not stop at a station passes through it (#108).
  */
 export function SingleLineView({
   line,
-  withMap = false,
   onActivate,
   onOpen,
 }: {
   readonly line: SingleLine;
-  /** The subway map is shown from `lg` (#117): the list keeps the stations and drops its lanes. */
-  readonly withMap?: boolean;
   /** Highlights a station's targets on the map while it is hovered or focused (#117). */
   readonly onActivate?: (targetIds: readonly string[] | null) => void;
   /** Opens a station's panel (#109). */
@@ -78,22 +75,25 @@ export function SingleLineView({
         Use the arrow keys to move between stations, and Home or End for the first or last.
       </p>
       {/* role="list": Safari drops list semantics under Tailwind's `list-style: none` (#108). */}
-      <ol ref={list} role="list" aria-label="Stations" className="flex flex-col">
+      <ol
+        ref={list}
+        role="list"
+        aria-label="Stations"
+        className="flex flex-col rounded-xl border bg-card p-4 md:p-5"
+      >
         {line.rows.map((row) => (
           <li
             key={row.id}
             data-testid="station"
             data-kind={row.kind}
-            className={cn(
-              'grid grid-cols-[var(--gutter)_minmax(0,1fr)] gap-x-3',
-              withMap && 'lg:grid-cols-1',
-            )}
+            className="grid grid-cols-[var(--gutter)_minmax(0,1fr)] gap-x-3"
             style={{ '--gutter': `${String(gutter)}px` } as CSSProperties}
           >
-            <Track row={row} hidden={withMap} />
+            <Track row={row} />
             {row.kind === 'milestone' ? (
               <MilestoneStation
                 row={row}
+                number={stations.indexOf(row) + 1}
                 hint={hint}
                 tabbable={row.id === tabbableId}
                 onKeyDown={(event) => {
@@ -118,11 +118,11 @@ export function SingleLineView({
 }
 
 /**
- * Transit-map markers (#108): a white station on its line, interchanges as ink-ringed stations
- * joined by an ink link, terminals as larger rings around their line's color. Status is told by
- * the chip and by the line (traveled solid, ahead faded), not by the marker.
+ * Transit-map markers (#108): a station on its line, filled once done, interchanges as ink-ringed
+ * stations joined by an ink link, terminals as larger rings around their line's color. Status is
+ * told in words by the chip, and the marker and the line (traveled solid, ahead faded) follow it.
  */
-function Track({ row, hidden }: { readonly row: SingleLineRow; readonly hidden: boolean }) {
+function Track({ row }: { readonly row: SingleLineRow }) {
   const stops = row.cells.flatMap((cell, i) => (cell.stop ? [i] : []));
   const first = stops[0] ?? 0;
   const last = stops.at(-1) ?? first;
@@ -130,7 +130,7 @@ function Track({ row, hidden }: { readonly row: SingleLineRow; readonly hidden: 
   const interchange = stops.length > 1;
 
   return (
-    <div aria-hidden className={cn('relative', hidden && 'lg:hidden')}>
+    <div aria-hidden className="relative">
       {row.cells.map((cell, i) => (
         <Segments key={cell.lane.target.id} cell={cell} x={laneX(i)} />
       ))}
@@ -173,6 +173,8 @@ function Track({ row, hidden }: { readonly row: SingleLineRow; readonly hidden: 
             className={cn(
               'absolute -translate-1/2 rounded-full border-[3px] bg-card',
               interchange ? 'size-4 border-foreground' : cn('size-3.5', LINE_BORDER[color]),
+              // Filled once passed, like a position in the Profile timeline.
+              row.status === 'done' && !interchange && LINE_BG[color],
             )}
             style={at(laneX(i), MARKER_Y)}
           />
@@ -200,8 +202,23 @@ function Segments({ cell, x }: { readonly cell: LaneCell; readonly x: number }) 
   );
 }
 
+/** Says what a row of the route is, in words: the markers alone did not (#113). */
+function StopTag({ children, end = false }: { readonly children: string; readonly end?: boolean }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-5 shrink-0 items-center rounded-md px-1.5 text-2xs font-semibold',
+        end ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground',
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 function MilestoneStation({
   row,
+  number,
   hint,
   tabbable,
   onKeyDown,
@@ -210,6 +227,8 @@ function MilestoneStation({
   onOpen,
 }: {
   readonly row: Extract<SingleLineRow, { kind: 'milestone' }>;
+  /** Its place on the line, counted from the first station. */
+  readonly number: number;
   /** Id of the instructions for the arrow keys. */
   readonly hint: string;
   readonly tabbable: boolean;
@@ -233,6 +252,7 @@ function MilestoneStation({
       className="relative my-1 flex min-w-0 flex-col items-start gap-1.5 rounded-lg px-3 py-2 transition-colors duration-(--duration-quick) hover:bg-muted has-[button:focus-visible]:ring-2 has-[button:focus-visible]:ring-ring"
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <StopTag>{`Station ${String(number)}`}</StopTag>
         <button
           type="button"
           aria-label={stationLabel(row)}
@@ -314,6 +334,7 @@ function Terminal({ row }: { readonly row: Extract<SingleLineRow, { kind: 'termi
       className="my-1 flex min-w-0 flex-col gap-1 px-3 py-2"
     >
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <StopTag end>Terminal</StopTag>
         <span className="font-heading text-base leading-6 font-bold">{target.roleFamily.name}</span>
         <span className="text-2xs font-medium tracking-wide text-muted-foreground uppercase">
           Target role
@@ -336,12 +357,10 @@ function Origin({ row }: { readonly row: Extract<SingleLineRow, { kind: 'origin'
     <div
       aria-label={stationLabel(row)}
       role="group"
-      className="my-1 flex min-w-0 flex-col gap-0.5 px-3 py-2"
+      className="my-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2"
     >
+      <StopTag end>Start</StopTag>
       <span className="font-heading text-base leading-6 font-bold">{row.from}</span>
-      <span className="text-2xs font-medium tracking-wide text-muted-foreground uppercase">
-        Starting point
-      </span>
     </div>
   );
 }
