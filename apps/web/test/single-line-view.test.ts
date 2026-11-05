@@ -20,7 +20,7 @@ describe('project links in the station list (#114)', () => {
     );
 
     expect(html).toMatch(/<a [^>]*relative z-1"[^>]*href="\/projects#project-sales-dashboard"/);
-    expect(html).toContain('aria-label="See Sales dashboard project on Projects"');
+    expect(html).toContain('aria-label="See project: Sales dashboard project"');
     expect(html).not.toContain('href="/projects#project-sql-certificate"');
   });
 });

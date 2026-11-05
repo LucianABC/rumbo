@@ -21,7 +21,7 @@ export function ProjectLink({
   return (
     <Link
       href={projectHref(item.id)}
-      aria-label={`See ${item.title} on Projects`}
+      aria-label={`See project: ${item.title}`}
       className={cn(ACCENT, 'inline-flex w-fit shrink-0 items-center gap-0.5 text-sm', className)}
     >
       See project
