@@ -6,10 +6,18 @@ import {
   RoadmapLayout,
   targetColors,
 } from '@rumbo/contracts';
-import { checkDrafts, checkMarket, Drafts, Market } from '@rumbo/contracts/provisional';
+import {
+  checkAnalysis,
+  checkDrafts,
+  checkMarket,
+  Drafts,
+  Market,
+  ProfileAnalysis,
+} from '@rumbo/contracts/provisional';
 import { connection } from 'next/server';
 import type { z } from 'zod';
 
+import { analysis as bundledAnalysis } from '../../mocks/analysis';
 import { drafts as bundledDrafts } from '../../mocks/drafts';
 import { market as bundledMarket } from '../../mocks/market';
 import { profile } from '../../mocks/profile';
@@ -160,6 +168,27 @@ export async function getSuggestedChanges(
     return (await getDrafts(await pendingProfile, forRoadmap)).changes;
   } catch (err) {
     logger.warn({ err }, 'suggested changes unavailable');
+    return null;
+  }
+}
+
+/**
+ * What rumbo says about this profile, or null when it cannot be read or read another version of
+ * the profile: the tab still shows the profile itself (#113). Provisional until the F1 spec (#41).
+ * Logged like getSummaryData's failures.
+ */
+export async function getProfileAnalysis(
+  pendingProfile: Promise<Profile>,
+): Promise<ProfileAnalysis | null> {
+  try {
+    const forProfile = await pendingProfile;
+    await connection();
+    const analysis = parse(ProfileAnalysis, await localOr('analysis', bundledAnalysis), 'analysis');
+    const problems = checkAnalysis(analysis, forProfile);
+    if (problems.length > 0) throw new Error(`Invalid analysis:\n${problems.join('\n')}`);
+    return analysis;
+  } catch (err) {
+    logger.warn({ err }, 'profile analysis unavailable');
     return null;
   }
 }

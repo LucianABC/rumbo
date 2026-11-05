@@ -4,7 +4,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ProfilePage from '../src/app/(tabs)/profile/page';
 import { NotificationList } from '../src/components/profile/suggested-changes';
-import { getDrafts, getProfile, getRoadmap, getSuggestedChanges } from '../src/lib/data';
+import {
+  getDrafts,
+  getProfile,
+  getProfileAnalysis,
+  getRoadmap,
+  getSuggestedChanges,
+} from '../src/lib/data';
 import { logger } from '../src/lib/logger';
 import { suggestions } from '../src/lib/profile/profile-view';
 import type { Lane } from '../src/lib/roadmap/single-line';
@@ -13,6 +19,15 @@ vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
 // Each test can break the drafts; a getter so the switch reaches lib/data's import.
 const drafts = vi.hoisted((): { override: unknown } => ({ override: undefined }));
+const analysis = vi.hoisted((): { override: unknown } => ({ override: undefined }));
+vi.mock('../src/mocks/analysis', async (importOriginal) => {
+  const real = await importOriginal<{ analysis: unknown }>();
+  return {
+    get analysis() {
+      return analysis.override ?? real.analysis;
+    },
+  };
+});
 vi.mock('../src/mocks/drafts', async (importOriginal) => {
   const real = await importOriginal<{ drafts: unknown }>();
   return {
@@ -24,6 +39,7 @@ vi.mock('../src/mocks/drafts', async (importOriginal) => {
 
 afterEach(() => {
   drafts.override = undefined;
+  analysis.override = undefined;
   vi.restoreAllMocks();
 });
 
@@ -32,12 +48,15 @@ async function render() {
 }
 
 /** The panel's list: a closed sheet renders nothing, so the page's markup does not have it. */
-async function renderNotifications() {
+async function renderNotifications(completeness?: number) {
   const [profile, roadmap] = await Promise.all([getProfile(), getRoadmap()]);
   const { changes } = await getDrafts(profile, roadmap);
   const lanes = roadmap.targets.map((target): Lane => ({ target, color: 'line-1' }));
   return renderToStaticMarkup(
-    createElement(NotificationList, { suggestions: suggestions(changes, profile, lanes) }),
+    createElement(NotificationList, {
+      suggestions: suggestions(changes, profile, lanes),
+      ...(completeness === undefined ? {} : { completeness }),
+    }),
   );
 }
 
@@ -56,6 +75,38 @@ describe('Profile (#113)', () => {
     for (const skill of profile.skills) expect(html).toContain(skill.skill.name);
     expect(html).toContain('approved evidence');
     expect(html).toContain('href="/skills#skills-you-have"');
+  });
+
+  it("opens with rumbo's analysis, labeled as opinion, and keeps the about text", async () => {
+    const profile = await getProfile();
+    const html = await render();
+
+    expect(html).toContain('rumbo&#x27;s reading');
+    expect(html).toContain('Sample analysis');
+    expect(html).toContain('What works');
+    expect(html).toContain('What to improve');
+    expect(html.indexOf('rumbo&#x27;s reading')).toBeLessThan(html.indexOf('id="experience"'));
+    expect(html).toContain(profile.about);
+  });
+
+  it('keeps the profile when the analysis read another version of it', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const real = await getProfileAnalysis(getProfile());
+    analysis.override = { ...real, profileUpdatedAt: '2020-01-01T00:00:00.000Z' };
+    const profile = await getProfile();
+
+    const html = await render();
+
+    expect(html).toContain('Analysis unavailable');
+    expect(html).toContain(`>${profile.name}</h2>`);
+    expect(html).not.toContain('% </span>complete');
+    expect(warn.mock.calls[0]?.[1]).toBe('profile analysis unavailable');
+  });
+
+  it('lists Skills right below Education and certifications', async () => {
+    const html = await render();
+
+    expect(html.indexOf('id="education"')).toBeLessThan(html.indexOf('id="skills"'));
   });
 
   it('counts evidence awaiting approval apart, so it never reads as proven', async () => {
@@ -78,11 +129,21 @@ describe('Profile (#113)', () => {
     expect(html).toContain('Save to PDF');
   });
 
-  it('keeps suggested changes behind a bell that says how many are left', async () => {
+  it('keeps suggested changes behind a bell with how many are left and completeness', async () => {
     const html = await render();
 
     expect(html).toMatch(/Suggested changes<span[^>]*>3<span class="sr-only"> to review/);
+    expect(html).toMatch(/>72%<\/span> complete/);
     expect(html).not.toContain('− Removed');
+  });
+
+  it('says how much each change adds, and where approving them all lands', async () => {
+    const html = await renderNotifications(72);
+
+    expect(html).toContain('Profile completeness');
+    expect(html).toContain('>72%</span>');
+    expect(html).toContain('Approving what is left takes it to 90%.');
+    expect(html).toContain('>+6%</span> complete');
   });
 
   it('shows each change as a short row with a labeled diff, awaiting a decision', async () => {
@@ -114,6 +175,7 @@ describe('Profile (#113)', () => {
           section: 'headline',
           targetId: target?.id,
           createdAt: '2026-10-15T09:00:00.000Z',
+          completenessGain: 5,
           before: 'Gone',
           after: 'New',
         },

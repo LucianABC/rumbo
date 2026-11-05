@@ -156,10 +156,11 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 ## Profile — F1 (#41), F4 (#44)
 
 - **For:** the user's full professional profile, presented as well as a good CV, and where it came from.
-- **Layout:** one page that reads in about a screen on desktop. A strip of profile sources with their update links comes first, then the CV. Suggested changes live behind a bell with what is left to review, as a panel of notifications (#113).
+- **Layout:** one page that reads in about a screen on desktop. A strip of profile sources with their update links comes first, then the profile header with rumbo's analysis, then the CV. Suggested changes live behind a bell with what is left to review and the profile's completeness, as a panel of notifications (#113).
 - **Shows:**
   - header: name, headline, location, linked LinkedIn URL;
-  - about;
+  - **rumbo's analysis** (proposed, #113): after a profile is imported, the Profile analyst writes a short summary and feedback, strengths and things to improve. It is labeled opinion, dated, and changes nothing in the profile;
+  - about, the user's own text;
   - experience as a timeline (role, organization, period, highlights);
   - education and certifications;
   - skills in lines by category, best-backed first, with dots counting their evidence (details in Skills & gaps).
@@ -169,12 +170,14 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - **Import from LinkedIn:** a short guide to LinkedIn's "Save to PDF" export, then upload. It is the only supported way to bring LinkedIn data in (see below).
   - **Link LinkedIn profile:** stores the public profile URL to show it and to open the right edit page later.
   - Each source shows when it was last imported.
+- **Completeness** (proposed, #113): a percentage of a fixed rubric, computed by code from the profile (`agents.md`). It goes hand in hand with Suggested changes: each one says how many points it adds, approving it counts them at once, rejecting it takes them off what is reachable.
 - **Suggested changes** (F4): proposed headline, about and per-position bullets as diffs (removed/added, not color alone). Each says which target it is written for and has Approve/Reject. Approved text has **Copy** and **Open on LinkedIn** (the matching edit page), because the user applies it there.
   - Every suggestion has passed the runtime fidelity check, so it claims nothing the profile lacks.
   - When a bullet needs a fact the profile does not have (a metric, the scope), the suggestion asks for it inline ("How many users did this serve?") instead of inventing one; the answer is a profile change to approve (Profile interviewer, draft mode).
 - **Demo interaction:**
   - upload, import and link controls render but do not process files;
-  - Approve/Reject in Suggested changes is local state only.
+  - Approve/Reject in Suggested changes is local state only, and so is the completeness it moves;
+  - the analysis and the completeness are mocks.
 - **Full feature adds:**
   - extraction progress;
   - editing and correcting the extracted profile;
@@ -183,7 +186,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **States:**
   - empty: no profile yet, so the upload step is the whole page (plus the Profile interviewer as the no-CV path, pending #155);
   - extraction failed: retry, or enter the profile manually.
-- **Data:** `getProfile()` → `Profile`, new in `packages/contracts/src/profile.ts`, from ADR 0004 (`ProfileSkill`, `Evidence`). Suggested changes use `DraftChange` in `@rumbo/contracts/provisional` until the F4 spec.
+- **Data:** `getProfile()` → `Profile`, new in `packages/contracts/src/profile.ts`, from ADR 0004 (`ProfileSkill`, `Evidence`). Suggested changes use `DraftChange` in `@rumbo/contracts/provisional` until the F4 spec, and the analysis `ProfileAnalysis` until the F1 spec.
 
 ### Why rumbo cannot write to LinkedIn
 

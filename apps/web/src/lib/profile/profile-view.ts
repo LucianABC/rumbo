@@ -117,6 +117,8 @@ export interface Suggestion {
   readonly target: { readonly name: string; readonly color: Lane['color'] };
   /** When rumbo suggested it, as the row shows it. */
   readonly date: string;
+  /** Points of completeness it adds once approved. */
+  readonly gain: number;
   readonly editUrl: string;
 }
 
@@ -136,6 +138,7 @@ export function suggestions(
         place: placeOf(change, names),
         target: { name: lane.target.roleFamily.name, color: lane.color },
         date: formatDay(change.createdAt),
+        gain: change.completenessGain,
         editUrl: LINKEDIN_EDIT[change.section],
       },
     ];
@@ -147,4 +150,27 @@ function placeOf(change: DraftChange, names: Readonly<Record<string, string>>): 
   if (change.section === 'about') return 'About';
   const position = names[change.experienceId] ?? change.experienceId;
   return `${change.before === null ? 'New bullet' : 'Bullet'} · ${position}`;
+}
+
+export interface Completeness {
+  readonly now: number;
+  /** Where it lands once every change still awaiting a decision is approved. */
+  readonly reachable: number;
+}
+
+/**
+ * Completeness moves with the decisions on suggested changes: approving one counts its points at
+ * once, and rejecting one takes them off what is reachable (docs/product/views.md, #113).
+ */
+export function completeness(
+  base: number,
+  suggestions: readonly Suggestion[],
+  decisions: Readonly<Record<string, 'approved' | 'rejected'>>,
+): Completeness {
+  const gain = (status: 'approved' | undefined) =>
+    suggestions
+      .filter((s) => decisions[s.change.id] === status)
+      .reduce((sum, s) => sum + s.gain, 0);
+  const now = Math.min(base + gain('approved'), 100);
+  return { now, reachable: Math.min(now + gain(undefined), 100) };
 }

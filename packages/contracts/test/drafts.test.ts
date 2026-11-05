@@ -15,6 +15,7 @@ const headline = {
   section: 'headline',
   targetId: 'analyst',
   createdAt: '2026-10-15T09:00:00.000Z',
+  completenessGain: 5,
   before: 'Support specialist',
   after: 'Support specialist moving into analysis',
 } as const;

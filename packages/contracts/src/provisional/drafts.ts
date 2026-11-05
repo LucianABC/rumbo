@@ -16,6 +16,8 @@ const ChangeBase = z.object({
   targetId: Id,
   createdAt: z.iso.datetime(),
   after: z.string().min(1),
+  /** Points of the completeness rubric this change would add once approved. */
+  completenessGain: z.int().min(0).max(100),
   /** A fact the text would be better with and the profile lacks; rumbo asks, never invents it. */
   question: z.string().min(1).optional(),
 });

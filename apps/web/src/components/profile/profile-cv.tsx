@@ -1,6 +1,7 @@
 import type { Profile } from '@rumbo/contracts';
+import type { ProfileAnalysis } from '@rumbo/contracts/provisional';
 import { cn } from 'cn';
-import { Briefcase, GraduationCap, Languages, ListChecks, MapPin } from 'lucide-react';
+import { Briefcase, GraduationCap, Languages, ListChecks, MapPin, UserRound } from 'lucide-react';
 import Link from 'next/link';
 
 import { formatPartialDate } from '../../lib/format';
@@ -16,12 +17,22 @@ import {
 import { LinkedInIcon } from '../linkedin-icon';
 import { LINK } from '../skills/shared';
 import { CvSection } from './cv-section';
+import { ProfileReading } from './profile-reading';
 
 /**
- * The profile presented as a good CV (docs/product/views.md, #113): side by side, so it reads in
- * about one screen on a desktop instead of a long scroll.
+ * The profile presented as a good CV, opening with what rumbo makes of it (docs/product/views.md,
+ * #113): side by side, so it reads in about one screen on a desktop instead of a long scroll.
  */
-export function ProfileCv({ profile, now }: { readonly profile: Profile; readonly now: Date }) {
+export function ProfileCv({
+  profile,
+  analysis,
+  now,
+}: {
+  readonly profile: Profile;
+  /** Null when no analysis fits this profile. */
+  readonly analysis: ProfileAnalysis | null;
+  readonly now: Date;
+}) {
   const positions = timeline(profile.experiences, now);
   const groups = skillGroups(profile.skills);
   return (
@@ -59,63 +70,96 @@ export function ProfileCv({ profile, now }: { readonly profile: Profile; readonl
             </div>
           </div>
         </div>
-        {profile.about ? <p className="text-sm">{profile.about}</p> : null}
+        <ProfileReading analysis={analysis} />
       </header>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <CvSection id="experience" title="Experience" icon={Briefcase}>
-          {positions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No positions in your profile yet.</p>
-          ) : (
-            <ol role="list" className="flex flex-col gap-5">
-              {positions.map((position) => (
-                <li key={position.id} className="relative border-l-2 border-chart-1/40 pl-4">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      'absolute top-1.5 -left-[5px] size-2 rounded-full',
-                      position.end === null ? 'bg-chart-1' : 'bg-chart-1/50',
-                    )}
-                  />
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-                    <h3 className="flex flex-wrap items-center gap-2 font-semibold">
-                      {position.title}
-                      {position.end === null ? (
-                        <span className="rounded-full bg-success/15 px-2 text-2xs font-medium text-success">
-                          Current
+        <div className="flex min-w-0 flex-col gap-4">
+          {profile.about ? (
+            <CvSection id="about" title="About" icon={UserRound}>
+              <p className="text-sm">{profile.about}</p>
+            </CvSection>
+          ) : null}
+          <CvSection id="experience" title="Experience" icon={Briefcase}>
+            {positions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No positions in your profile yet.</p>
+            ) : (
+              <ol role="list" className="flex flex-col gap-5">
+                {positions.map((position) => (
+                  <li key={position.id} className="relative border-l-2 border-chart-1/40 pl-4">
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'absolute top-1.5 -left-[5px] size-2 rounded-full',
+                        position.end === null ? 'bg-chart-1' : 'bg-chart-1/50',
+                      )}
+                    />
+                    <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                      <h3 className="flex flex-wrap items-center gap-2 font-semibold">
+                        {position.title}
+                        {position.end === null ? (
+                          <span className="rounded-full bg-success/15 px-2 text-2xs font-medium text-success">
+                            Current
+                          </span>
+                        ) : null}
+                      </h3>
+                      <p className="font-mono text-xs tabular-nums text-muted-foreground">
+                        {position.period}
+                      </p>
+                    </div>
+                    <p className="text-sm font-medium text-primary">
+                      {position.organization}
+                      {position.location ? (
+                        <span className="font-normal text-muted-foreground">
+                          {' '}
+                          · {position.location}
                         </span>
                       ) : null}
-                    </h3>
-                    <p className="font-mono text-xs tabular-nums text-muted-foreground">
-                      {position.period}
                     </p>
-                  </div>
-                  <p className="text-sm font-medium text-primary">
-                    {position.organization}
-                    {position.location ? (
-                      <span className="font-normal text-muted-foreground">
-                        {' '}
-                        · {position.location}
-                      </span>
+                    {position.summary ? (
+                      <p className="mt-2 text-sm text-muted-foreground">{position.summary}</p>
                     ) : null}
-                  </p>
-                  {position.summary ? (
-                    <p className="mt-2 text-sm text-muted-foreground">{position.summary}</p>
-                  ) : null}
-                  {position.highlights.length > 0 ? (
-                    <ul className="mt-2 flex list-outside list-disc flex-col gap-1 pl-4 text-sm marker:text-chart-1">
-                      {position.highlights.map((highlight) => (
-                        <li key={highlight}>{highlight}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </li>
-              ))}
-            </ol>
-          )}
-        </CvSection>
+                    {position.highlights.length > 0 ? (
+                      <ul className="mt-2 flex list-outside list-disc flex-col gap-1 pl-4 text-sm marker:text-chart-1">
+                        {position.highlights.map((highlight) => (
+                          <li key={highlight}>{highlight}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </CvSection>
+        </div>
 
         <div className="flex min-w-0 flex-col gap-4">
+          {profile.education.length + profile.certifications.length > 0 ? (
+            <CvSection id="education" title="Education and certifications" icon={GraduationCap}>
+              <ul role="list" className="flex flex-col gap-3 text-sm">
+                {profile.education.map((entry) => {
+                  const period = educationPeriod(entry.start, entry.end);
+                  return (
+                    <Credential
+                      key={entry.id}
+                      title={entry.credential}
+                      from={entry.institution}
+                      date={period}
+                    />
+                  );
+                })}
+                {profile.certifications.map((entry) => (
+                  <Credential
+                    key={entry.id}
+                    title={entry.name}
+                    from={entry.issuer}
+                    date={entry.issuedAt ? formatPartialDate(entry.issuedAt) : null}
+                  />
+                ))}
+              </ul>
+            </CvSection>
+          ) : null}
+
           <CvSection id="skills" title="Skills" icon={ListChecks}>
             {groups.length === 0 ? (
               <p className="text-sm text-muted-foreground">No skills in your profile yet.</p>
@@ -144,32 +188,6 @@ export function ProfileCv({ profile, now }: { readonly profile: Profile; readonl
               </>
             )}
           </CvSection>
-
-          {profile.education.length + profile.certifications.length > 0 ? (
-            <CvSection id="education" title="Education and certifications" icon={GraduationCap}>
-              <ul role="list" className="flex flex-col gap-3 text-sm">
-                {profile.education.map((entry) => {
-                  const period = educationPeriod(entry.start, entry.end);
-                  return (
-                    <Credential
-                      key={entry.id}
-                      title={entry.credential}
-                      from={entry.institution}
-                      date={period}
-                    />
-                  );
-                })}
-                {profile.certifications.map((entry) => (
-                  <Credential
-                    key={entry.id}
-                    title={entry.name}
-                    from={entry.issuer}
-                    date={entry.issuedAt ? formatPartialDate(entry.issuedAt) : null}
-                  />
-                ))}
-              </ul>
-            </CvSection>
-          ) : null}
 
           {profile.languages.length > 0 ? (
             <CvSection id="languages" title="Languages" icon={Languages}>

@@ -110,6 +110,24 @@ for (const [size, viewport] of SIZES) {
       await expect(status).toHaveText(before);
     });
 
+    test('approving moves completeness, and rejecting lowers what is reachable', async ({
+      page,
+    }) => {
+      await openNotifications(page);
+      const meter = page.getByRole('dialog').getByText('Profile completeness').locator('..');
+      const percent = meter.getByRole('status');
+      test.skip((await percent.count()) === 0, 'No analysis for the served mocks');
+      const row = notifications(page).first();
+      const before = await percent.innerText();
+
+      await row.locator('summary').click();
+      await row.getByRole('button', { name: /^Approve/ }).click();
+
+      await expect(percent).not.toHaveText(before);
+      await row.getByRole('button', { name: /^Undo/ }).click();
+      await expect(percent).toHaveText(before);
+    });
+
     test('Copy says so when the browser has no clipboard', async ({ page }) => {
       await page.addInitScript(() => {
         Object.defineProperty(navigator, 'clipboard', { value: undefined });

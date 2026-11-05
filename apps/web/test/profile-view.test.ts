@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 
 import { formatDuration, formatPartialDate } from '../src/lib/format';
 import {
+  completeness,
   educationPeriod,
   initials,
   lastImports,
   profileProvenance,
   skillGroups,
+  type Suggestion,
   suggestions,
   timeline,
 } from '../src/lib/profile/profile-view';
@@ -151,6 +153,7 @@ describe('suggestions', () => {
     id: 'c',
     targetId: 'analyst',
     createdAt: '2026-10-15T09:00:00.000Z',
+    completenessGain: 6,
     after: 'New text',
   };
 
@@ -169,6 +172,7 @@ describe('suggestions', () => {
     expect(headline?.place).toBe('Headline');
     expect(headline?.target).toEqual({ name: 'Analyst', color: 'line-1' });
     expect(headline?.date).toBe('15 Oct 2026');
+    expect(headline?.gain).toBe(6);
     expect(about?.place).toBe('About');
     expect(bullet?.place).toBe('Bullet · job · Org');
     expect(added?.place).toBe('New bullet · job · Org');
@@ -183,5 +187,26 @@ describe('suggestions', () => {
         lanes,
       ),
     ).toEqual([]);
+  });
+});
+
+describe('completeness', () => {
+  const change = (id: string, gain: number) => ({ change: { id }, gain }) as unknown as Suggestion;
+  const all = [change('a', 6), change('b', 8), change('c', 4)];
+
+  it('shows what approving everything would reach', () => {
+    expect(completeness(72, all, {})).toEqual({ now: 72, reachable: 90 });
+  });
+
+  it('counts an approval at once', () => {
+    expect(completeness(72, all, { b: 'approved' })).toEqual({ now: 80, reachable: 90 });
+  });
+
+  it('takes a rejection off what is reachable', () => {
+    expect(completeness(72, all, { b: 'rejected' })).toEqual({ now: 72, reachable: 82 });
+  });
+
+  it('never passes 100', () => {
+    expect(completeness(96, all, { a: 'approved' })).toEqual({ now: 100, reachable: 100 });
   });
 });
