@@ -22,6 +22,7 @@ import { LINK } from '../skills/shared';
 import { DraftStatusChip, StatusChip } from '../status-chip';
 import { TaskList } from '../task-list';
 import { Button } from '../ui/button';
+import { CheckRepo } from './check-repo';
 import { useEvidenceDecisions } from '../../lib/store';
 
 /** How many commits a card lists: the repo holds the rest. */
@@ -298,6 +299,7 @@ function Activity({
           ))}
         </ul>
       ) : null}
+      {repo ? <CheckRepo project={title} commitCount={commits.length} /> : null}
     </section>
   );
 }

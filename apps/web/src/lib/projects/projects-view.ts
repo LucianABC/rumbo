@@ -196,6 +196,15 @@ export function projectAnchor(itemId: string): string {
   return `project-${itemId}`;
 }
 
+/** What the sample Check repo now reports: it analyzes nothing, and says so (F5, #45). */
+export function repoCheckResult(commitCount: number): string {
+  const seen =
+    commitCount === 0
+      ? 'No commits to review'
+      : `${String(commitCount)} recent ${commitCount === 1 ? 'commit' : 'commits'} seen`;
+  return `Sample check: ${seen}. The real analysis arrives with F5.`;
+}
+
 /** Where a roadmap item lives on Projects. */
 export function projectHref(itemId: string): string {
   return `/projects#${projectAnchor(itemId)}`;

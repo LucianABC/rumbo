@@ -8,6 +8,7 @@ import {
   evidenceRows,
   lineInitials,
   projectsView,
+  repoCheckResult,
   taskRows,
 } from '../src/lib/projects/projects-view';
 import { lanesOf } from '../src/lib/roadmap/single-line';
@@ -207,6 +208,16 @@ describe('projectsView', () => {
       active: [],
       completed: [],
     });
+  });
+});
+
+describe('repoCheckResult', () => {
+  it('counts what it saw and never passes for a real analysis', () => {
+    expect(repoCheckResult(3)).toBe(
+      'Sample check: 3 recent commits seen. The real analysis arrives with F5.',
+    );
+    expect(repoCheckResult(1)).toContain('1 recent commit seen');
+    expect(repoCheckResult(0)).toContain('No commits to review');
   });
 });
 

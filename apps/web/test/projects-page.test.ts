@@ -96,6 +96,14 @@ describe('ProjectsPage', () => {
     expect(html).toContain('href="https://github.com/example-user/practice-queries"');
   });
 
+  it('offers Check repo now only on projects with a repo', async () => {
+    const html = await page();
+
+    expect(html).toContain('aria-label="Check repo now: Sales dashboard project"');
+    expect(html).toContain('aria-label="Check repo now: Practice query set"');
+    expect(html).not.toContain('aria-label="Check repo now: Open data case study"');
+  });
+
   it('hints at a missing repo instead of showing activity', async () => {
     expect(await page()).toContain('No repo linked yet');
   });

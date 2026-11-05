@@ -254,7 +254,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - a completed section with approved evidence.
 - **Badges:** an attention badge for evidence awaiting approval. The header spells out open tasks and evidence awaiting approval.
 - **Same story as Roadmap:** both tabs read the same deliverables and tasks, and every practice project on Roadmap links to its deliverable here: in the station list, in the station's panel and, on desktop before a line is picked, in a list under the map. The decisions made here show on the station too.
-- **Demo interaction:** Approve/Reject is local state only.
+- **Demo interaction:** Approve/Reject is local state only. **Check repo now** shows on projects with a repo and only simulates a check, which its result says.
 - **Full feature adds:**
   - GitHub App push analysis, and **Check repo now** on each project to run it on demand (`agents.md`);
   - proposals for skills and objectives the repo shows and the plan lacks, with Approve/Reject;
