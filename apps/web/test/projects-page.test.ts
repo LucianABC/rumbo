@@ -62,8 +62,8 @@ describe('ProjectsPage', () => {
     const html = await page();
 
     expect(html.match(/>Deliverables</g)).toHaveLength(3);
-    expect(html).toContain('Deliverable: </span>');
-    expect(html).toContain('Roadmap station: </span>');
+    expect(html).toContain('>Deliverable</span>');
+    expect(html).toContain('>Roadmap station</dt>');
     expect(html).toContain('>Build a public dashboard<');
     // Before the fold, so a closed deliverable still says where it belongs.
     expect(html).toMatch(/Build a public dashboard<\/a>.*?<details id="project-sales-dashboard"/);

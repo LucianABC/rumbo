@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
 
 import { formatDay } from '../../lib/format';
 import { DRAFT_STATUS_LABEL, type Decision } from '../../lib/labels';
-import { LINE_BG } from '../../lib/line-colors';
+import { LINE_BG, LINE_TINT } from '../../lib/line-colors';
 import {
   decisionOf,
   type EvidenceRow,
@@ -28,6 +28,9 @@ import { useEvidenceDecisions } from '../../lib/store';
 const RECENT_COMMITS = 3;
 
 const LABEL = 'text-xs font-medium text-muted-foreground';
+
+/** Names a value, so it never reads as part of it. `primary` holds AA on the tinted header. */
+const FIELD = 'text-2xs font-semibold tracking-wide text-primary uppercase';
 
 /**
  * One project and what proves its progress (docs/product/views.md, #114). Every project shows the
@@ -176,44 +179,54 @@ function Deliverable({
     <div className="overflow-hidden rounded-lg border">
       {/* Outside the fold: where a deliverable belongs and what it closes must show while it is
           closed (owner, #114). */}
-      <div className="flex flex-col gap-1.5 border-b bg-muted/40 px-2.5 py-1.5 text-xs">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <p className="min-w-0 break-words">
-            <span className="text-muted-foreground">Roadmap station: </span>
-            <Link href={stationHref} className={cn(LINK, 'font-medium')}>
+      <dl className="grid gap-x-8 gap-y-2.5 border-b border-l-4 border-l-chart-1 bg-chart-1/10 px-3 py-2.5 @2xl:grid-cols-[minmax(0,1fr)_11rem_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-1">
+          <dt className={FIELD}>Roadmap station</dt>
+          <dd className="text-sm font-semibold break-words">
+            <Link href={stationHref} className={LINK}>
               {milestone.title}
             </Link>
-          </p>
-          <ul role="list" aria-label="Lines it moves forward" className="flex flex-wrap gap-2">
-            {lanes.map(({ target, color }) => (
-              <li
-                key={target.id}
-                title={target.roleFamily.name}
-                className="inline-flex items-center gap-1 text-2xs font-medium text-muted-foreground"
-              >
-                <span aria-hidden className={cn('size-2.5 rounded-full', LINE_BG[color])} />
-                <span aria-hidden>{lineInitials(target.roleFamily.name)}</span>
-                <span className="sr-only">{target.roleFamily.name}</span>
-              </li>
-            ))}
-          </ul>
+          </dd>
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-muted-foreground">Closes</span>
-          <ul role="list" aria-label="Gaps it closes" className="contents">
-            {gaps.map((gap) => (
-              <li key={gap.id}>
-                <Link
-                  href={`/skills#gap-${gap.id}`}
-                  className="inline-flex h-5 items-center rounded-md bg-chart-1/15 px-2 font-medium outline-none hover:bg-chart-1/25 focus-visible:ring-2 focus-visible:ring-ring"
+        <div className="flex min-w-0 flex-col gap-1">
+          <dt className={FIELD}>Lines</dt>
+          <dd>
+            <ul role="list" aria-label="Lines it moves forward" className="flex flex-wrap gap-1.5">
+              {lanes.map(({ target, color }) => (
+                <li
+                  key={target.id}
+                  title={target.roleFamily.name}
+                  className={cn(
+                    'inline-flex h-6 items-center gap-1.5 rounded-full border px-2 text-xs font-medium',
+                    LINE_TINT[color],
+                  )}
                 >
-                  {gap.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  <span aria-hidden className={cn('size-2 rounded-full', LINE_BG[color])} />
+                  <span aria-hidden>{lineInitials(target.roleFamily.name)}</span>
+                  <span className="sr-only">{target.roleFamily.name}</span>
+                </li>
+              ))}
+            </ul>
+          </dd>
         </div>
-      </div>
+        <div className="flex min-w-0 flex-col gap-1">
+          <dt className={FIELD}>Closes</dt>
+          <dd>
+            <ul role="list" aria-label="Gaps it closes" className="flex flex-wrap gap-1.5">
+              {gaps.map((gap) => (
+                <li key={gap.id}>
+                  <Link
+                    href={`/skills#gap-${gap.id}`}
+                    className="inline-flex h-6 items-center rounded-md border border-chart-1/40 bg-card px-2 text-xs font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {gap.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </dd>
+        </div>
+      </dl>
       <details id={projectAnchor(item.id)} open={open} className="group scroll-mt-28">
         <summary className="flex cursor-pointer list-none items-center gap-2 p-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
           <ChevronRight
@@ -221,7 +234,7 @@ function Deliverable({
             className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
           />
           <span className="min-w-0 flex-1 break-words">
-            <span className="text-xs text-muted-foreground">Deliverable: </span>
+            <span className={cn(FIELD, 'block')}>Deliverable</span>
             <span className="font-medium">{item.title}</span>
           </span>
           <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
