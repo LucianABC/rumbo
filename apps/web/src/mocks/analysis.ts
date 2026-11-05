@@ -10,6 +10,7 @@ import { profile } from './profile';
 export const analysis = {
   profileUpdatedAt: profile.updatedAt,
   analyzedAt: '2026-10-14T18:45:00.000Z',
+  subtitle: 'Customer support specialist moving into data analysis',
   summary:
     'Four years in customer support, with three of them building the report the product team reads every week. The profile reads as support first, with a real and growing data side that a recent SQL certificate backs up.',
   feedback: [

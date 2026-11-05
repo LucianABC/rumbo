@@ -42,6 +42,19 @@ export function timeline(
     }));
 }
 
+/**
+ * The short line under the name: rumbo's when there is an analysis, or the latest role. Never the
+ * raw headline while there is either: on LinkedIn it runs too long for this spot.
+ */
+export function profileSubtitle(
+  subtitle: string | undefined,
+  positions: readonly Experience[],
+  headline: string,
+): string {
+  const [latest] = positions;
+  return subtitle ?? (latest ? `${latest.title} · ${latest.organization}` : headline);
+}
+
 /** "2017 – 2019", one end alone, or null when the entry has no dates. */
 export function educationPeriod(start?: string, end?: string): string | null {
   const dates = [start, end].flatMap((d) => (d ? [formatPartialDate(d)] : []));

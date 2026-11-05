@@ -87,6 +87,8 @@ describe('Profile (#113)', () => {
     expect(html).toContain('What to improve');
     expect(html.indexOf('rumbo&#x27;s reading')).toBeLessThan(html.indexOf('id="experience"'));
     expect(html).toContain(profile.about);
+    expect(html).toContain('Customer support specialist moving into data analysis');
+    expect(html).not.toContain(profile.headline);
   });
 
   it('keeps the profile when the analysis read another version of it', async () => {
@@ -98,6 +100,7 @@ describe('Profile (#113)', () => {
     const html = await render();
 
     expect(html).toContain('Analysis unavailable');
+    expect(html).not.toContain(profile.headline);
     expect(html).toContain(`>${profile.name}</h2>`);
     expect(html).not.toContain('% </span>complete');
     expect(warn.mock.calls[0]?.[1]).toBe('profile analysis unavailable');

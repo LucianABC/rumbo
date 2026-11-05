@@ -3,19 +3,26 @@ import { describe, expect, it } from 'vitest';
 import type { Profile } from '../src/profile.js';
 import { checkAnalysis, ProfileAnalysis } from '../src/provisional/index.js';
 
-const analysis = {
+const analysis: ProfileAnalysis = {
   profileUpdatedAt: '2026-10-14T18:30:00.000Z',
   analyzedAt: '2026-10-14T18:45:00.000Z',
+  subtitle: 'Support specialist moving into data',
   summary: 'Support first, with a growing data side.',
   feedback: [{ kind: 'improve', text: 'No bullet has a number yet.' }],
   completeness: 72,
-} as const;
+};
 
 describe('ProfileAnalysis', () => {
   it('keeps completeness a whole percentage', () => {
     expect(ProfileAnalysis.safeParse(analysis).success).toBe(true);
     expect(ProfileAnalysis.safeParse({ ...analysis, completeness: 101 }).success).toBe(false);
     expect(ProfileAnalysis.safeParse({ ...analysis, completeness: 7.5 }).success).toBe(false);
+  });
+
+  it('keeps the subtitle short', () => {
+    const subtitle = 'x'.repeat(81);
+
+    expect(ProfileAnalysis.safeParse({ ...analysis, subtitle }).success).toBe(false);
   });
 });
 

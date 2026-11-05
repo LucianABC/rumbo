@@ -10,6 +10,7 @@ import {
   educationPeriod,
   initials,
   LANGUAGE_LEVEL_LABEL,
+  profileSubtitle,
   type SkillRow,
   skillGroups,
   timeline,
@@ -47,7 +48,7 @@ export function ProfileCv({
           </span>
           <div className="flex min-w-0 flex-col gap-1">
             <h2 className="text-xl font-bold tracking-tight md:text-2xl">{profile.name}</h2>
-            <p>{profile.headline}</p>
+            <p>{profileSubtitle(analysis?.subtitle, positions, profile.headline)}</p>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {profile.location ? (
                 <span className="flex items-center gap-1.5">

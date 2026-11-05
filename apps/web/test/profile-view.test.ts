@@ -8,6 +8,7 @@ import {
   initials,
   lastImports,
   profileProvenance,
+  profileSubtitle,
   skillGroups,
   type Suggestion,
   suggestions,
@@ -81,6 +82,20 @@ describe('timeline', () => {
 
     expect(open?.period).toBe('Feb 2023 – Present · 3 yrs 10 mos');
     expect(closed?.period).toBe('Jun 2020 – Jan 2023 · 2 yrs 8 mos');
+  });
+});
+
+describe('profileSubtitle', () => {
+  const positions = [position('Analyst', '2020-01', null)];
+
+  it("prefers rumbo's subtitle, then the latest role, then the headline", () => {
+    expect(profileSubtitle('Short line', positions, 'A | very | long | headline')).toBe(
+      'Short line',
+    );
+    expect(profileSubtitle(undefined, positions, 'A | very | long | headline')).toBe(
+      'Analyst · Org',
+    );
+    expect(profileSubtitle(undefined, [], 'Headline')).toBe('Headline');
   });
 });
 

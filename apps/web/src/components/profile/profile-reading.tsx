@@ -6,9 +6,9 @@ import { formatDay } from '../../lib/format';
 import { Unavailable } from '../skills/shared';
 
 /**
- * What rumbo makes of the profile (docs/product/views.md, #113): the Profile analyst's summary and
- * feedback, set apart and labeled as opinion, as gaps' rationale is. The analysis is provisional
- * until the F1 spec (#41).
+ * What rumbo makes of the profile (docs/product/views.md, #113): the Drafter's summary and feedback
+ * in review mode, set apart and labeled as opinion, as gaps' rationale is. The analysis is
+ * provisional until the F1 spec (#41).
  */
 export function ProfileReading({ analysis }: { readonly analysis: ProfileAnalysis | null }) {
   if (!analysis) {

@@ -158,8 +158,8 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **For:** the user's full professional profile, presented as well as a good CV, and where it came from.
 - **Layout:** one page that reads in about a screen on desktop. A strip of profile sources with their update links comes first, then the profile header with rumbo's analysis, then the CV. Suggested changes live behind a bell with what is left to review and the profile's completeness, as a panel of notifications (#113).
 - **Shows:**
-  - header: name, headline, location, linked LinkedIn URL;
-  - **rumbo's analysis** (proposed, #113): after a profile is imported, the Profile analyst writes a short summary and feedback, strengths and things to improve. It is labeled opinion, dated, and changes nothing in the profile;
+  - header: name, a short subtitle, location, linked LinkedIn URL. The subtitle comes from the analysis, or is the latest role without one; the imported headline is too long for this spot and shows only in Suggested changes;
+  - **rumbo's analysis** (proposed, #113): after a profile is imported, the Drafter's review mode writes the subtitle, a short summary and feedback, strengths and things to improve. It is labeled opinion, dated, and changes nothing in the profile;
   - about, the user's own text;
   - experience as a timeline (role, organization, period, highlights);
   - education and certifications;
