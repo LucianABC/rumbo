@@ -244,7 +244,7 @@ function Deliverable({
         </summary>
         <div className="flex flex-col gap-3 border-t p-2.5">
           <p className="text-sm">
-            <span className="font-medium">Done when: </span>
+            <span className={cn(FIELD, 'block')}>Done when</span>
             <span className="text-muted-foreground">{item.doneWhen}</span>
           </p>
           {tasks.length > 0 ? (
