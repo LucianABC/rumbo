@@ -231,10 +231,14 @@ for (const [size, viewport] of SIZES) {
       await page.getByRole('button', { name: 'Edit profile' }).click();
 
       await page.getByRole('textbox', { name: /^Name/ }).first().fill('Someone else');
-      await page.getByRole('button', { name: 'Save' }).click();
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
 
       await expect(page.getByRole('heading', { name: 'Someone else' })).toBeVisible();
       await expect(page.getByText('Your edits last for this visit')).toBeVisible();
+      // Either way Save alone never reviews; which one depends on the served mocks (#137).
+      await expect(
+        page.getByText(/^(Edited after the last review|Not reviewed yet)$/),
+      ).toBeVisible();
     });
 
     test('a source control says it is not available yet', async ({ page }) => {

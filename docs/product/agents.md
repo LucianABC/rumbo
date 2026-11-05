@@ -39,7 +39,7 @@ Two agents serve several slices with one design and one prompt family, switched 
   - **propose** (F4): LinkedIn and CV text for the primary target or a blend, and one CV variant per active target. A variant is one run, saved once approved, and runs again only when the user asks after the profile changed (`views.md`, Export). The base CV needs no agent;
   - **tailor** (assisted apply, #57): a CV, and an optional cover letter, for one posting, using the posting's terms only where they are true for the user;
   - in both modes it outputs the drafts plus a list of **missing facts**, which the Profile interviewer's draft mode asks about;
-  - **after a manual edit** (`views.md`, Profile): a Save that changes content re-runs review and, from F4, propose in the background, as one run with its budget, checked by the Fidelity checker. Suggestions never rewrite anything: the user approves each one. The Drafter treats the user's edits and rejections as decisions, so it does not propose undoing an edit or repeat a rejected change.
+  - **on request** (`views.md`, Profile, reviews): **Save and review** or **Review my profile** re-runs review and, from F4, propose, as one run with its budget, checked by the Fidelity checker. **Save** alone never calls a model. Each user has 5 reviews per rolling 7 days. Suggestions never rewrite anything: the user approves each one. The Drafter treats the user's edits and rejections as decisions, so it does not propose undoing an edit or repeat a rejected change.
 - **Roadmap planner** has a **revise** mode for target changes, the weekly recalculation and work found in a repo: it starts from the current roadmap and keeps done items and approved evidence.
 
 ### Reading a repo beyond the plan
@@ -84,6 +84,6 @@ The full list is in ADR 0001, amendment 1. Runs that serve a conversation (`prof
 ## Open
 
 - Whether a clear match can complete a task alone is open: see F5 in `mvp-scope.md`.
-- Which run type holds the review after a manual edit: `profile.import` does not fit, since nothing is imported. The F4 spec settles it, with ADR 0001.
+- Which run type holds a review on request: `profile.import` does not fit, since nothing is imported. The F4 spec settles it, with ADR 0001.
 - **Analyze my progress** (Roadmap, #118) runs on mock output in the demo. Which agent produces it, and on which route, is decided when #121 leaves standby.
 - Where building a CV from scratch lands is #155, still open. This catalog assumes its proposed option A (the no-CV interview in F1, the ready-to-send CV in F4); if #155 picks another option, this page, `mvp-scope.md` (F1, F4), `views.md` (onboarding step 2, Profile) and `problem.md` change with it.

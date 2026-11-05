@@ -242,6 +242,7 @@ describe('the editor', () => {
     const html = renderToStaticMarkup(
       createElement(ProfileEditor, {
         profile,
+        canReview: true,
         onSave: () => undefined,
         onClose: () => undefined,
       }),

@@ -10,13 +10,18 @@ import {
   profileProvenance,
   type Suggestion,
 } from '../../lib/profile/profile-view';
-import { useEditedProfile } from '../../lib/store';
+import { nextReviewAt, reviewsLeft, reviewState } from '../../lib/profile/review-limit';
+import { useEditedProfile, useProfileReviews } from '../../lib/store';
 import { PageHeader } from '../page-header';
 import { Button } from '../ui/button';
 import { CompletenessBar } from './completeness-bar';
 import { ProfileCv } from './profile-cv';
 import { ProfileEditor } from './profile-editor';
+import { ProfileReviewBar } from './profile-review-bar';
 import { ProfileSources } from './profile-sources';
+
+/** Long enough to read as work being done. */
+const SAMPLE_REVIEW_MS = 1500;
 
 /**
  * The Profile tab, read or edited (docs/product/views.md, #170). What the user saved replaces the
@@ -35,8 +40,29 @@ export function ProfileView({
 }) {
   const { edited, save } = useEditedProfile();
   const [editing, setEditing] = useState(false);
+  const { reviews, record } = useProfileReviews();
+  const [reviewing, setReviewing] = useState(false);
   const profile = edited ?? imported;
   const { percent, next } = profileCompleteness(profile);
+  const reviewedAt = reviews.at(-1) ?? analysis?.analyzedAt ?? null;
+  const state = reviewState(profile.updatedAt, reviewedAt);
+  const left = reviewsLeft(reviews, now);
+
+  // A sample until F1 (#41): it runs nothing, it only records that a review happened.
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+    },
+    [],
+  );
+  const review = () => {
+    setReviewing(true);
+    timer.current = setTimeout(() => {
+      record(new Date().toISOString());
+      setReviewing(false);
+    }, SAMPLE_REVIEW_MS);
+  };
 
   // Leaving edit mode removes everything that held focus: it returns to the button that opened it.
   const button = useRef<HTMLButtonElement>(null);
@@ -83,9 +109,11 @@ export function ProfileView({
       {editing ? (
         <ProfileEditor
           profile={profile}
-          onSave={(saved) => {
+          canReview={left > 0 && !reviewing}
+          onSave={(saved, thenReview) => {
             save(saved);
             setEditing(false);
+            if (thenReview) review();
           }}
           onClose={() => {
             setEditing(false);
@@ -93,8 +121,24 @@ export function ProfileView({
         />
       ) : (
         <>
+          <ProfileReviewBar
+            editedAt={profile.updatedAt}
+            reviewedAt={reviewedAt}
+            state={state}
+            left={left}
+            nextAt={nextReviewAt(reviews, now)}
+            reviewing={reviewing}
+            sampled={reviews.length > 0}
+            onReview={review}
+          />
           <ProfileSources profile={profile} />
-          <ProfileCv profile={profile} analysis={analysis} edited={edited !== null} now={now} />
+          <ProfileCv
+            profile={profile}
+            analysis={analysis}
+            edited={edited !== null}
+            analysisOutdated={state === 'outdated'}
+            now={now}
+          />
         </>
       )}
     </>

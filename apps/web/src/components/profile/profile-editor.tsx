@@ -2,7 +2,7 @@
 
 import type { Profile } from '@rumbo/contracts';
 import { cn } from 'cn';
-import { Check, ChevronRight, Plus, Trash2, Undo2, X } from 'lucide-react';
+import { Check, ChevronRight, Plus, RefreshCw, Trash2, Undo2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -33,6 +33,7 @@ import { Button } from '../ui/button';
 
 const CARD = 'min-w-0 rounded-xl border bg-card p-4 md:p-5';
 const HEADING = 'text-xs font-semibold text-primary uppercase';
+const DISABLED = 'aria-disabled:cursor-not-allowed aria-disabled:opacity-50';
 const INPUT =
   'w-full min-w-0 rounded-md border bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive';
 
@@ -50,11 +51,14 @@ const fieldId = (key: string) => `edit-${key}`;
  */
 export function ProfileEditor({
   profile,
+  canReview,
   onSave,
   onClose,
 }: {
   readonly profile: Profile;
-  readonly onSave: (profile: Profile) => void;
+  /** There are reviews left this week: Save always works, Save and review needs one. */
+  readonly canReview: boolean;
+  readonly onSave: (profile: Profile, review: boolean) => void;
   readonly onClose: () => void;
 }) {
   const [draft, setDraft] = useState<ProfileDraft>(() => toDraft(profile));
@@ -73,13 +77,15 @@ export function ProfileEditor({
   const changes = changeCount(draft);
   const invalid = Object.keys(errors).length;
 
-  const save = () => {
+  const blocked = changes === 0 || invalid > 0;
+  const save = (review: boolean) => {
+    if (blocked || (review && !canReview)) return;
     const saved = applyDraft(draft, profile, new Date().toISOString());
     if (!saved) {
       setSaveFailed(true);
       return;
     }
-    onSave(saved);
+    onSave(saved, review);
   };
 
   return (
@@ -132,14 +138,28 @@ export function ProfileEditor({
             <Button
               type="button"
               size="sm"
-              aria-disabled={changes === 0 || invalid > 0}
-              className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+              variant="outline"
+              aria-disabled={blocked}
+              className={DISABLED}
               onClick={() => {
-                if (changes > 0 && invalid === 0) save();
+                save(false);
               }}
             >
               <Check aria-hidden />
               Save
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              aria-disabled={blocked || !canReview}
+              className={DISABLED}
+              title={canReview ? undefined : 'No reviews left this week: Save keeps your changes'}
+              onClick={() => {
+                save(true);
+              }}
+            >
+              <RefreshCw aria-hidden />
+              Save and review
             </Button>
           </div>
         )}

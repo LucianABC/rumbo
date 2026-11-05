@@ -28,6 +28,7 @@ export function ProfileCv({
   profile,
   analysis,
   edited = false,
+  analysisOutdated = false,
   now,
 }: {
   readonly profile: Profile;
@@ -35,6 +36,8 @@ export function ProfileCv({
   readonly analysis: ProfileAnalysis | null;
   /** The user changed the profile since the analysis read it (#170). */
   readonly edited?: boolean;
+  /** The last review read an earlier version of the profile (#170). */
+  readonly analysisOutdated?: boolean;
   readonly now: Date;
 }) {
   const positions = timeline(profile.experiences, now);
@@ -78,7 +81,7 @@ export function ProfileCv({
             </div>
           </div>
         </div>
-        <ProfileReading analysis={analysis} outdated={edited} />
+        <ProfileReading analysis={analysis} outdated={analysisOutdated} />
       </header>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
