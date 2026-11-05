@@ -14,7 +14,7 @@ const SIZES = [
 /** WCAG 2.1 A and AA, the level the project targets. */
 const WCAG = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
-const bell = (page: Page) => page.getByRole('button', { name: /^Suggested changes/ });
+const bell = (page: Page) => page.getByRole('banner').getByRole('button', { name: /^Suggested/ });
 const notifications = (page: Page) =>
   page.getByRole('list', { name: 'Notifications' }).locator(':scope > li');
 
@@ -110,22 +110,33 @@ for (const [size, viewport] of SIZES) {
       await expect(status).toHaveText(before);
     });
 
-    test('approving moves completeness, and rejecting lowers what is reachable', async ({
-      page,
-    }) => {
+    test('the bar heads the page, and approving a change moves it', async ({ page }) => {
       await openNotifications(page);
-      const meter = page.getByRole('dialog').getByText('Profile completeness').locator('..');
-      const percent = meter.getByRole('status');
-      test.skip((await percent.count()) === 0, 'No analysis for the served mocks');
+      const name = 'Profile completeness';
+      const panelBar = page.getByRole('dialog').getByRole('progressbar', { name });
       const row = notifications(page).first();
-      const before = await percent.innerText();
+      const before = await panelBar.getAttribute('aria-valuenow');
+      expect(Number(before)).toBeGreaterThan(0);
 
       await row.locator('summary').click();
       await row.getByRole('button', { name: /^Approve/ }).click();
+      await expect(panelBar).not.toHaveAttribute('aria-valuenow', before ?? '');
+      const after = await panelBar.getAttribute('aria-valuenow');
 
-      await expect(percent).not.toHaveText(before);
-      await row.getByRole('button', { name: /^Undo/ }).click();
-      await expect(percent).toHaveText(before);
+      // The page under the panel stays out of reach until it closes.
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('main').getByRole('progressbar', { name })).toHaveAttribute(
+        'aria-valuenow',
+        after ?? '',
+      );
+    });
+
+    test('the bell is in the app header on every tab', async ({ page }) => {
+      await page.goto('/skills');
+
+      await expect(
+        page.getByRole('banner').getByRole('button', { name: /^Suggested changes/ }),
+      ).toBeVisible();
     });
 
     test('Copy says so when the browser has no clipboard', async ({ page }) => {
@@ -166,7 +177,9 @@ for (const [size, viewport] of SIZES) {
       await row.getByRole('button', { name: /^Approve/ }).click();
       await page.keyboard.press('Escape');
 
-      await expect(bell(page)).not.toContainText(String(count));
+      await expect(bell(page)).not.toHaveAccessibleName(
+        `Suggested changes, ${String(count)} to review`,
+      );
       await expect(tab).not.toContainText(`${String(count)} suggested changes`);
 
       await nav.getByRole('link', { name: /^Skills/ }).click();

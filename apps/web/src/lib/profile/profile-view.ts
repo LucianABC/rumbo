@@ -165,6 +165,69 @@ function placeOf(change: DraftChange, names: Readonly<Record<string, string>>): 
   return `${change.before === null ? 'New bullet' : 'Bullet'} · ${position}`;
 }
 
+/** What the header's notifications need; each part is null when its data cannot be read. */
+export interface ProfileReview {
+  readonly suggestions: readonly Suggestion[] | null;
+  readonly completeness: RubricResult | null;
+}
+
+const hasNumber = (text: string) => /\d/.test(text);
+
+/**
+ * What a complete profile covers, worth 100 points, most useful first. Code and not the model: a
+ * percentage must mean the same thing every time (docs/product/agents.md). The F1 spec (#41) may
+ * adjust it. It asks nothing of any field in particular, so it fits a profile from any trade.
+ */
+const RUBRIC: readonly {
+  readonly points: number;
+  readonly todo: string;
+  readonly met: (profile: Profile) => boolean;
+}[] = [
+  { points: 10, todo: 'add a headline', met: (p) => p.headline.trim() !== '' },
+  { points: 10, todo: 'write your about section', met: (p) => Boolean(p.about?.trim()) },
+  { points: 15, todo: 'add your work experience', met: (p) => p.experiences.length > 0 },
+  {
+    points: 15,
+    todo: 'describe what you did in each position',
+    met: (p) => p.experiences.length > 0 && p.experiences.every((e) => e.highlights.length > 0),
+  },
+  {
+    points: 15,
+    todo: 'put numbers on at least half of your bullets',
+    met: (p) => {
+      const bullets = p.experiences.flatMap((e) => e.highlights);
+      return bullets.length > 0 && bullets.filter(hasNumber).length * 2 >= bullets.length;
+    },
+  },
+  {
+    points: 10,
+    todo: 'add your education or certifications',
+    met: (p) => p.education.length + p.certifications.length > 0,
+  },
+  { points: 5, todo: 'list your skills', met: (p) => p.skills.length > 0 },
+  {
+    points: 10,
+    todo: 'approve evidence for every skill',
+    met: (p) =>
+      p.skills.length > 0 && p.skills.every((s) => s.evidence.some((e) => e.approvedAt !== null)),
+  },
+  { points: 5, todo: 'add your languages', met: (p) => p.languages.length > 0 },
+  { points: 5, todo: 'link your LinkedIn profile', met: (p) => p.linkedinUrl !== undefined },
+];
+
+export interface RubricResult {
+  /** Points of the rubric the profile meets, out of 100. */
+  readonly percent: number;
+  /** The first thing it still misses, or null when nothing is left. */
+  readonly next: string | null;
+}
+
+export function profileCompleteness(profile: Profile): RubricResult {
+  const missing = RUBRIC.filter((rule) => !rule.met(profile));
+  const lost = missing.reduce((sum, rule) => sum + rule.points, 0);
+  return { percent: 100 - lost, next: missing[0]?.todo ?? null };
+}
+
 export interface Completeness {
   readonly now: number;
   /** Where it lands once every change still awaiting a decision is approved. */

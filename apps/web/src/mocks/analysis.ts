@@ -24,12 +24,11 @@ export const analysis = {
     },
     {
       kind: 'improve',
-      text: 'No bullet has a number yet, so your impact is hard to size.',
+      text: 'Only one bullet has a number, so your impact is hard to size.',
     },
     {
       kind: 'improve',
       text: 'SQL rests on a certificate alone: nothing shows it in use.',
     },
   ],
-  completeness: 72,
 } satisfies ProfileAnalysis;

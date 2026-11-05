@@ -48,15 +48,12 @@ async function render() {
 }
 
 /** The panel's list: a closed sheet renders nothing, so the page's markup does not have it. */
-async function renderNotifications(completeness?: number) {
+async function renderNotifications() {
   const [profile, roadmap] = await Promise.all([getProfile(), getRoadmap()]);
   const { changes } = await getDrafts(profile, roadmap);
   const lanes = roadmap.targets.map((target): Lane => ({ target, color: 'line-1' }));
   return renderToStaticMarkup(
-    createElement(NotificationList, {
-      suggestions: suggestions(changes, profile, lanes),
-      ...(completeness === undefined ? {} : { completeness }),
-    }),
+    createElement(NotificationList, { suggestions: suggestions(changes, profile, lanes) }),
   );
 }
 
@@ -102,7 +99,6 @@ describe('Profile (#113)', () => {
     expect(html).toContain('Analysis unavailable');
     expect(html).not.toContain(profile.headline);
     expect(html).toContain(`>${profile.name}</h2>`);
-    expect(html).not.toContain('% </span>complete');
     expect(warn.mock.calls[0]?.[1]).toBe('profile analysis unavailable');
   });
 
@@ -132,21 +128,29 @@ describe('Profile (#113)', () => {
     expect(html).toContain('Save to PDF');
   });
 
-  it('keeps suggested changes behind a bell with how many are left and completeness', async () => {
+  it('heads the page with a completeness bar computed from the profile', async () => {
     const html = await render();
 
-    expect(html).toMatch(/Suggested changes<span[^>]*>3<span class="sr-only"> to review/);
-    expect(html).toMatch(/>72%<\/span> complete/);
+    expect(html).toContain('role="progressbar"');
+    expect(html).toContain('aria-valuenow="75"');
+    expect(html).toContain('>75%</span>');
+    expect(html).toContain('Approving what is left takes it to 93%.');
     expect(html).not.toContain('− Removed');
   });
 
-  it('says how much each change adds, and where approving them all lands', async () => {
-    const html = await renderNotifications(72);
+  it('keeps the bar when there is no analysis and no drafts', async () => {
+    vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    analysis.override = { nope: true };
+    drafts.override = { nope: true };
 
-    expect(html).toContain('Profile completeness');
-    expect(html).toContain('>72%</span>');
-    expect(html).toContain('Approving what is left takes it to 90%.');
-    expect(html).toContain('>+6%</span> complete');
+    const html = await render();
+
+    expect(html).toContain('aria-valuenow="75"');
+    expect(html).toContain('Next: put numbers on at least half of your bullets.');
+  });
+
+  it('says how much each change adds', async () => {
+    expect(await renderNotifications()).toContain('>+6%</span> complete');
   });
 
   it('shows each change as a short row with a labeled diff, awaiting a decision', async () => {

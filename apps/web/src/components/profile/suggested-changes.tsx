@@ -2,75 +2,71 @@
 
 import { cn } from 'cn';
 import { Bell, Check, ChevronRight, CircleHelp, Copy, Undo2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, use, useEffect, useRef, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 
 import { DRAFT_STATUS_LABEL, type DraftStatus } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
-import {
-  type Completeness,
-  completeness as completenessOf,
-  type Suggestion,
-} from '../../lib/profile/profile-view';
+import type { ProfileReview, Suggestion } from '../../lib/profile/profile-view';
 import { LinkedInIcon } from '../linkedin-icon';
 import { ResponsiveSheet } from '../responsive-sheet';
 import { Unavailable } from '../skills/shared';
 import { DraftStatusChip } from '../status-chip';
+import { CompletenessBar } from './completeness-bar';
 import { type DraftDecision, useDraftDecisions } from './draft-decisions';
 
 /**
- * Suggested changes as notifications, hand in hand with how complete the profile is
- * (docs/product/views.md, #113): a bell with what is left to review and the percentage, opening a
- * panel of short rows where each approval moves it. The data is provisional until the F1 and F4
- * specs (#41, #44).
+ * Suggested changes as notifications, in the app header so they reach the user from any tab
+ * (docs/product/views.md, #113): a bell with what is left to review, opening a panel of short
+ * rows next to the profile's completeness. The bell paints at once and its data streams in, so no
+ * tab waits for it. The data is provisional until the F4 spec (#44).
  */
-export function SuggestedChanges({
-  suggestions,
-  completeness,
-}: {
-  /** Null when the changes could not be read. */
-  readonly suggestions: readonly Suggestion[] | null;
-  /** The profile's percentage before any decision; null when there is no analysis. */
-  readonly completeness: number | null;
-}) {
+export function SuggestedChanges({ review }: { readonly review: Promise<ProfileReview> }) {
+  return (
+    <Suspense fallback={<BellButton left={0} />}>
+      <LoadedChanges review={review} />
+    </Suspense>
+  );
+}
+
+function BellButton({ left, onClick }: { readonly left: number; readonly onClick?: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className={cn('relative', left > 0 && 'bg-attention/10 text-attention')}
+      aria-label={left > 0 ? `Suggested changes, ${String(left)} to review` : 'Suggested changes'}
+      onClick={onClick}
+    >
+      <Bell aria-hidden />
+      {left > 0 ? (
+        <span
+          aria-hidden
+          className="absolute -top-1 -right-1 min-w-4 rounded-full bg-attention px-1 font-mono text-2xs font-semibold text-background tabular-nums"
+        >
+          {left}
+        </span>
+      ) : null}
+    </Button>
+  );
+}
+
+function LoadedChanges({ review }: { readonly review: Promise<ProfileReview> }) {
+  const { suggestions, completeness } = use(review);
   const [open, setOpen] = useState(false);
   const { decisions } = useDraftDecisions();
   const left = (suggestions ?? []).filter((s) => decisions[s.change.id] === undefined).length;
-  const percent =
-    completeness === null ? null : completenessOf(completeness, suggestions ?? [], decisions);
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        className={cn('h-auto py-2', left > 0 && 'border-attention/40 bg-attention/10')}
+      <BellButton
+        left={left}
         onClick={() => {
           setOpen(true);
         }}
-      >
-        <Bell aria-hidden className={cn(left > 0 && 'text-attention')} />
-        <span className="flex flex-col gap-1">
-          <span>
-            Suggested changes
-            {left > 0 ? (
-              <span className="ml-1 rounded-full bg-attention px-1.5 font-mono text-xs font-semibold text-background tabular-nums">
-                {left}
-                <span className="sr-only"> to review</span>
-              </span>
-            ) : null}
-          </span>
-          {percent ? (
-            <span className="flex items-center gap-2 text-xs font-normal">
-              <MeterBar percent={percent} className="h-1 flex-1" />
-              <span>
-                <span className="font-mono tabular-nums">{percent.now}%</span> complete
-              </span>
-            </span>
-          ) : null}
-        </span>
-      </Button>
+      />
       <ResponsiveSheet
         open={open}
         onClose={() => {
@@ -80,74 +76,32 @@ export function SuggestedChanges({
         description="Sample drafts: real ones arrive with Drafting (F4). rumbo cannot edit LinkedIn, so you approve the text here and apply it there."
         regionLabel="Suggested changes"
       >
-        {suggestions ? (
-          <NotificationList suggestions={suggestions} completeness={completeness} />
-        ) : (
-          <Unavailable title="Suggested changes unavailable">
-            They could not be read, or they no longer match your profile.
-          </Unavailable>
-        )}
+        <div className="flex flex-col gap-3">
+          {completeness ? (
+            <CompletenessBar
+              percent={completeness.percent}
+              next={completeness.next}
+              suggestions={suggestions ?? []}
+              className="rounded-lg border p-3"
+            />
+          ) : null}
+          {suggestions ? (
+            <NotificationList suggestions={suggestions} />
+          ) : (
+            <Unavailable title="Suggested changes unavailable">
+              They could not be read, or they no longer match your profile.
+            </Unavailable>
+          )}
+        </div>
       </ResponsiveSheet>
     </>
   );
 }
 
-/** Done so far over what is still reachable, both over a track; the numbers are always text. */
-function MeterBar({
-  percent: { now, reachable },
-  className,
-}: {
-  readonly percent: Completeness;
-  readonly className?: string;
-}) {
-  return (
-    <span
-      aria-hidden
-      className={cn('relative block overflow-hidden rounded-full bg-muted', className)}
-    >
-      <span
-        className="absolute inset-y-0 left-0 bg-chart-1/30 transition-[width] duration-(--duration-quick)"
-        style={{ width: `${String(reachable)}%` }}
-      />
-      <span
-        className="absolute inset-y-0 left-0 bg-chart-1 transition-[width] duration-(--duration-quick)"
-        style={{ width: `${String(now)}%` }}
-      />
-    </span>
-  );
-}
-
-function CompletenessMeter({ percent }: { readonly percent: Completeness }) {
-  return (
-    <div className="flex flex-col gap-1.5 rounded-lg border p-3">
-      <p className="flex items-baseline justify-between gap-3 text-sm font-medium">
-        Profile completeness
-        <span role="status" className="font-mono font-semibold tabular-nums">
-          {percent.now}%
-        </span>
-      </p>
-      <MeterBar percent={percent} className="h-2" />
-      <p className="text-xs text-muted-foreground">
-        {percent.reachable > percent.now
-          ? `Approving what is left takes it to ${String(percent.reachable)}%.`
-          : 'Nothing left to review moves it further.'}
-      </p>
-    </div>
-  );
-}
-
 /** One row per change; opening a row closes the last one, so the panel stays short. */
-export function NotificationList({
-  suggestions,
-  completeness = null,
-}: {
-  readonly suggestions: readonly Suggestion[];
-  readonly completeness?: number | null;
-}) {
+export function NotificationList({ suggestions }: { readonly suggestions: readonly Suggestion[] }) {
   const { decisions, decide } = useDraftDecisions();
   const left = suggestions.filter((s) => decisions[s.change.id] === undefined).length;
-  const percent =
-    completeness === null ? null : completenessOf(completeness, suggestions, decisions);
 
   if (suggestions.length === 0) {
     return (
@@ -158,7 +112,6 @@ export function NotificationList({
   }
   return (
     <div className="flex flex-col gap-3">
-      {percent ? <CompletenessMeter percent={percent} /> : null}
       <p role="status" className="text-xs text-muted-foreground">
         <span className="font-mono tabular-nums">{left}</span> left to review
       </p>

@@ -35,7 +35,7 @@ Two agents serve several slices with one design and one prompt family, switched 
   - **gap check** (F3): between gaps and roadmap, ask only about the gaps, so a skill the user has but never wrote down is not planned as something to learn;
   - **draft** (F4): ask for the facts the Drafter flagged as missing (metrics, scope, impact) instead of inventing them.
 - **Drafter.**
-  - **review** (F1, proposed, #113): once the user confirms the extraction, read the profile back: a short subtitle, a summary, and feedback on what works and what to improve. It is the same reading that drives propose, so a second agent would describe the same profile twice;
+  - **review** (F1, proposed, #113): once the user confirms the extraction, read the profile back: a short subtitle, a summary, and feedback on what works and what to improve. It also checks that the sources agree with each other: when the CV and the LinkedIn export contradict each other (dates, titles, companies, claims), it flags each inconsistency for the user to fix. It never picks a winner: only the user knows which one is right. It is the same reading that drives propose, so a second agent would describe the same profile twice;
   - **propose** (F4): LinkedIn and CV text for the primary target or a blend, and one CV variant per active target;
   - **tailor** (assisted apply, #57): a CV, and an optional cover letter, for one posting, using the posting's terms only where they are true for the user;
   - in both modes it outputs the drafts plus a list of **missing facts**, which the Profile interviewer's draft mode asks about.

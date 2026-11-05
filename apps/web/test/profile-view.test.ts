@@ -7,6 +7,7 @@ import {
   educationPeriod,
   initials,
   lastImports,
+  profileCompleteness,
   profileProvenance,
   profileSubtitle,
   skillGroups,
@@ -223,5 +224,55 @@ describe('completeness', () => {
 
   it('never passes 100', () => {
     expect(completeness(96, all, { a: 'approved' })).toEqual({ now: 100, reachable: 100 });
+  });
+});
+
+describe('profileCompleteness', () => {
+  const full = {
+    headline: 'Pastry chef',
+    about: 'Twelve years in kitchens.',
+    linkedinUrl: 'https://www.linkedin.com/in/someone',
+    experiences: [{ ...position('job', '2020-01', null), highlights: ['Fed 300 guests a day.'] }],
+    education: [{ id: 'school', institution: 'School', credential: 'Diploma' }],
+    certifications: [],
+    languages: [{ name: 'Spanish', level: 'native' }],
+    skills: [skill('baking', 'Kitchen', ['2026-10-01T00:00:00.000Z'])],
+    sources: [],
+  } as unknown as Profile;
+
+  it('gives 100 to a profile that covers the whole rubric, in any trade', () => {
+    expect(profileCompleteness(full)).toEqual({ percent: 100, next: null });
+  });
+
+  it('takes off what is missing and names the first thing to do', () => {
+    const { about: _about, ...noAbout } = full;
+
+    expect(profileCompleteness({ ...noAbout, languages: [] })).toEqual({
+      percent: 85,
+      next: 'write your about section',
+    });
+  });
+
+  it('counts a bullet with a number, and needs them on half of the bullets', () => {
+    const job = full.experiences[0] as Experience;
+    const withBullets = (highlights: string[]) =>
+      profileCompleteness({ ...full, experiences: [{ ...job, highlights }] });
+
+    expect(withBullets(['Led 4 people.', 'Baked bread.']).percent).toBe(100);
+    expect(withBullets(['Led 4 people.', 'Baked.', 'Cooked.']).percent).toBe(85);
+  });
+
+  it('does not credit evidence awaiting approval, or an empty profile', () => {
+    expect(profileCompleteness({ ...full, skills: [skill('a', 'Kitchen', [null])] }).percent).toBe(
+      90,
+    );
+    expect(
+      profileCompleteness({
+        ...full,
+        experiences: [],
+        skills: [],
+        education: [],
+      }).percent,
+    ).toBe(30);
   });
 });

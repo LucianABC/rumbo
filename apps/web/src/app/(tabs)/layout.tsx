@@ -1,15 +1,12 @@
 import type { ReactNode } from 'react';
 
 import { DraftDecisionsProvider } from '../../components/profile/draft-decisions';
+import { SuggestedChanges } from '../../components/profile/suggested-changes';
 import { AppHeader } from '../../components/shell/app-header';
 import { TabNav } from '../../components/shell/tab-nav';
-import {
-  getProfile,
-  getRoadmap,
-  getRoadmapLayout,
-  getSuggestedChanges,
-  getTargetColors,
-} from '../../lib/data';
+import { getProfile, getRoadmap, getRoadmapLayout, getTargetColors } from '../../lib/data';
+import { loadProfileReview } from '../../lib/profile/review';
+import { lanesOf } from '../../lib/roadmap/single-line';
 import { tabBadges } from '../../lib/tabs';
 
 /**
@@ -19,10 +16,8 @@ import { tabBadges } from '../../lib/tabs';
 export default async function TabsLayout({ children }: { readonly children: ReactNode }) {
   const roadmap = await getRoadmap();
   const colors = getTargetColors(roadmap, await getRoadmapLayout(roadmap));
-  // Only Profile's badge needs these, so no tab waits for them: the badge streams in (#113).
-  const suggestedChanges = getSuggestedChanges(getProfile(), roadmap).then(
-    (changes) => changes?.length ?? 0,
-  );
+  // Only the bell and Profile's badge need these, so no tab waits for them: both stream in (#113).
+  const review = loadProfileReview(getProfile(), roadmap, lanesOf(roadmap, colors));
   // The contract guarantees exactly one primary target (packages/contracts, roadmap.ts).
   const primary = roadmap.targets.find((t) => t.isPrimary) ?? roadmap.targets[0];
 
@@ -34,9 +29,18 @@ export default async function TabsLayout({ children }: { readonly children: Reac
       >
         Skip to content
       </a>
-      {primary ? <AppHeader target={primary} color={colors.get(primary.id)} /> : null}
+      {primary ? (
+        <AppHeader
+          target={primary}
+          color={colors.get(primary.id)}
+          actions={<SuggestedChanges review={review} />}
+        />
+      ) : null}
       <div className="md:flex">
-        <TabNav badges={tabBadges(roadmap)} suggestedChanges={suggestedChanges} />
+        <TabNav
+          badges={tabBadges(roadmap)}
+          suggestedChanges={review.then((r) => r.suggestions?.length ?? 0)}
+        />
         <main
           id="main"
           tabIndex={-1}

@@ -5,8 +5,7 @@ import type { Profile } from '../profile.js';
 /**
  * Provisional (spec 01, #113): what rumbo says about a profile, as the views read it until the F1
  * spec (#41) decides the real shape. The subtitle, the summary and the feedback come from the
- * Drafter's review mode. Completeness is a number code computes from a fixed rubric, never the
- * model's (docs/product/agents.md).
+ * Drafter's review mode (docs/product/agents.md).
  */
 
 export const ProfileFeedback = z.object({
@@ -23,8 +22,6 @@ export const ProfileAnalysis = z.object({
   subtitle: z.string().min(1).max(80),
   summary: z.string().min(1),
   feedback: z.array(ProfileFeedback),
-  /** Percentage of the rubric the profile meets. */
-  completeness: z.int().min(0).max(100),
 });
 export type ProfileAnalysis = z.infer<typeof ProfileAnalysis>;
 
