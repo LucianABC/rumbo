@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ProfilePage from '../src/app/(tabs)/profile/page';
-import { NotificationList } from '../src/components/profile/suggested-changes';
+import { NotificationList, SuggestedChanges } from '../src/components/profile/suggested-changes';
 import {
   getDrafts,
   getProfile,
@@ -147,6 +147,14 @@ describe('Profile (#113)', () => {
 
     expect(html).toContain('aria-valuenow="75"');
     expect(html).toContain('Next: put numbers on at least half of your bullets.');
+  });
+
+  it('keeps the bell disabled until its data arrives, so no click is lost', () => {
+    const pending = new Promise<never>(() => undefined);
+
+    const html = renderToStaticMarkup(createElement(SuggestedChanges, { review: pending }));
+
+    expect(html).toMatch(/<button[^>]*disabled/);
   });
 
   it('says how much each change adds', async () => {

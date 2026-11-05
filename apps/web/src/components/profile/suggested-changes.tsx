@@ -38,6 +38,8 @@ function BellButton({ left, onClick }: { readonly left: number; readonly onClick
       size="icon"
       className={cn('relative', left > 0 && 'bg-attention/10 text-attention')}
       aria-label={left > 0 ? `Suggested changes, ${String(left)} to review` : 'Suggested changes'}
+      // Until the data streams in there is nothing to open, and a click would be lost (#113).
+      disabled={onClick === undefined}
       onClick={onClick}
     >
       <Bell aria-hidden />
