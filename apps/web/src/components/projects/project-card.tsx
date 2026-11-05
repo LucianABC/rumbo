@@ -1,17 +1,7 @@
 'use client';
 
 import { cn } from 'cn';
-import {
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  Circle,
-  ExternalLink,
-  FolderGit2,
-  GitBranch,
-  Undo2,
-  X,
-} from 'lucide-react';
+import { Check, ChevronRight, ExternalLink, FolderGit2, GitBranch, Undo2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 
@@ -22,15 +12,17 @@ import {
   decisionOf,
   type EvidenceRow,
   evidenceRows,
+  lineInitials,
   type ProjectCard as ProjectCardView,
-  type ProjectStage,
-  type TaskRow,
+  projectAnchor,
+  type ProjectDeliverable,
   taskRows,
 } from '../../lib/projects/projects-view';
 import { LINK } from '../skills/shared';
 import { DraftStatusChip, StatusChip } from '../status-chip';
+import { TaskList } from '../task-list';
 import { Button } from '../ui/button';
-import { useEvidenceDecisions } from './evidence-decisions';
+import { useEvidenceDecisions } from '../../lib/store';
 
 /** How many commits a card lists: the repo holds the rest. */
 const RECENT_COMMITS = 3;
@@ -38,9 +30,9 @@ const RECENT_COMMITS = 3;
 const LABEL = 'text-xs font-medium text-muted-foreground';
 
 /**
- * One project and what proves its progress (docs/product/views.md, #114). Roadmap items on the same
- * repo show as stages inside it. Each item keeps its `project-<itemId>` anchor, so the sticky
- * header must not cover what a link lands on.
+ * One project and what proves its progress (docs/product/views.md, #114). Every project shows the
+ * same way, whether it has one deliverable or several: a deliverable is the project's part in one Roadmap
+ * station, so each task reads under its station and the gaps that station's item closes.
  */
 export function ProjectCard({
   card,
@@ -49,15 +41,10 @@ export function ProjectCard({
   readonly card: ProjectCardView;
   readonly activityAvailable: boolean;
 }) {
-  const { decisions } = useEvidenceDecisions();
-  const { id, title, status, repo, repoName, expectedEnd, stages, gaps, lanes } = card;
-  const only = stages.length === 1 ? stages[0] : undefined;
+  const { title, status, repo, repoName, expectedEnd, deliverables, lanes } = card;
 
   return (
-    <li
-      id={`project-${id}`}
-      className="@container flex min-w-0 scroll-mt-20 flex-col gap-4 rounded-xl border bg-card p-4 md:p-5"
-    >
+    <li className="@container flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-4 md:p-5">
       <header className="flex items-start gap-3">
         <span
           aria-hidden
@@ -70,11 +57,6 @@ export function ProjectCard({
             <h3 className="font-semibold break-words">{title}</h3>
             <StatusChip status={status} />
           </div>
-          {only ? (
-            <Link href={only.stationHref} className={cn(LINK, 'text-xs text-muted-foreground')}>
-              {only.milestone.title}
-            </Link>
-          ) : null}
         </div>
         {status !== 'done' && expectedEnd ? (
           <p className="shrink-0 text-right text-xs text-muted-foreground">
@@ -86,6 +68,7 @@ export function ProjectCard({
         ) : null}
       </header>
 
+      {/* Below the header, not in it: the date would cut the link on a phone. */}
       {repo ? (
         <a
           href={repo}
@@ -103,41 +86,21 @@ export function ProjectCard({
         </a>
       ) : null}
 
-      {only ? <DoneWhen text={only.item.doneWhen} /> : null}
+      <ul
+        role="list"
+        aria-label="Targets it serves"
+        className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"
+      >
+        {lanes.map(({ target, color }) => (
+          <li key={target.id} className="inline-flex items-center gap-1.5">
+            <span aria-hidden className={cn('h-1 w-4 shrink-0 rounded-full', LINE_BG[color])} />
+            {target.roleFamily.name}
+          </li>
+        ))}
+      </ul>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <ul role="list" aria-label="Gaps it closes" className="flex flex-wrap gap-1.5">
-          {gaps.map((gap) => (
-            <li key={gap.id}>
-              <Link
-                href={`/skills#gap-${gap.id}`}
-                className="inline-flex h-6 items-center rounded-md bg-chart-1/15 px-2 text-xs font-medium outline-none hover:bg-chart-1/25 focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {gap.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <ul
-          role="list"
-          aria-label="Targets it serves"
-          className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground"
-        >
-          {lanes.map(({ target, color }) => (
-            <li key={target.id} className="inline-flex items-center gap-1.5">
-              <span aria-hidden className={cn('h-1 w-4 shrink-0 rounded-full', LINE_BG[color])} />
-              {target.roleFamily.name}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className={cn('grid gap-4', only ? '@lg:grid-cols-2' : '@lg:grid-cols-[3fr_2fr]')}>
-        {only ? (
-          <Tasks title={title} tasks={taskRows(only.item, decisions)} />
-        ) : (
-          <Stages title={title} stages={stages} />
-        )}
+      <div className="grid gap-4 @lg:grid-cols-[3fr_2fr]">
+        <Deliverables title={title} deliverables={deliverables} />
         <Activity card={card} activityAvailable={activityAvailable} />
       </div>
 
@@ -146,27 +109,21 @@ export function ProjectCard({
   );
 }
 
-function DoneWhen({ text }: { readonly text: string }) {
-  return (
-    <p className="text-sm">
-      <span className="font-medium">Done when: </span>
-      <span className="text-muted-foreground">{text}</span>
-    </p>
-  );
-}
-
-/** Stages of one repo, folded so a project stays one card's height: the current one is open. */
-function Stages({
+/** One deliverable per station, folded so a project stays one card's height: the current one is open. */
+function Deliverables({
   title,
-  stages,
+  deliverables,
 }: {
   readonly title: string;
-  readonly stages: readonly ProjectStage[];
+  readonly deliverables: readonly ProjectDeliverable[];
 }) {
   const { decisions } = useEvidenceDecisions();
-  const current = stages.find((s) => s.item.status !== 'done') ?? stages[0];
+  const current = deliverables.find((s) => s.item.status !== 'done') ?? deliverables[0];
+  const tasks = deliverables.flatMap((s) => taskRows(s.item, decisions));
+  const done = tasks.filter((t) => t.done).length;
+  const percent = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
 
-  // Browsers do not open a closed <details> for a fragment, so a link to a stage would land on it
+  // Browsers do not open a closed <details> for a fragment, so a link to a deliverable would land on it
   // shut. This module owns those anchors, so it opens the one the URL names.
   useEffect(() => {
     const openTarget = () => {
@@ -183,59 +140,11 @@ function Stages({
   }, []);
 
   return (
-    <section aria-label={`Stages of ${title}`} className="flex min-w-0 flex-col gap-2">
-      <p className={LABEL}>Stages</p>
-      <ol className="flex flex-col gap-2">
-        {stages.map((stage, i) => {
-          const { item, milestone, stationHref } = stage;
-          const tasks = taskRows(item, decisions);
-          return (
-            <li key={item.id}>
-              <details
-                // The card holds the first stage's anchor.
-                id={i === 0 ? undefined : `project-${item.id}`}
-                open={stage === current}
-                className="group scroll-mt-20 rounded-lg border"
-              >
-                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg p-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-                  <ChevronRight
-                    aria-hidden
-                    className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
-                  />
-                  <span className="min-w-0 flex-1 font-medium break-words">{item.title}</span>
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
-                    {tasks.filter((t) => t.done).length}/{tasks.length}
-                  </span>
-                  <StatusChip status={item.status} />
-                </summary>
-                <div className="flex flex-col gap-2 border-t p-2.5">
-                  <Link
-                    href={stationHref}
-                    className={cn(LINK, 'w-fit text-xs text-muted-foreground')}
-                  >
-                    {milestone.title}
-                  </Link>
-                  <DoneWhen text={item.doneWhen} />
-                  <TaskList tasks={tasks} />
-                </div>
-              </details>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
-  );
-}
-
-function Tasks({ title, tasks }: { readonly title: string; readonly tasks: readonly TaskRow[] }) {
-  const done = tasks.filter((t) => t.done).length;
-  const percent = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
-  return (
-    <section aria-label={`Tasks of ${title}`} className="flex min-w-0 flex-col gap-2">
+    <section aria-label={`Deliverables of ${title}`} className="flex min-w-0 flex-col gap-2">
       <p className={cn(LABEL, 'flex items-baseline justify-between gap-2')}>
-        Tasks
+        Deliverables
         <span role="status" className="font-mono tabular-nums">
-          {done} of {tasks.length} done
+          {done} of {tasks.length} tasks done
         </span>
       </p>
       <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -244,29 +153,93 @@ function Tasks({ title, tasks }: { readonly title: string; readonly tasks: reado
           style={{ width: `${String(percent)}%` }}
         />
       </div>
-      <TaskList tasks={tasks} />
+      <ol className="flex flex-col gap-2">
+        {deliverables.map((deliverable) => (
+          <li key={deliverable.item.id}>
+            <Deliverable deliverable={deliverable} open={deliverable === current} />
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
 
-function TaskList({ tasks }: { readonly tasks: readonly TaskRow[] }) {
+function Deliverable({
+  deliverable: { item, milestone, stationHref, gaps, lanes },
+  open,
+}: {
+  readonly deliverable: ProjectDeliverable;
+  readonly open: boolean;
+}) {
+  const { decisions } = useEvidenceDecisions();
+  const tasks = taskRows(item, decisions);
   return (
-    <ul role="list" className="flex flex-col gap-1.5 text-sm">
-      {tasks.map((task) => (
-        <li key={task.id} className="flex items-start gap-2">
-          {task.done ? (
-            <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
-          ) : (
-            <Circle aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-          )}
-          <span className={cn('min-w-0 break-words', task.done && 'text-muted-foreground')}>
-            <span className="sr-only">{task.done ? 'Done: ' : 'Open: '}</span>
-            {task.title}
+    <div className="overflow-hidden rounded-lg border">
+      {/* Outside the fold: where a deliverable belongs must show while it is closed (owner, #114). */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b bg-muted/40 px-2.5 py-1.5 text-xs">
+        <p className="min-w-0 break-words">
+          <span className="text-muted-foreground">Roadmap station: </span>
+          <Link href={stationHref} className={cn(LINK, 'font-medium')}>
+            {milestone.title}
+          </Link>
+        </p>
+        <ul role="list" aria-label="Lines it moves forward" className="flex flex-wrap gap-2">
+          {lanes.map(({ target, color }) => (
+            <li
+              key={target.id}
+              title={target.roleFamily.name}
+              className="inline-flex items-center gap-1 text-2xs font-medium text-muted-foreground"
+            >
+              <span aria-hidden className={cn('size-2.5 rounded-full', LINE_BG[color])} />
+              <span aria-hidden>{lineInitials(target.roleFamily.name)}</span>
+              <span className="sr-only">{target.roleFamily.name}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <details id={projectAnchor(item.id)} open={open} className="group scroll-mt-28">
+        <summary className="flex cursor-pointer list-none items-center gap-2 p-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
+          <ChevronRight
+            aria-hidden
+            className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+          />
+          <span className="min-w-0 flex-1 break-words">
+            <span className="text-xs text-muted-foreground">Deliverable: </span>
+            <span className="font-medium">{item.title}</span>
           </span>
-          {task.awaitingEvidence ? <DraftStatusChip status="awaiting" /> : null}
-        </li>
-      ))}
-    </ul>
+          <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+            {tasks.filter((t) => t.done).length}/{tasks.length}
+          </span>
+          <StatusChip status={item.status} />
+        </summary>
+        <div className="flex flex-col gap-3 border-t p-2.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            <span className={LABEL}>Closes</span>
+            <ul role="list" aria-label="Gaps it closes" className="contents">
+              {gaps.map((gap) => (
+                <li key={gap.id}>
+                  <Link
+                    href={`/skills#gap-${gap.id}`}
+                    className="inline-flex h-6 items-center rounded-md bg-chart-1/15 px-2 text-xs font-medium outline-none hover:bg-chart-1/25 focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {gap.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <p className="text-sm">
+            <span className="font-medium">Done when: </span>
+            <span className="text-muted-foreground">{item.doneWhen}</span>
+          </p>
+          {tasks.length > 0 ? (
+            <TaskList tasks={tasks} />
+          ) : (
+            <p className="text-sm text-muted-foreground">No tasks yet.</p>
+          )}
+        </div>
+      </details>
+    </div>
   );
 }
 

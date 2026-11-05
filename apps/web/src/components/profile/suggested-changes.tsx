@@ -6,7 +6,7 @@ import { Suspense, use, useEffect, useRef, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 
-import { DRAFT_STATUS_LABEL, type DraftStatus } from '../../lib/labels';
+import { type Decision, DRAFT_STATUS_LABEL, type DraftStatus } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
 import type { ProfileReview, ProfileTodo, Suggestion } from '../../lib/profile/profile-view';
 import { LinkedInIcon } from '../linkedin-icon';
@@ -14,7 +14,7 @@ import { ResponsiveSheet } from '../responsive-sheet';
 import { Unavailable } from '../skills/shared';
 import { DraftStatusChip } from '../status-chip';
 import { CompletenessBar } from './completeness-bar';
-import { type DraftDecision, useDraftDecisions } from './draft-decisions';
+import { useDraftDecisions } from '../../lib/store';
 
 /**
  * Suggested changes as notifications, in the app header so they reach the user from any tab
@@ -165,8 +165,8 @@ function Notification({
   onDecide,
 }: {
   readonly suggestion: Suggestion;
-  readonly decision: DraftDecision | undefined;
-  readonly onDecide: (decision: DraftDecision | null) => void;
+  readonly decision: Decision | undefined;
+  readonly onDecide: (decision: Decision | null) => void;
 }) {
   const status: DraftStatus = decision ?? 'awaiting';
   const actions = useRef<HTMLDivElement>(null);

@@ -15,6 +15,7 @@ import {
 } from '../../lib/roadmap/single-line';
 import { StatusChip } from '../status-chip';
 import { ITEM_ICON } from './item-icon';
+import { ProjectLink } from './project-link';
 
 /*
  * Track geometry in px. MARKER_Y is the middle of a station's title line (card margin 4 + padding
@@ -293,15 +294,15 @@ function MilestoneStation({
           </li>
         ))}
       </ul>
-      <ul role="list" aria-label="Items" className="flex w-full flex-col gap-1">
+      <ul role="list" aria-label="Deliverables" className="flex w-full flex-col gap-1">
         {milestone.items.map((item) => {
           const Icon = ITEM_ICON[item.type];
           return (
-            <li key={item.id} className="flex items-start gap-2 text-sm">
+            <li key={item.id} className="flex flex-wrap items-start gap-x-2 gap-y-0.5 text-sm">
               <Icon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               {/* A visible name, not a hover tooltip: the button's ::after covers the card, so
                   hover never reaches the icon, and touch and keyboard have no hover (#149). */}
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 flex-1 basis-3/5">
                 <span className="mr-1.5 text-xs text-muted-foreground">{itemKindLabel(item)}</span>
                 <span className="sr-only">: </span>
                 {item.title}
@@ -310,6 +311,11 @@ function MilestoneStation({
                 <span className="shrink-0 font-mono text-2xs leading-5 text-muted-foreground tabular-nums">
                   {formatDay(item.expectedEnd)}
                 </span>
+              ) : null}
+              {/* Above the station button's ::after, which covers the card (#110), and below the
+                  fixed tab bar (z-10), which it would otherwise paint over on phones. */}
+              {item.type === 'project' ? (
+                <ProjectLink item={item} className="relative z-1" />
               ) : null}
             </li>
           );

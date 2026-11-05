@@ -116,7 +116,7 @@ for (const [name, viewport] of [
       const dialog = page.getByRole('dialog');
       await expect(dialog).toBeVisible();
       await expect(dialog.getByRole('heading').first()).toBeVisible();
-      await expect(dialog.getByText('What closes it')).toBeVisible();
+      await expect(dialog.getByRole('heading', { name: 'Deliverables' })).toBeVisible();
 
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();

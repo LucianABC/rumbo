@@ -10,6 +10,21 @@ import { singleLine } from '../src/lib/roadmap/single-line';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
+describe('project links in the station list (#114)', () => {
+  it('links each practice project to Projects, outside the station button', async () => {
+    const roadmap = await getRoadmap();
+    const view = deriveRoadmapView(roadmap);
+    const colors = getTargetColors(roadmap, await getRoadmapLayout(roadmap));
+    const html = renderToStaticMarkup(
+      createElement(SingleLineView, { line: singleLine(roadmap, view, colors) }),
+    );
+
+    expect(html).toMatch(/<a [^>]*relative z-1"[^>]*href="\/projects#project-sales-dashboard"/);
+    expect(html).toContain('aria-label="See Sales dashboard project on Projects"');
+    expect(html).not.toContain('href="/projects#project-sql-certificate"');
+  });
+});
+
 describe('item types in the station list (#149)', () => {
   it('names every item type, education by its kind', () => {
     const base = { id: 'i', title: 't', status: 'pending', gapIds: [], doneWhen: 'd' } as const;

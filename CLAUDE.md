@@ -12,6 +12,10 @@ Product docs: `docs/product/`. Decisions: `docs/adr/`. Specs per slice: `docs/sp
 - Code, identifiers, comments, docs in `docs/`, ADRs, README and commits are in English.
 - Be direct: if a decision looks wrong, say so with the reason before following it.
 
+## Terminology
+
+User-facing words, in every tab and doc about the UI: **Target → Line → Station → Deliverable → Task**. The glossary is in `docs/product/views.md` (#167). Code and ADRs keep `Milestone` and `RoadmapItem`.
+
 ## Commands
 
 > Commands marked _(planned)_ land during the local walking skeleton; update this list as they do.

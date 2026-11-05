@@ -39,8 +39,9 @@ describe('ProjectsPage', () => {
 
     expect(html).toMatch(/Active <span[^>]*>\(2\)/);
     expect(html).toMatch(/Completed <span[^>]*>\(1\)/);
+    // Roadmap links to these (projectHref); a deliverable holds its own when a repo is shared.
     for (const id of ['sales-dashboard', 'open-data-case', 'practice-queries']) {
-      expect(html).toMatch(new RegExp(`id="project-${id}" class="[^"]*scroll-mt-20`));
+      expect(html).toMatch(new RegExp(`<details id="project-${id}"[^>]*scroll-mt-28`));
     }
   });
 
@@ -55,6 +56,28 @@ describe('ProjectsPage', () => {
     expect(html).toContain('aria-label="Reject: Commit a3f9c21, Sales dashboard project"');
     expect(html.match(/aria-label="Approve: /g)).toHaveLength(1);
     expect(html).toContain('Matched to: Clean and model the data');
+  });
+
+  it('shows every project the same way, each deliverable with its station and gaps', async () => {
+    const html = await page();
+
+    expect(html.match(/>Deliverables</g)).toHaveLength(3);
+    expect(html).toContain('Deliverable: </span>');
+    expect(html).toContain('Roadmap station: </span>');
+    expect(html).toContain('>Build a public dashboard<');
+    // Before the fold, so a closed deliverable still says where it belongs.
+    expect(html).toMatch(/Build a public dashboard<\/a>.*?<details id="project-sales-dashboard"/);
+    expect(html).toContain('href="/skills#gap-data-visualization"');
+    expect(html).toContain('href="/roadmap?line=');
+  });
+
+  it('names each deliverable’s lines in words, not by color alone', async () => {
+    const html = await page();
+
+    expect(html).toContain('title="Data Analyst"');
+    expect(html).toContain('>DA</span>');
+    expect(html).toContain('<span class="sr-only">Business Analyst</span>');
+    expect(html).not.toContain('See on Roadmap');
   });
 
   it('spells out what the tab badge counts', async () => {

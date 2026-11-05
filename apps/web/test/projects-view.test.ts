@@ -3,8 +3,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { getRoadmap, getTargetColors } from '../src/lib/data';
 import {
+  decidedEvidence,
   decisionOf,
   evidenceRows,
+  lineInitials,
   projectsView,
   taskRows,
 } from '../src/lib/projects/projects-view';
@@ -76,14 +78,20 @@ describe('projectsView', () => {
     const { active } = await view();
     const [dashboard] = active;
 
-    expect(dashboard?.gaps).toEqual([{ id: 'data-visualization', name: 'Data visualization' }]);
+    expect(dashboard?.deliverables[0]?.gaps).toEqual([
+      { id: 'data-visualization', name: 'Data visualization' },
+    ]);
     expect(dashboard?.lanes.map((l) => l.target.id)).toEqual(['data-analyst', 'business-analyst']);
+    expect(dashboard?.deliverables[0]?.lanes.map((l) => l.target.id)).toEqual([
+      'data-analyst',
+      'business-analyst',
+    ]);
   });
 
   it('links to the station of the project on Roadmap', async () => {
     const { active } = await view();
 
-    expect(active[0]?.stages[0]?.stationHref).toContain('station=public-dashboard');
+    expect(active[0]?.deliverables[0]?.stationHref).toContain('station=public-dashboard');
   });
 
   it('takes the last activity from the repo when it is newer than the item', async () => {
@@ -157,14 +165,20 @@ describe('projectsView', () => {
     expect(project?.title).toBe('work');
     expect(project?.status).toBe('in_progress');
     expect(project?.expectedEnd).toBe('2026-11-27');
-    expect(project?.stages.map((s) => s.item.id)).toEqual(['practice-queries', 'sales-dashboard']);
-    expect(project?.gaps.map((g) => g.id)).toEqual(['sql', 'data-visualization']);
+    expect(project?.deliverables.map((s) => s.item.id)).toEqual([
+      'practice-queries',
+      'sales-dashboard',
+    ]);
+    expect(project?.deliverables.flatMap((s) => s.gaps.map((g) => g.id))).toEqual([
+      'sql',
+      'data-visualization',
+    ]);
     expect(project?.commits.map((c) => c.sha)).toEqual(['2222222', '1111111']);
     expect(project?.lastActivity).toBe('2026-10-13T21:17:00.000Z');
     expect(alone?.title).toBe('Open data case study');
   });
 
-  it('is done only once every stage is', async () => {
+  it('is done only once every deliverable is', async () => {
     const shared = await sharedRepo();
     const roadmap = {
       ...shared,
@@ -196,6 +210,13 @@ describe('projectsView', () => {
   });
 });
 
+describe('lineInitials', () => {
+  it('takes each word’s first letter', () => {
+    expect(lineInitials('Forward Deployed Engineer')).toBe('FDE');
+    expect(lineInitials('Data  Analyst')).toBe('DA');
+  });
+});
+
 describe('taskRows', () => {
   it('flags an open task with evidence waiting for the user', () => {
     const rows = taskRows(project({ evidence: [awaiting] }), {});
@@ -215,6 +236,23 @@ describe('taskRows', () => {
       done: false,
       awaitingEvidence: false,
     });
+  });
+});
+
+describe('decidedEvidence', () => {
+  const now = '2026-11-05T12:00:00.000Z';
+
+  it('counts an approval from now and drops a rejection', () => {
+    expect(decidedEvidence([awaiting], { e1: 'approved' }, now)).toEqual([
+      { ...awaiting, approvedAt: now },
+    ]);
+    expect(decidedEvidence([awaiting], { e1: 'rejected' }, now)).toEqual([]);
+  });
+
+  it('leaves undecided and stored evidence as it is', () => {
+    const stored = { ...awaiting, id: 'e2', approvedAt: '2026-10-01T00:00:00.000Z' };
+
+    expect(decidedEvidence([awaiting, stored], {}, now)).toEqual([awaiting, stored]);
   });
 });
 
@@ -245,15 +283,15 @@ describe('evidenceRows', () => {
   it('never makes a link of a commit without a repo or of free text', async () => {
     const { active } = await view();
     const card = active[0] ?? expect.fail('no card');
-    const stage = card.stages[0] ?? expect.fail('no stage');
+    const deliverable = card.deliverables[0] ?? expect.fail('no deliverable');
     const item: ProjectItem = {
-      ...stage.item,
+      ...deliverable.item,
       evidence: [
         awaiting,
         { id: 'e2', sourceType: 'manual', sourceRef: 'https://evil.example', approvedAt: null },
       ],
     };
-    const noRepo = { ...card, repo: null, stages: [{ ...stage, item }] };
+    const noRepo = { ...card, repo: null, deliverables: [{ ...deliverable, item }] };
 
     expect(evidenceRows(noRepo).map((r) => r.href)).toEqual([null, null]);
   });
