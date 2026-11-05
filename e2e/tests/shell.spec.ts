@@ -8,6 +8,7 @@ const TABS = [
   { name: 'Skills & gaps', path: '/skills' },
   { name: 'Projects', path: '/projects' },
   { name: 'Sources', path: '/sources' },
+  { name: 'Jobs', path: '/jobs' },
 ];
 
 function tab(page: Page, name: string) {

@@ -49,7 +49,7 @@ export function MarketSection({
           <p className="text-sm text-muted-foreground">
             Each percentage is the share of that target&apos;s postings that ask for the skill.
           </p>
-          <div className={cn('grid gap-3', selectedId === null && 'md:grid-cols-2 xl:grid-cols-3')}>
+          <div className={cn('grid gap-3', selectedId === null && 'md:grid-cols-2 lg:grid-cols-3')}>
             {markets.map(({ lane, view }) => (
               <Snapshot key={lane.target.id} market={view} color={lane.color} />
             ))}

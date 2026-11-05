@@ -9,6 +9,7 @@ export const profile = {
   name: 'Alex Rivera',
   headline: 'Customer support specialist turning ticket data into decisions',
   location: 'Remote, Americas',
+  linkedinUrl: 'https://www.linkedin.com/in/rumbo-demo-alex-rivera',
   about:
     'Four years in customer support, the last three owning the weekly ticket report. Moving toward data and analysis roles.',
   updatedAt: '2026-10-14T18:30:00.000Z',

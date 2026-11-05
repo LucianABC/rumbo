@@ -1,6 +1,7 @@
 import type { LineColorToken, Target } from '@rumbo/contracts';
 import { cn } from 'cn';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { LINE_BG } from '../../lib/line-colors';
 
@@ -11,9 +12,12 @@ import { LINE_BG } from '../../lib/line-colors';
 export function AppHeader({
   target,
   color,
+  actions,
 }: {
   readonly target: Target;
   readonly color: LineColorToken | undefined;
+  /** What the header offers on every tab, at its far end (#113). */
+  readonly actions?: ReactNode;
 }) {
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -32,6 +36,7 @@ export function AppHeader({
           Toward <span className="font-medium text-foreground">{target.roleFamily.name}</span>
         </span>
       </p>
+      {actions ? <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div> : null}
     </header>
   );
 }

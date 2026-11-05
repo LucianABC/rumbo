@@ -126,7 +126,6 @@ export function RoadmapExplorer({
           // A new line is a new list: its roving focus starts again at its own "you are here".
           key={line.lanes[0]?.target.id}
           line={line}
-          withMap={map !== null}
           onActivate={setHovered}
           onOpen={openStation('list')}
         />

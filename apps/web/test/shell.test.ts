@@ -1,16 +1,16 @@
 import type { Roadmap } from '@rumbo/contracts';
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToReadableStream, renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import nextConfig from '../next.config';
 import TabsLayout from '../src/app/(tabs)/layout';
-import ProfilePage from '../src/app/(tabs)/profile/page';
 import ProjectsPage from '../src/app/(tabs)/projects/page';
+import JobsPage from '../src/app/(tabs)/jobs/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
 import { getRoadmap } from '../src/lib/data';
-import { getTab, isActiveTab, tabBadges, TABS } from '../src/lib/tabs';
+import { getTab, isActiveTab, profileBadge, tabBadges, TABS } from '../src/lib/tabs';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -31,14 +31,22 @@ function links(html: string): string[] {
 }
 
 describe('tabs', () => {
-  it('lists the five views in the order of the user loop', () => {
+  it('lists the six views in the order of the user loop', () => {
     expect(TABS.map((t) => t.href)).toEqual([
       '/roadmap',
       '/profile',
       '/skills',
       '/projects',
       '/sources',
+      '/jobs',
     ]);
+  });
+
+  it('shortens a long label on the phone bar, keeping the full name for assistive tech', () => {
+    const html = nav();
+
+    expect(html).toContain('<span aria-hidden="true" class="md:hidden">Skills</span>');
+    expect(html).toContain('<span class="max-md:sr-only">Skills &amp; gaps</span>');
   });
 
   it('treats pages inside a tab as that tab, and nothing else', () => {
@@ -73,6 +81,32 @@ describe('tabs', () => {
     expect(open).toBeGreaterThan(0);
     expect(badges.projects?.count?.value).toBe(open);
     expect(badges.projects?.attention?.value).toBe(projects.length);
+  });
+
+  it('counts suggested changes on Profile, minus the ones already reviewed', () => {
+    expect(profileBadge(3, 0).attention?.value).toBe(3);
+    expect(profileBadge(3, 1).attention?.value).toBe(2);
+    expect(profileBadge(3, 9).attention?.value).toBe(0);
+  });
+
+  it('paints every tab without waiting for the Profile badge', () => {
+    const pending = new Promise<number>(() => undefined);
+
+    const html = renderToStaticMarkup(
+      createElement(TabNav, { badges: {}, suggestedChanges: pending }),
+    );
+
+    expect(links(html)).toHaveLength(TABS.length);
+    expect(html).not.toContain('suggested changes');
+  });
+
+  it('streams the Profile badge in once its data arrives', async () => {
+    const stream = await renderToReadableStream(
+      createElement(TabNav, { badges: {}, suggestedChanges: Promise.resolve(3) }),
+    );
+    await stream.allReady;
+
+    expect(await new Response(stream).text()).toContain('3 suggested changes');
   });
 
   it('counts nothing when the roadmap has no projects', async () => {
@@ -143,9 +177,9 @@ describe('tab shell', () => {
 
 describe('planned tabs', () => {
   it.each([
-    ['profile', ProfilePage, ['F1', 'F4']],
     ['projects', ProjectsPage, ['F3', 'F5']],
     ['sources', SourcesPage, ['F1', 'F2']],
+    ['jobs', JobsPage, ['#57']],
   ] as const)('%s shows its title and the Planned state naming its features', (id, Page, ids) => {
     const tab = getTab(id);
     const html = renderToStaticMarkup(createElement(Page));

@@ -1,4 +1,4 @@
-import { deriveRoadmapView, type Profile } from '@rumbo/contracts';
+import { deriveRoadmapView } from '@rumbo/contracts';
 
 import { MarketProvenance } from '../../../components/market-provenance';
 import { PageHeader } from '../../../components/page-header';
@@ -7,6 +7,7 @@ import { GapList } from '../../../components/skills/gap-list';
 import { HaveList } from '../../../components/skills/have-list';
 import { MarketSection } from '../../../components/skills/market-section';
 import { getRoadmap, getRoadmapLayout, getSkillsData, getTargetColors } from '../../../lib/data';
+import { sourceNames } from '../../../lib/profile/profile-view';
 import { lanesOf } from '../../../lib/roadmap/single-line';
 import { marketProvenance } from '../../../lib/roadmap/summary';
 import { gapCards, haveSkills, marketView, targetFilter } from '../../../lib/skills/skills-view';
@@ -52,7 +53,7 @@ export default async function SkillsPage({
         title="Skills & gaps"
         provenance={provenance ? <MarketProvenance {...provenance} /> : null}
       />
-      <p className="-mt-3 mb-3 max-w-prose text-sm text-muted-foreground">
+      <p className="-mt-3 mb-3 max-w-3xl text-sm text-muted-foreground">
         For each target, rumbo reads real postings for that role and region. The skills they ask for
         that your profile has no evidence for become gaps, and gaps several targets need rank
         higher.
@@ -81,7 +82,7 @@ export default async function SkillsPage({
       </nav>
       <div className="flex flex-col gap-8">
         <MarketSection lanes={lanes} selectedId={selectedId} markets={markets} />
-        <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
           <GapList cards={cards} />
           <HaveList
             skills={skills}
@@ -92,16 +93,4 @@ export default async function SkillsPage({
       </div>
     </>
   );
-}
-
-/** Readable names for the profile entries evidence points at (#111). */
-function sourceNames(profile: Profile): Record<string, string> {
-  const entries: [string, string][] = [
-    ...profile.experiences.map((e): [string, string] => [e.id, `${e.title} · ${e.organization}`]),
-    ...profile.certifications.map((c): [string, string] => [
-      c.id,
-      c.issuer ? `${c.name} · ${c.issuer}` : c.name,
-    ]),
-  ];
-  return Object.fromEntries(entries);
 }
