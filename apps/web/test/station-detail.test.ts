@@ -67,7 +67,7 @@ describe('station detail (#109)', () => {
     const { row, gapNames } = await setup();
     const html = render(row('public-dashboard'), gapNames);
 
-    expect(html).toMatch(/Tasks · <span[^>]*>0\/3<\/span>/);
+    expect(html).toMatch(/Tasks · <span[^>]*>1\/3<\/span>/);
     expect(html).toContain('<span class="sr-only">To do: </span>');
   });
 

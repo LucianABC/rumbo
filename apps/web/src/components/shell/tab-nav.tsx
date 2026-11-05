@@ -15,9 +15,12 @@ import { usePathname } from 'next/navigation';
 import { Suspense, use } from 'react';
 
 import {
+  badgeSummary,
   type BadgeCount,
+  countText,
   isActiveTab,
   profileBadge,
+  projectsBadge,
   type Tab,
   type TabBadge,
   type TabBadges,
@@ -25,6 +28,7 @@ import {
   type TabId,
 } from '../../lib/tabs';
 import { useDraftDecisions } from '../profile/draft-decisions';
+import { useEvidenceDecisions } from '../projects/evidence-decisions';
 
 const ICONS: Readonly<Record<TabId, LucideIcon>> = {
   roadmap: Route,
@@ -42,10 +46,13 @@ const ICONS: Readonly<Record<TabId, LucideIcon>> = {
 export function TabNav({
   badges,
   suggestedChanges,
+  tasksByEvidence = {},
 }: {
   readonly badges: TabBadges;
   /** Suggested changes to review, in flight so the tabs paint without waiting for it (#113). */
   readonly suggestedChanges?: Promise<number>;
+  /** The open task each awaiting piece of evidence completes when approved (#114). */
+  readonly tasksByEvidence?: Readonly<Record<string, string>>;
 }) {
   return (
     <nav
@@ -59,6 +66,8 @@ export function TabNav({
               <Suspense fallback={<TabLink tab={tab} badge={badges[tab.id]} />}>
                 <ProfileTabLink tab={tab} suggestedChanges={suggestedChanges} />
               </Suspense>
+            ) : tab.id === 'projects' ? (
+              <ProjectsTabLink tab={tab} badge={badges[tab.id]} tasks={tasksByEvidence} />
             ) : (
               <TabLink tab={tab} badge={badges[tab.id]} />
             )}
@@ -80,6 +89,19 @@ function ProfileTabLink({
   return <TabLink tab={tab} badge={profileBadge(use(suggestedChanges), reviewed)} />;
 }
 
+function ProjectsTabLink({
+  tab,
+  badge,
+  tasks,
+}: {
+  readonly tab: Tab;
+  readonly badge: TabBadge | undefined;
+  readonly tasks: Readonly<Record<string, string>>;
+}) {
+  const { decisions } = useEvidenceDecisions();
+  return <TabLink tab={tab} badge={projectsBadge(badge, decisions, tasks)} />;
+}
+
 function TabLink({ tab, badge }: { readonly tab: Tab; readonly badge: TabBadge | undefined }) {
   const active = isActiveTab(tab, usePathname());
   const Icon = ICONS[tab.id];
@@ -87,6 +109,7 @@ function TabLink({ tab, badge }: { readonly tab: Tab; readonly badge: TabBadge |
     <Link
       href={tab.href}
       aria-current={active ? 'page' : undefined}
+      title={badgeSummary(badge)}
       className={cn(
         'relative flex min-h-14 flex-col items-center justify-center gap-1 px-1 text-2xs font-medium text-muted-foreground outline-none',
         'transition-colors duration-(--duration-quick) hover:text-foreground',
@@ -125,8 +148,9 @@ function TabLink({ tab, badge }: { readonly tab: Tab; readonly badge: TabBadge |
 }
 
 /**
- * Count pill (neutral) and attention pill (amber, things waiting on the user). The pills are
- * visual only from `md`; the sentence after the label is what screen readers get everywhere.
+ * Only what waits on the user gets a pill (amber): a bare number with nothing to do reads as noise
+ * in the rail (owner, #114). Counts stay in the sentence after the label, for screen readers on
+ * every breakpoint, and in the link's tooltip.
  */
 function Badges({ badge }: { readonly badge: TabBadge | undefined }) {
   const count = shown(badge?.count);
@@ -136,22 +160,16 @@ function Badges({ badge }: { readonly badge: TabBadge | undefined }) {
   return (
     <>
       <span className="sr-only">
-        {[count, attention]
-          .map((part) => (part ? `, ${String(part.value)} ${part.label}` : ''))
-          .join('')}
+        {[count, attention].map((part) => (part ? `, ${countText(part)}` : '')).join('')}
       </span>
-      <span aria-hidden className="hidden items-center gap-1 md:flex">
-        {count ? (
-          <span className="rounded-full border px-1.5 font-mono text-2xs tabular-nums">
-            {count.value}
-          </span>
-        ) : null}
-        {attention ? (
-          <span className="rounded-full bg-attention px-1.5 font-mono text-2xs font-medium text-background tabular-nums">
-            {attention.value}
-          </span>
-        ) : null}
-      </span>
+      {attention ? (
+        <span
+          aria-hidden
+          className="hidden rounded-full bg-attention px-1.5 font-mono text-2xs font-medium text-background tabular-nums md:block"
+        >
+          {attention.value}
+        </span>
+      ) : null}
     </>
   );
 }

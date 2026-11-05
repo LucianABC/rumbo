@@ -33,8 +33,11 @@ export function evidenceStatusLabel(approvedAt: string | null): string {
   return approvedAt === null ? 'awaiting approval' : 'approved';
 }
 
-/** A suggested change: waiting for the user, or decided on this visit (#113). */
-export type DraftStatus = 'awaiting' | 'approved' | 'rejected';
+/** What the user can decide on anything waiting for their approval (AI rule 2). */
+export type Decision = 'approved' | 'rejected';
+
+/** A suggested change or piece of evidence: waiting, or decided on this visit (#113, #114). */
+export type DraftStatus = 'awaiting' | Decision;
 
 export const DRAFT_STATUS_LABEL: Readonly<Record<DraftStatus, string>> = {
   awaiting: evidenceStatusLabel(null),
