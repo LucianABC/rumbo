@@ -187,7 +187,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - **Link LinkedIn profile:** stores the public profile URL to show it and to open the right edit page later.
   - Each source shows when it was last imported.
 - **Completeness** (#113): a percentage of a fixed rubric, computed by code from the profile (`agents.md`), so it shows for any profile, with or without an analysis. Below the bar, the next thing the rubric misses. A profile under 100% always has suggestions: everything the rubric misses is listed with the notifications, with or without drafted text. It goes hand in hand with Suggested changes: each one says how many points it adds, approving it counts them at once, rejecting it takes them off what is reachable.
-- **Source consistency** (proposed, #113): when the CV and the LinkedIn export disagree (dates, titles, companies, claims), the Drafter's review mode flags each inconsistency as a notification beside Suggested changes, naming both versions, for the user to fix. rumbo does not choose: the user says which is right and corrects the other at its source.
+- **Source consistency** (proposed, #113, not the same as **differences from sources** below, which compares each source with the profile): when the CV and the LinkedIn export disagree (dates, titles, companies, claims), the Drafter's review mode flags each inconsistency as a notification beside Suggested changes, naming both versions, for the user to fix. rumbo does not choose: the user says which is right and corrects the other at its source.
 - **Suggested changes** (F4): proposed headline, about and per-position bullets as diffs (removed/added, not color alone). Each says which target it is written for and has Approve/Reject. Approved text has **Copy** and **Open on LinkedIn** (the matching edit page), because the user applies it there.
   - Every suggestion has passed the runtime fidelity check, so it claims nothing the profile lacks.
   - When a bullet needs a fact the profile does not have (a metric, the scope), the suggestion asks for it inline ("How many users did this serve?") instead of inventing one; the answer is a profile change to approve (Profile interviewer, draft mode).
@@ -197,9 +197,14 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - the analysis and each change's points are mocks; the bar's percentage is real.
 - **Full feature adds:**
   - extraction progress;
-  - editing and correcting the extracted profile;
+  - **editing** (F1): every section can be edited in place at any time, not only right after extraction. It applies at once, since the user's own edit needs no approval, and a skill added by hand carries `manual` evidence;
+  - **differences from sources** (F1): each source in the strip says whether it still matches the profile ("matches", or "3 differences"), and opens the list, field by field, with what rumbo has and what the file says. It is information, not an error: nothing blocks and no attention badge. A CV catches up with **Export**, and LinkedIn through Copy and Open on LinkedIn;
+  - **uploading a new version** (F1): rumbo extracts it and shows what differs from the profile, field by field. The user keeps either side, so an upload never silently overwrites an edit made in rumbo;
   - approving candidate skills;
-  - a ready-to-send CV per active target, exported to PDF and DOCX from one ATS-friendly template (F4).
+  - **Export** (F4), to PDF and DOCX from one ATS-friendly template, choosing what to export:
+    - **Base:** the approved profile as it is. Code alone renders it, so it never calls a model;
+    - **Tailored to a target:** the Drafter's propose mode, checked by the Fidelity checker. The user reviews it once as a diff against the base, and it is saved. Exporting it again calls no model;
+    - when the profile's content changes (skills, experience, education, certifications, about), a saved CV is marked out of date. It still exports, with a warning, and is regenerated only when the user asks. Market snapshots and prompt versions do not mark it out of date.
 - **States:**
   - empty: no profile yet, so the upload step is the whole page (plus the Profile interviewer as the no-CV path, pending #155);
   - extraction failed: retry, or enter the profile manually.
