@@ -36,6 +36,11 @@ const HEADING = 'text-xs font-semibold text-primary uppercase';
 const INPUT =
   'w-full min-w-0 rounded-md border bg-background px-2.5 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring aria-invalid:border-destructive';
 
+const CHIP =
+  'inline-flex max-w-full items-center gap-1 rounded-full border py-0.5 pr-0.5 pl-2.5 text-xs font-medium';
+const CHIP_BUTTON =
+  'grid size-6 shrink-0 place-items-center rounded-full text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring';
+
 /** Every id on the page starts here, so a key can never collide with one outside the editor. */
 const fieldId = (key: string) => `edit-${key}`;
 
@@ -209,6 +214,10 @@ function Section({
 }) {
   const [first] = section.fields;
   const headingId = `edit-${section.id}-heading`;
+  // A saved skill can only be deleted, so it needs no form: forms are for what is new.
+  const fixed = section.fixedOnceSaved === true;
+  const cards = fixed ? items.filter((i) => i.original === null) : items;
+  const chips = fixed ? items.filter((i) => i.original !== null) : [];
   return (
     <section aria-labelledby={headingId} className={CARD}>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -233,9 +242,10 @@ function Section({
       </div>
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">Nothing here yet.</p>
-      ) : (
+      ) : null}
+      {cards.length > 0 ? (
         <ul role="list" className="flex flex-col gap-3">
-          {items.map((item) => (
+          {cards.map((item) => (
             <Item
               key={item.key}
               section={section}
@@ -247,8 +257,103 @@ function Section({
             />
           ))}
         </ul>
-      )}
+      ) : null}
+      {chips.length > 0 ? (
+        <SkillChips
+          section={section}
+          items={chips}
+          onChange={onChange}
+          focus={focus}
+          className={cards.length > 0 ? 'mt-3' : undefined}
+        />
+      ) : null}
     </section>
+  );
+}
+
+/** Saved skills by category, as compact as on the read view (owner, #170). */
+function SkillChips({
+  section,
+  items,
+  onChange,
+  focus,
+  className,
+}: {
+  readonly section: SectionDef;
+  readonly items: readonly DraftItem[];
+  readonly onChange: (update: (draft: ProfileDraft) => ProfileDraft) => void;
+  readonly focus: (id: string) => void;
+  readonly className?: string | undefined;
+}) {
+  const groups = new Map<string, DraftItem[]>();
+  for (const item of items) {
+    const category = item.value.category ?? '';
+    groups.set(category, [...(groups.get(category) ?? []), item]);
+  }
+  return (
+    <dl className={cn('flex flex-col gap-2.5', className)}>
+      {[...groups].map(([category, group]) => (
+        <div key={category} className="flex flex-col gap-1">
+          <dt className="text-xs font-medium text-primary">{category}</dt>
+          <dd>
+            <ul role="list" className="flex flex-wrap gap-1.5">
+              {group.map((item) => {
+                const name = item.value.name ?? '';
+                const deleteId = fieldId(`${section.id}-${item.key}-delete`);
+                const undoId = fieldId(`${section.id}-${item.key}-undo`);
+                return (
+                  <li
+                    key={item.key}
+                    className={cn(
+                      CHIP,
+                      item.removed
+                        ? 'border-destructive/50 bg-destructive/10'
+                        : 'border-chart-1/40 bg-chart-1/10',
+                    )}
+                  >
+                    {item.removed ? (
+                      <>
+                        <del className="min-w-0 break-words no-underline">− {name}</del>
+                        <button
+                          id={undoId}
+                          type="button"
+                          aria-label={`Undo delete: ${name}`}
+                          title="Undo"
+                          className={CHIP_BUTTON}
+                          onClick={() => {
+                            focus(deleteId);
+                            onChange((draft) => restoreItem(draft, section.id, item.key));
+                          }}
+                        >
+                          <Undo2 aria-hidden className="size-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="min-w-0 break-words">{name}</span>
+                        <button
+                          id={deleteId}
+                          type="button"
+                          aria-label={`Delete: ${name}`}
+                          title="Delete"
+                          className={CHIP_BUTTON}
+                          onClick={() => {
+                            focus(undoId);
+                            onChange((draft) => removeItem(draft, section.id, item.key));
+                          }}
+                        >
+                          <X aria-hidden className="size-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -304,7 +409,6 @@ function Item({
   }
 
   const isNew = item.original === null;
-  const locked = section.fixedOnceSaved === true && !isNew;
   const edited = !isNew && section.fields.some((f) => itemFieldChanged(item, f.name));
   const hasError = section.fields.some(
     (f) => errors[itemErrorKey(section.id, item.key, f.name)] !== undefined,
@@ -334,15 +438,6 @@ function Item({
     </>
   );
   const shell = cn('min-w-0 rounded-lg border', isNew && 'border-success/50 bg-success/5');
-
-  if (locked) {
-    return (
-      <li className={cn(shell, 'flex items-center justify-between gap-2 p-1.5 pl-3 text-sm')}>
-        <span className="flex min-w-0 flex-wrap items-center gap-2">{labels}</span>
-        {remove}
-      </li>
-    );
-  }
 
   return (
     <li className={cn(shell, 'relative')}>

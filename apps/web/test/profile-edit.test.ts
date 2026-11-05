@@ -1,6 +1,9 @@
 import { Profile as ProfileSchema } from '@rumbo/contracts';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ProfileEditor } from '../src/components/profile/profile-editor';
 import { getProfile } from '../src/lib/data';
 import {
   addItem,
@@ -229,6 +232,24 @@ describe('adding a skill', () => {
     const ids = saved?.skills.filter((s) => s.category === 'Languages').map((s) => s.id) ?? [];
 
     expect(new Set(ids).size).toBe(2);
+  });
+});
+
+describe('the editor', () => {
+  it('shows saved skills as chips by category, each with its own delete', async () => {
+    const profile = await getProfile();
+    const [first] = profile.skills;
+    const html = renderToStaticMarkup(
+      createElement(ProfileEditor, {
+        profile,
+        onSave: () => undefined,
+        onClose: () => undefined,
+      }),
+    );
+
+    expect(html).toContain(`aria-label="Delete: ${first?.skill.name ?? ''}"`);
+    expect(html).toContain(`<dt class="text-xs font-medium text-primary">${first?.category ?? ''}`);
+    expect(html).not.toContain('edit-skills.');
   });
 });
 
