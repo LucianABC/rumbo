@@ -268,6 +268,19 @@ function Added({ text }: { readonly text: string }) {
   );
 }
 
+/**
+ * The Clipboard API rejects without permission or focus, and is missing on plain http, where
+ * reading it throws before there is a promise to reject (#113).
+ */
+async function copy(text: string): Promise<'copied' | 'failed'> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return 'copied';
+  } catch {
+    return 'failed';
+  }
+}
+
 function CopyButton({ text, place }: { readonly text: string; readonly place: string }) {
   const [result, setResult] = useState<'copied' | 'failed' | null>(null);
   return (
@@ -277,15 +290,7 @@ function CopyButton({ text, place }: { readonly text: string; readonly place: st
         size="sm"
         aria-label={`Copy: ${place}`}
         onClick={() => {
-          // The Clipboard API rejects without permission or focus, and is missing on plain http.
-          navigator.clipboard.writeText(text).then(
-            () => {
-              setResult('copied');
-            },
-            () => {
-              setResult('failed');
-            },
-          );
+          void copy(text).then(setResult);
         }}
       >
         <Copy aria-hidden />

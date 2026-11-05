@@ -19,7 +19,10 @@ import { tabBadges } from '../../lib/tabs';
 export default async function TabsLayout({ children }: { readonly children: ReactNode }) {
   const roadmap = await getRoadmap();
   const colors = getTargetColors(roadmap, await getRoadmapLayout(roadmap));
-  const changes = await getSuggestedChanges(getProfile(), roadmap);
+  // Only Profile's badge needs these, so no tab waits for them: the badge streams in (#113).
+  const suggestedChanges = getSuggestedChanges(getProfile(), roadmap).then(
+    (changes) => changes?.length ?? 0,
+  );
   // The contract guarantees exactly one primary target (packages/contracts, roadmap.ts).
   const primary = roadmap.targets.find((t) => t.isPrimary) ?? roadmap.targets[0];
 
@@ -33,7 +36,7 @@ export default async function TabsLayout({ children }: { readonly children: Reac
       </a>
       {primary ? <AppHeader target={primary} color={colors.get(primary.id)} /> : null}
       <div className="md:flex">
-        <TabNav badges={tabBadges(roadmap, changes?.length ?? 0)} />
+        <TabNav badges={tabBadges(roadmap)} suggestedChanges={suggestedChanges} />
         <main
           id="main"
           tabIndex={-1}

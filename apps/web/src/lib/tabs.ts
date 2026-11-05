@@ -89,9 +89,9 @@ export type TabBadges = Partial<Record<TabId, TabBadge>>;
 
 /**
  * Badges from the data every tab already shares. Projects counts open tasks and evidence awaiting
- * approval (AI rule 2); Profile counts the suggested changes to review (#113).
+ * approval (AI rule 2). Profile's badge streams in on its own: see profileBadge.
  */
-export function tabBadges(roadmap: Roadmap, suggestedChanges = 0): TabBadges {
+export function tabBadges(roadmap: Roadmap): TabBadges {
   const projects = roadmap.milestones
     .flatMap((m) => m.items)
     .filter((item) => item.type === 'project');
@@ -103,15 +103,13 @@ export function tabBadges(roadmap: Roadmap, suggestedChanges = 0): TabBadges {
       count: { value: openTasks, label: 'open tasks' },
       attention: { value: awaiting, label: 'awaiting approval' },
     },
-    profile: { attention: { value: suggestedChanges, label: 'suggested changes' } },
   };
 }
 
-/** A badge minus what the user already reviewed on this visit, so it never overstates (#113). */
-export function afterReview(badge: TabBadge | undefined, reviewed: number): TabBadge | undefined {
-  if (!badge?.attention) return badge;
-  const value = Math.max(badge.attention.value - reviewed, 0);
-  return { ...badge, attention: { ...badge.attention, value } };
+/** Suggested changes left to review, minus those decided on this visit, so it never overstates. */
+export function profileBadge(suggestedChanges: number, reviewed: number): TabBadge {
+  const value = Math.max(suggestedChanges - reviewed, 0);
+  return { attention: { value, label: 'suggested changes' } };
 }
 
 /** Whether `pathname` is this tab or a page inside it. */

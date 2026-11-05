@@ -110,6 +110,20 @@ for (const [size, viewport] of SIZES) {
       await expect(status).toHaveText(before);
     });
 
+    test('Copy says so when the browser has no clipboard', async ({ page }) => {
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, 'clipboard', { value: undefined });
+      });
+      await openNotifications(page);
+      const row = notifications(page).first();
+      await row.locator('summary').click();
+      await row.getByRole('button', { name: /^Approve/ }).click();
+
+      await row.getByRole('button', { name: /^Copy/ }).click();
+
+      await expect(row.getByRole('status')).toHaveText(/Could not copy/);
+    });
+
     test('rejecting folds the diff away', async ({ page }) => {
       await openNotifications(page);
       const row = notifications(page).first();

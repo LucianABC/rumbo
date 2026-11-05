@@ -1,6 +1,6 @@
 import type { Roadmap } from '@rumbo/contracts';
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderToReadableStream, renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import nextConfig from '../next.config';
@@ -9,7 +9,7 @@ import ProjectsPage from '../src/app/(tabs)/projects/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
 import { getRoadmap } from '../src/lib/data';
-import { afterReview, getTab, isActiveTab, tabBadges, TABS } from '../src/lib/tabs';
+import { getTab, isActiveTab, profileBadge, tabBadges, TABS } from '../src/lib/tabs';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -74,13 +74,30 @@ describe('tabs', () => {
     expect(badges.projects?.attention?.value).toBe(projects.length);
   });
 
-  it('counts suggested changes on Profile, minus the ones already reviewed', async () => {
-    const badges = tabBadges(await getRoadmap(), 3);
+  it('counts suggested changes on Profile, minus the ones already reviewed', () => {
+    expect(profileBadge(3, 0).attention?.value).toBe(3);
+    expect(profileBadge(3, 1).attention?.value).toBe(2);
+    expect(profileBadge(3, 9).attention?.value).toBe(0);
+  });
 
-    expect(badges.profile?.attention?.value).toBe(3);
-    expect(afterReview(badges.profile, 1)?.attention?.value).toBe(2);
-    expect(afterReview(badges.profile, 9)?.attention?.value).toBe(0);
-    expect(afterReview(undefined, 1)).toBeUndefined();
+  it('paints every tab without waiting for the Profile badge', () => {
+    const pending = new Promise<number>(() => undefined);
+
+    const html = renderToStaticMarkup(
+      createElement(TabNav, { badges: {}, suggestedChanges: pending }),
+    );
+
+    expect(links(html)).toHaveLength(TABS.length);
+    expect(html).not.toContain('suggested changes');
+  });
+
+  it('streams the Profile badge in once its data arrives', async () => {
+    const stream = await renderToReadableStream(
+      createElement(TabNav, { badges: {}, suggestedChanges: Promise.resolve(3) }),
+    );
+    await stream.allReady;
+
+    expect(await new Response(stream).text()).toContain('3 suggested changes');
   });
 
   it('counts nothing when the roadmap has no projects', async () => {
