@@ -52,7 +52,7 @@ export const Gap = z.object({
 });
 export type Gap = z.infer<typeof Gap>;
 
-const CommitSha = z.string().regex(/^[0-9a-f]{7,40}$/);
+export const CommitSha = z.string().regex(/^[0-9a-f]{7,40}$/);
 
 export const EvidenceRef = z
   .object({
@@ -65,6 +65,11 @@ export const EvidenceRef = z
      */
     sourceRef: z.string().min(1),
     excerpt: z.string().optional(),
+    /**
+     * The project task this evidence proves, when the tracking agent matched one (#114). Approving
+     * the evidence is what completes the task (AI rule 2).
+     */
+    taskId: Id.optional(),
     /** Null until the user approves it (AI rule 2). */
     approvedAt: z.iso.datetime().nullable(),
   })
@@ -226,6 +231,20 @@ export const Roadmap = RoadmapShape.superRefine((roadmap, ctx) => {
             j,
             'gapIds',
             k,
+          ]);
+        }
+      });
+      item.evidence.forEach((evidence, k) => {
+        const tasks = item.type === 'project' ? item.tasks : [];
+        if (evidence.taskId !== undefined && !tasks.some((t) => t.id === evidence.taskId)) {
+          issue(`evidence "${evidence.id}" proves unknown task "${evidence.taskId}"`, [
+            'milestones',
+            i,
+            'items',
+            j,
+            'evidence',
+            k,
+            'taskId',
           ]);
         }
       });

@@ -104,6 +104,7 @@ export const EvidenceRef = z.object({
   sourceType: z.enum(['experience', 'project', 'commit', 'education', 'certification', 'manual']),
   sourceRef: z.string().min(1), // checked per sourceType, see rules below
   excerpt: z.string().optional(),
+  taskId: Id.optional(), // the project task it proves, when the tracking agent matched one
   approvedAt: z.iso.datetime().nullable(), // null = waiting for the user (AI rule 2)
 });
 
@@ -163,6 +164,7 @@ Rules checked in `superRefine`. Each one fails with a readable message, for exam
 - **F3 rule:** every gap is closed by at least one item;
 - a gap's stored status agrees with its items: `open` when none has started, `in_progress` when one has, `closed` only when one is done;
 - an item is `done` only with at least one approved evidence;
+- evidence `taskId` names a task of its own project item;
 - evidence `sourceRef` matches its `sourceType`: a commit SHA, an http(s) URL for project and education proof, an id for experience and certification (the profile checks it exists), free text for manual entries (never rendered as a link);
 - every milestone serves at least one known target, through its items' gaps.
 
@@ -230,11 +232,11 @@ A fictional customer support specialist with three active targets, chosen to be 
 
   | #   | Milestone                         | Items (type → gaps)                                                                                                        | Serves     |
   | --- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------- |
-  | 1   | Learn the query basics            | SQL fundamentals certificate (education → SQL), done with approved evidence                                                | DA, BA, SO |
+  | 1   | Learn the query basics            | SQL fundamentals certificate (education → SQL), done with approved evidence; Practice query set (project → SQL), done      | DA, BA, SO |
   | 2   | Own the weekly support report     | Automate the weekly report (work_experience → SQL, Data visualization), in progress                                        | DA, BA, SO |
   | 3   | Map a real process                | Requirements workshop (work_experience → Requirements analysis), done, evidence awaiting approval → item still in progress | BA         |
   | 4   | Plan the team's capacity          | Support operations certificate (education → Workforce planning)                                                            | SO         |
-  | 5   | Build a public dashboard          | Sales dashboard project (project → Data visualization) with repo and tasks                                                 | DA, BA     |
+  | 5   | Build a public dashboard          | Sales dashboard project (project → Data visualization), in progress, a matched commit awaiting approval                    | DA, BA     |
   | 6   | Ground the analysis in statistics | Statistics course (education → Statistics); Open data case study (project → Statistics)                                    | DA         |
 
 - Milestone 1 is done, and milestone 2 is "you are here".

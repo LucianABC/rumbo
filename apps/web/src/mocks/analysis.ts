@@ -28,7 +28,7 @@ export const analysis = {
     },
     {
       kind: 'improve',
-      text: 'SQL rests on a certificate alone: nothing shows it in use.',
+      text: 'SQL rests on a certificate and practice queries: nothing shows it in use at work.',
     },
   ],
 } satisfies ProfileAnalysis;

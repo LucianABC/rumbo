@@ -1,5 +1,7 @@
 import type { Roadmap } from '@rumbo/contracts';
 
+import type { Decision } from './labels';
+
 /**
  * The app's six tabs, in the order of the user's loop: see the plan, see who I am, see why, do
  * the work, check the data, apply (docs/product/views.md, #107).
@@ -114,6 +116,47 @@ export function tabBadges(roadmap: Roadmap): TabBadges {
       count: { value: openTasks, label: 'open tasks' },
       attention: { value: awaiting, label: 'awaiting approval' },
     },
+  };
+}
+
+/** The open task each piece of awaiting project evidence would complete, by evidence id (#114). */
+export function evidenceTasks(roadmap: Roadmap): Readonly<Record<string, string>> {
+  const pairs = roadmap.milestones
+    .flatMap((m) => m.items)
+    .flatMap((item) => (item.type === 'project' ? [item] : []))
+    .flatMap((project) =>
+      project.evidence.flatMap(({ id, taskId, approvedAt }) =>
+        approvedAt === null && project.tasks.some((t) => t.id === taskId && !t.done)
+          ? [[id, `${project.id}/${taskId ?? ''}`] as const]
+          : [],
+      ),
+    );
+  return Object.fromEntries(pairs);
+}
+
+/**
+ * Projects' badge minus what was decided on this visit: every decision leaves the attention count,
+ * and an approval completes its task, once however many commits proved it (#114).
+ */
+export function projectsBadge(
+  badge: TabBadge | undefined,
+  decisions: Readonly<Record<string, Decision>>,
+  tasks: Readonly<Record<string, string>>,
+): TabBadge | undefined {
+  if (!badge) return undefined;
+  const completed = new Set(
+    Object.entries(decisions).flatMap(([id, decision]) => {
+      const task = tasks[id];
+      return decision === 'approved' && task !== undefined ? [task] : [];
+    }),
+  );
+  const less = (part: BadgeCount, by: number) => ({
+    ...part,
+    value: Math.max(part.value - by, 0),
+  });
+  return {
+    ...(badge.count ? { count: less(badge.count, completed.size) } : {}),
+    ...(badge.attention ? { attention: less(badge.attention, Object.keys(decisions).length) } : {}),
   };
 }
 

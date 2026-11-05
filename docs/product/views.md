@@ -234,7 +234,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **Shows:**
   - one card per project item: title, the gaps it closes and their targets, `doneWhen`;
   - repo, last activity, tasks with done state;
-  - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject;
+  - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject; approving it is what completes that task;
   - a completed section with approved evidence.
 - **Badges:** open-task count, plus an attention badge for evidence awaiting approval.
 - **Demo interaction:** Approve/Reject is local state only.
@@ -243,8 +243,8 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - linking a repo;
   - weekly recalculation summary;
   - application log (until the jobs inbox, #57, has its own place).
-- **States:** empty: no project items in the roadmap; repo not linked: a hint.
-- **Data:** `getRoadmap()` (project items, tasks, evidence) and `getProgress()` for activity (provisional until the F5 spec). Evidence reuses `EvidenceRef`.
+- **States:** empty: no project items in the roadmap; repo not linked: a hint; activity unavailable: the cards still show everything the roadmap holds.
+- **Data:** `getRoadmap()` (project items, tasks, evidence) and `getProgress()` for activity (provisional until the F5 spec). Evidence reuses `EvidenceRef`, whose `taskId` names the task it proves.
 
 ## Sources — F1 (#41), F2 (#42)
 

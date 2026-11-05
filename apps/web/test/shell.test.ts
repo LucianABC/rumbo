@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import nextConfig from '../next.config';
 import TabsLayout from '../src/app/(tabs)/layout';
-import ProjectsPage from '../src/app/(tabs)/projects/page';
 import JobsPage from '../src/app/(tabs)/jobs/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
@@ -75,12 +74,13 @@ describe('tabs', () => {
     };
     const projects = roadmap.milestones.flatMap((m) => m.items).filter((i) => i.type === 'project');
     const open = projects.flatMap((p) => p.tasks).filter((t) => !t.done).length;
+    const awaiting = projects.flatMap((p) => p.evidence).filter((e) => e.approvedAt === null);
 
     const badges = tabBadges(withCommits);
 
     expect(open).toBeGreaterThan(0);
     expect(badges.projects?.count?.value).toBe(open);
-    expect(badges.projects?.attention?.value).toBe(projects.length);
+    expect(badges.projects?.attention?.value).toBe(projects.length + awaiting.length);
   });
 
   it('counts suggested changes on Profile, minus the ones already reviewed', () => {
@@ -177,7 +177,6 @@ describe('tab shell', () => {
 
 describe('planned tabs', () => {
   it.each([
-    ['projects', ProjectsPage, ['F3', 'F5']],
     ['sources', SourcesPage, ['F1', 'F2']],
     ['jobs', JobsPage, ['#57']],
   ] as const)('%s shows its title and the Planned state naming its features', (id, Page, ids) => {

@@ -10,9 +10,11 @@ import {
   checkAnalysis,
   checkDrafts,
   checkMarket,
+  checkProgress,
   Drafts,
   Market,
   ProfileAnalysis,
+  Progress,
 } from '@rumbo/contracts/provisional';
 import { connection } from 'next/server';
 import type { z } from 'zod';
@@ -21,6 +23,7 @@ import { analysis as bundledAnalysis } from '../../mocks/analysis';
 import { drafts as bundledDrafts } from '../../mocks/drafts';
 import { market as bundledMarket } from '../../mocks/market';
 import { profile } from '../../mocks/profile';
+import { progress as bundledProgress } from '../../mocks/progress';
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
 import { skillsAskedForMost } from '../coverage';
@@ -189,6 +192,24 @@ export async function getProfileAnalysis(
     return analysis;
   } catch (err) {
     logger.warn({ err }, 'profile analysis unavailable');
+    return null;
+  }
+}
+
+/**
+ * What happened in each project's repo, or null when it cannot be read or does not fit this
+ * roadmap: the cards still show what the roadmap holds. Provisional until the F5 spec (#45).
+ * Logged like getSummaryData's failures.
+ */
+export async function getProgress(forRoadmap: Roadmap): Promise<Progress | null> {
+  try {
+    await connection();
+    const progress = parse(Progress, await localOr('progress', bundledProgress), 'progress');
+    const problems = checkProgress(progress, forRoadmap);
+    if (problems.length > 0) throw new Error(`Invalid progress:\n${problems.join('\n')}`);
+    return progress;
+  } catch (err) {
+    logger.warn({ err }, 'project activity unavailable');
     return null;
   }
 }

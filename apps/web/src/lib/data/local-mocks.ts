@@ -13,7 +13,7 @@ import { z } from 'zod';
 
 /** One file per mock, named after its file in `src/mocks/`. */
 export type LocalMockName =
-  'roadmap' | 'roadmap-layout' | 'profile' | 'market' | 'drafts' | 'analysis';
+  'roadmap' | 'roadmap-layout' | 'profile' | 'market' | 'drafts' | 'analysis' | 'progress';
 
 const envSchema = z.object({ LOCAL_MOCKS_DIR: z.string().min(1).optional() });
 

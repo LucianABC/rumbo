@@ -145,6 +145,15 @@ describe('Roadmap', () => {
     );
   });
 
+  it('rejects evidence matched to a task its project does not have', () => {
+    const r = roadmap();
+    at(at(r.milestones, 1).items, 0).evidence = [
+      { ...approved, id: 'ev-task', taskId: 'ghost' } as typeof approved,
+    ];
+
+    expect(messages(r)).toContain('evidence "ev-task" proves unknown task "ghost"');
+  });
+
   it('rejects a milestone whose gaps serve no known target', () => {
     const r = roadmap();
     at(at(r.gaps, 1).demand, 0).targetId = 'ghost';
