@@ -131,6 +131,18 @@ for (const [size, viewport] of SIZES) {
       );
     });
 
+    test('a profile under 100% always has suggestions to open', async ({ page }) => {
+      await page.goto('/profile');
+      const bar = page.getByRole('main').getByRole('progressbar', { name: 'Profile completeness' });
+      const percent = Number(await bar.getAttribute('aria-valuenow'));
+      test.skip(percent === 100, 'The served profile is complete');
+
+      await expect(bell(page)).toHaveAccessibleName(/, \d+ to review$/);
+      await bell(page).click();
+
+      await expect(notifications(page).first()).toBeVisible();
+    });
+
     test('the bell is in the app header on every tab', async ({ page }) => {
       await page.goto('/skills');
 

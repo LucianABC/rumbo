@@ -12,6 +12,7 @@ import {
   profileSubtitle,
   skillGroups,
   type Suggestion,
+  suggestionCount,
   suggestions,
   timeline,
 } from '../src/lib/profile/profile-view';
@@ -241,16 +242,20 @@ describe('profileCompleteness', () => {
   } as unknown as Profile;
 
   it('gives 100 to a profile that covers the whole rubric, in any trade', () => {
-    expect(profileCompleteness(full)).toEqual({ percent: 100, next: null });
+    expect(profileCompleteness(full)).toEqual({ percent: 100, next: null, todos: [] });
   });
 
   it('takes off what is missing and names the first thing to do', () => {
     const { about: _about, ...noAbout } = full;
 
-    expect(profileCompleteness({ ...noAbout, languages: [] })).toEqual({
-      percent: 85,
-      next: 'write your about section',
-    });
+    const { percent, next, todos } = profileCompleteness({ ...noAbout, languages: [] });
+
+    expect(percent).toBe(85);
+    expect(next).toBe('write your about section');
+    expect(todos.map((t) => [t.id, t.points])).toEqual([
+      ['about', 10],
+      ['languages', 5],
+    ]);
   });
 
   it('counts a bullet with a number, and needs them on half of the bullets', () => {
@@ -260,6 +265,22 @@ describe('profileCompleteness', () => {
 
     expect(withBullets(['Led 4 people.', 'Baked bread.']).percent).toBe(100);
     expect(withBullets(['Led 4 people.', 'Baked.', 'Cooked.']).percent).toBe(85);
+  });
+
+  it('always has a suggestion under 100%, whatever is missing', () => {
+    const profiles = [
+      { ...full, languages: [] },
+      { ...full, linkedinUrl: undefined },
+      { ...full, skills: [] },
+      { ...full, experiences: [], education: [] },
+    ] as unknown as Profile[];
+
+    for (const profile of profiles) {
+      const { percent, todos } = profileCompleteness(profile);
+      expect(percent).toBeLessThan(100);
+      expect(todos.length).toBeGreaterThan(0);
+      expect(100 - todos.reduce((sum, t) => sum + t.points, 0)).toBe(percent);
+    }
   });
 
   it('does not credit evidence awaiting approval, or an empty profile', () => {
@@ -274,5 +295,16 @@ describe('profileCompleteness', () => {
         education: [],
       }).percent,
     ).toBe(30);
+  });
+});
+
+describe('suggestionCount', () => {
+  it('adds the drafts and what the rubric misses, and survives either being unreadable', () => {
+    const todo = { id: 'a', todo: 'do it', points: 5 };
+    const completeness = { percent: 95, next: 'do it', todos: [todo] };
+
+    expect(suggestionCount({ suggestions: [{} as Suggestion], completeness })).toBe(2);
+    expect(suggestionCount({ suggestions: null, completeness })).toBe(1);
+    expect(suggestionCount({ suggestions: null, completeness: null })).toBe(0);
   });
 });

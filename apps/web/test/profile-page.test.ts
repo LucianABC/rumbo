@@ -12,7 +12,7 @@ import {
   getSuggestedChanges,
 } from '../src/lib/data';
 import { logger } from '../src/lib/logger';
-import { suggestions } from '../src/lib/profile/profile-view';
+import { profileCompleteness, suggestions } from '../src/lib/profile/profile-view';
 import type { Lane } from '../src/lib/roadmap/single-line';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -155,6 +155,21 @@ describe('Profile (#113)', () => {
     const html = renderToStaticMarkup(createElement(SuggestedChanges, { review: pending }));
 
     expect(html).toMatch(/<button[^>]*disabled/);
+  });
+
+  it('lists what the rubric misses, even with no drafts to show', async () => {
+    const profile = await getProfile();
+    const { todos } = profileCompleteness(profile);
+
+    const html = renderToStaticMarkup(createElement(NotificationList, { suggestions: [], todos }));
+
+    expect(todos.length).toBeGreaterThan(0);
+    for (const { todo, points } of todos) {
+      expect(html).toContain(todo);
+      expect(html).toContain(`>+${String(points)}%</span> complete`);
+    }
+    expect(html).toContain(`>${String(todos.length)}</span> left to review`);
+    expect(html).not.toContain('Nothing to review');
   });
 
   it('says how much each change adds', async () => {

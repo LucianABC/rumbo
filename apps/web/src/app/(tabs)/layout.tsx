@@ -5,6 +5,7 @@ import { SuggestedChanges } from '../../components/profile/suggested-changes';
 import { AppHeader } from '../../components/shell/app-header';
 import { TabNav } from '../../components/shell/tab-nav';
 import { getProfile, getRoadmap, getRoadmapLayout, getTargetColors } from '../../lib/data';
+import { suggestionCount } from '../../lib/profile/profile-view';
 import { loadProfileReview } from '../../lib/profile/review';
 import { lanesOf } from '../../lib/roadmap/single-line';
 import { tabBadges } from '../../lib/tabs';
@@ -37,10 +38,7 @@ export default async function TabsLayout({ children }: { readonly children: Reac
         />
       ) : null}
       <div className="md:flex">
-        <TabNav
-          badges={tabBadges(roadmap)}
-          suggestedChanges={review.then((r) => r.suggestions?.length ?? 0)}
-        />
+        <TabNav badges={tabBadges(roadmap)} suggestedChanges={review.then(suggestionCount)} />
         <main
           id="main"
           tabIndex={-1}

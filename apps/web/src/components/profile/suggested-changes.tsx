@@ -8,7 +8,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 
 import { DRAFT_STATUS_LABEL, type DraftStatus } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
-import type { ProfileReview, Suggestion } from '../../lib/profile/profile-view';
+import type { ProfileReview, ProfileTodo, Suggestion } from '../../lib/profile/profile-view';
 import { LinkedInIcon } from '../linkedin-icon';
 import { ResponsiveSheet } from '../responsive-sheet';
 import { Unavailable } from '../skills/shared';
@@ -59,7 +59,9 @@ function LoadedChanges({ review }: { readonly review: Promise<ProfileReview> }) 
   const { suggestions, completeness } = use(review);
   const [open, setOpen] = useState(false);
   const { decisions } = useDraftDecisions();
-  const left = (suggestions ?? []).filter((s) => decisions[s.change.id] === undefined).length;
+  const todos = completeness?.todos ?? [];
+  const left =
+    (suggestions ?? []).filter((s) => decisions[s.change.id] === undefined).length + todos.length;
 
   return (
     <>
@@ -87,11 +89,10 @@ function LoadedChanges({ review }: { readonly review: Promise<ProfileReview> }) 
               className="rounded-lg border p-3"
             />
           ) : null}
-          {suggestions ? (
-            <NotificationList suggestions={suggestions} />
-          ) : (
+          <NotificationList suggestions={suggestions ?? []} todos={todos} />
+          {suggestions ? null : (
             <Unavailable title="Suggested changes unavailable">
-              They could not be read, or they no longer match your profile.
+              Drafted text could not be read, or it no longer matches your profile.
             </Unavailable>
           )}
         </div>
@@ -101,11 +102,19 @@ function LoadedChanges({ review }: { readonly review: Promise<ProfileReview> }) 
 }
 
 /** One row per change; opening a row closes the last one, so the panel stays short. */
-export function NotificationList({ suggestions }: { readonly suggestions: readonly Suggestion[] }) {
+export function NotificationList({
+  suggestions,
+  todos = [],
+}: {
+  readonly suggestions: readonly Suggestion[];
+  /** What the rubric still misses: nothing to approve, so they stay until the profile covers it. */
+  readonly todos?: readonly ProfileTodo[];
+}) {
   const { decisions, decide } = useDraftDecisions();
-  const left = suggestions.filter((s) => decisions[s.change.id] === undefined).length;
+  const left =
+    suggestions.filter((s) => decisions[s.change.id] === undefined).length + todos.length;
 
-  if (suggestions.length === 0) {
+  if (suggestions.length + todos.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
         Nothing to review. Suggestions appear when your targets change what your profile should say.
@@ -127,6 +136,23 @@ export function NotificationList({ suggestions }: { readonly suggestions: readon
               decide(suggestion.change.id, decision);
             }}
           />
+        ))}
+        {todos.map(({ id, todo, points }) => (
+          <li
+            key={id}
+            className="flex min-w-0 items-start gap-2.5 rounded-lg border border-attention/30 bg-attention/5 p-3"
+          >
+            <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-attention" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold first-letter:uppercase">{todo}</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                To do on your profile ·{' '}
+                <span className="font-medium text-foreground">
+                  <span className="font-mono tabular-nums">+{points}%</span> complete
+                </span>
+              </span>
+            </span>
+          </li>
         ))}
       </ul>
     </div>

@@ -179,19 +179,32 @@ const hasNumber = (text: string) => /\d/.test(text);
  * adjust it. It asks nothing of any field in particular, so it fits a profile from any trade.
  */
 const RUBRIC: readonly {
+  readonly id: string;
   readonly points: number;
   readonly todo: string;
   readonly met: (profile: Profile) => boolean;
 }[] = [
-  { points: 10, todo: 'add a headline', met: (p) => p.headline.trim() !== '' },
-  { points: 10, todo: 'write your about section', met: (p) => Boolean(p.about?.trim()) },
-  { points: 15, todo: 'add your work experience', met: (p) => p.experiences.length > 0 },
+  { id: 'headline', points: 10, todo: 'add a headline', met: (p) => p.headline.trim() !== '' },
   {
+    id: 'about',
+    points: 10,
+    todo: 'write your about section',
+    met: (p) => Boolean(p.about?.trim()),
+  },
+  {
+    id: 'experience',
+    points: 15,
+    todo: 'add your work experience',
+    met: (p) => p.experiences.length > 0,
+  },
+  {
+    id: 'highlights',
     points: 15,
     todo: 'describe what you did in each position',
     met: (p) => p.experiences.length > 0 && p.experiences.every((e) => e.highlights.length > 0),
   },
   {
+    id: 'numbers',
     points: 15,
     todo: 'put numbers on at least half of your bullets',
     met: (p) => {
@@ -200,32 +213,55 @@ const RUBRIC: readonly {
     },
   },
   {
+    id: 'education',
     points: 10,
     todo: 'add your education or certifications',
     met: (p) => p.education.length + p.certifications.length > 0,
   },
-  { points: 5, todo: 'list your skills', met: (p) => p.skills.length > 0 },
+  { id: 'skills', points: 5, todo: 'list your skills', met: (p) => p.skills.length > 0 },
   {
+    id: 'evidence',
     points: 10,
     todo: 'approve evidence for every skill',
     met: (p) =>
       p.skills.length > 0 && p.skills.every((s) => s.evidence.some((e) => e.approvedAt !== null)),
   },
-  { points: 5, todo: 'add your languages', met: (p) => p.languages.length > 0 },
-  { points: 5, todo: 'link your LinkedIn profile', met: (p) => p.linkedinUrl !== undefined },
+  { id: 'languages', points: 5, todo: 'add your languages', met: (p) => p.languages.length > 0 },
+  {
+    id: 'linkedin',
+    points: 5,
+    todo: 'link your LinkedIn profile',
+    met: (p) => p.linkedinUrl !== undefined,
+  },
 ];
+
+/** Something the profile still misses, worth `points` once done. */
+export interface ProfileTodo {
+  readonly id: string;
+  readonly todo: string;
+  readonly points: number;
+}
 
 export interface RubricResult {
   /** Points of the rubric the profile meets, out of 100. */
   readonly percent: number;
   /** The first thing it still misses, or null when nothing is left. */
   readonly next: string | null;
+  /**
+   * Everything it misses. Empty only at 100%, so a profile that is not complete always has a
+   * suggestion, with or without drafts (#113).
+   */
+  readonly todos: readonly ProfileTodo[];
 }
 
 export function profileCompleteness(profile: Profile): RubricResult {
-  const missing = RUBRIC.filter((rule) => !rule.met(profile));
-  const lost = missing.reduce((sum, rule) => sum + rule.points, 0);
-  return { percent: 100 - lost, next: missing[0]?.todo ?? null };
+  const todos = RUBRIC.filter((rule) => !rule.met(profile)).map(({ id, todo, points }) => ({
+    id,
+    todo,
+    points,
+  }));
+  const lost = todos.reduce((sum, todo) => sum + todo.points, 0);
+  return { percent: 100 - lost, next: todos[0]?.todo ?? null, todos };
 }
 
 export interface Completeness {
@@ -249,4 +285,9 @@ export function completeness(
       .reduce((sum, s) => sum + s.gain, 0);
   const now = Math.min(base + gain('approved'), 100);
   return { now, reachable: Math.min(now + gain(undefined), 100) };
+}
+
+/** Every suggestion waiting on the user: the drafts plus what the rubric still misses. */
+export function suggestionCount(review: ProfileReview): number {
+  return (review.suggestions?.length ?? 0) + (review.completeness?.todos.length ?? 0);
 }
