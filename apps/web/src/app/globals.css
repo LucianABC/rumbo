@@ -23,6 +23,7 @@
   --color-line-3: var(--line-3);
   --color-success: var(--success);
   --color-attention: var(--attention);
+  --color-linkedin: var(--linkedin);
   --color-pending: var(--pending);
 
   --color-sidebar-ring: var(--sidebar-ring);
@@ -140,6 +141,7 @@
   --line-3: #76549a;
   --success: #2f6b3a;
   --attention: #94511a;
+  --linkedin: #0a66c2;
   --pending: #8c8273;
   --chart-1: #11845b;
   --chart-2: #2c6a8a;
@@ -181,6 +183,7 @@
     --line-3: #b796da;
     --success: #9bd3a6;
     --attention: #f0b07a;
+    --linkedin: #70b5f9;
     --pending: #7a7263;
     --chart-1: #5fd1a4;
     --chart-2: #7bb4d2;

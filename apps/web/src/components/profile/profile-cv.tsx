@@ -1,13 +1,6 @@
 import type { Profile } from '@rumbo/contracts';
 import { cn } from 'cn';
-import {
-  Briefcase,
-  ExternalLink,
-  GraduationCap,
-  Languages,
-  ListChecks,
-  MapPin,
-} from 'lucide-react';
+import { Briefcase, GraduationCap, Languages, ListChecks, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
 import { formatPartialDate } from '../../lib/format';
@@ -20,6 +13,7 @@ import {
   skillGroups,
   timeline,
 } from '../../lib/profile/profile-view';
+import { LinkedInIcon } from '../linkedin-icon';
 import { LINK } from '../skills/shared';
 import { CvSection } from './cv-section';
 
@@ -57,7 +51,7 @@ export function ProfileCv({ profile, now }: { readonly profile: Profile; readonl
                   rel="noreferrer"
                   className={cn(LINK, 'inline-flex items-center gap-1.5')}
                 >
-                  <ExternalLink aria-hidden className="size-3.5 text-chart-1" />
+                  <LinkedInIcon className="size-3.5" />
                   LinkedIn
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>

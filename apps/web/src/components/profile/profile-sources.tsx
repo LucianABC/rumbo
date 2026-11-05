@@ -1,10 +1,11 @@
 import type { Profile } from '@rumbo/contracts';
 import { cn } from 'cn';
-import { FileText, Link2, type LucideIcon, Upload } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { FileText } from 'lucide-react';
+import type { ComponentType, ReactNode } from 'react';
 
 import { formatDay } from '../../lib/format';
 import { lastImports } from '../../lib/profile/profile-view';
+import { LinkedInIcon } from '../linkedin-icon';
 import { SourceAction } from './source-action';
 
 /**
@@ -30,7 +31,7 @@ export function ProfileSources({ profile }: { readonly profile: Profile }) {
           action={imports.cv ? 'Replace CV' : 'Upload CV'}
         />
         <Source
-          icon={Upload}
+          icon={LinkedInIcon}
           title="LinkedIn export"
           status={
             imports.linkedin_export
@@ -52,7 +53,7 @@ export function ProfileSources({ profile }: { readonly profile: Profile }) {
           </details>
         </Source>
         <Source
-          icon={Link2}
+          icon={LinkedInIcon}
           title="LinkedIn profile"
           status={profile.linkedinUrl ? 'Linked' : 'Not linked yet'}
           ready={profile.linkedinUrl !== undefined}
@@ -71,7 +72,7 @@ function Source({
   action,
   children,
 }: {
-  readonly icon: LucideIcon;
+  readonly icon: ComponentType<{ readonly className?: string }>;
   readonly title: string;
   readonly status: string;
   /** Whether this source has fed the profile; the status says so in words too. */

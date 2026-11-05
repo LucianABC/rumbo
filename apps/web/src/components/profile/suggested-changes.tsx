@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from 'cn';
-import { Bell, Check, ChevronRight, CircleHelp, Copy, ExternalLink, Undo2, X } from 'lucide-react';
+import { Bell, Check, ChevronRight, CircleHelp, Copy, Undo2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { DRAFT_STATUS_LABEL, type DraftStatus } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
 import type { Suggestion } from '../../lib/profile/profile-view';
+import { LinkedInIcon } from '../linkedin-icon';
 import { ResponsiveSheet } from '../responsive-sheet';
 import { Unavailable } from '../skills/shared';
 import { DraftStatusChip } from '../status-chip';
@@ -222,7 +223,7 @@ function Notification({
                   rel="noreferrer"
                   className={buttonVariants({ size: 'sm', variant: 'outline' })}
                 >
-                  <ExternalLink aria-hidden />
+                  <LinkedInIcon />
                   Open on LinkedIn
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
