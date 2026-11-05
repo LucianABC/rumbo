@@ -86,6 +86,8 @@ export function ProjectCard({
         </a>
       ) : null}
 
+      <Activity card={card} activityAvailable={activityAvailable} />
+
       <ul
         role="list"
         aria-label="Targets it serves"
@@ -99,10 +101,7 @@ export function ProjectCard({
         ))}
       </ul>
 
-      <div className="grid gap-4 @lg:grid-cols-[3fr_2fr]">
-        <Deliverables title={title} deliverables={deliverables} />
-        <Activity card={card} activityAvailable={activityAvailable} />
-      </div>
+      <Deliverables title={title} deliverables={deliverables} />
 
       <Evidence card={card} />
     </li>
@@ -175,27 +174,45 @@ function Deliverable({
   const tasks = taskRows(item, decisions);
   return (
     <div className="overflow-hidden rounded-lg border">
-      {/* Outside the fold: where a deliverable belongs must show while it is closed (owner, #114). */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b bg-muted/40 px-2.5 py-1.5 text-xs">
-        <p className="min-w-0 break-words">
-          <span className="text-muted-foreground">Roadmap station: </span>
-          <Link href={stationHref} className={cn(LINK, 'font-medium')}>
-            {milestone.title}
-          </Link>
-        </p>
-        <ul role="list" aria-label="Lines it moves forward" className="flex flex-wrap gap-2">
-          {lanes.map(({ target, color }) => (
-            <li
-              key={target.id}
-              title={target.roleFamily.name}
-              className="inline-flex items-center gap-1 text-2xs font-medium text-muted-foreground"
-            >
-              <span aria-hidden className={cn('size-2.5 rounded-full', LINE_BG[color])} />
-              <span aria-hidden>{lineInitials(target.roleFamily.name)}</span>
-              <span className="sr-only">{target.roleFamily.name}</span>
-            </li>
-          ))}
-        </ul>
+      {/* Outside the fold: where a deliverable belongs and what it closes must show while it is
+          closed (owner, #114). */}
+      <div className="flex flex-col gap-1.5 border-b bg-muted/40 px-2.5 py-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="min-w-0 break-words">
+            <span className="text-muted-foreground">Roadmap station: </span>
+            <Link href={stationHref} className={cn(LINK, 'font-medium')}>
+              {milestone.title}
+            </Link>
+          </p>
+          <ul role="list" aria-label="Lines it moves forward" className="flex flex-wrap gap-2">
+            {lanes.map(({ target, color }) => (
+              <li
+                key={target.id}
+                title={target.roleFamily.name}
+                className="inline-flex items-center gap-1 text-2xs font-medium text-muted-foreground"
+              >
+                <span aria-hidden className={cn('size-2.5 rounded-full', LINE_BG[color])} />
+                <span aria-hidden>{lineInitials(target.roleFamily.name)}</span>
+                <span className="sr-only">{target.roleFamily.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="text-muted-foreground">Closes</span>
+          <ul role="list" aria-label="Gaps it closes" className="contents">
+            {gaps.map((gap) => (
+              <li key={gap.id}>
+                <Link
+                  href={`/skills#gap-${gap.id}`}
+                  className="inline-flex h-5 items-center rounded-md bg-chart-1/15 px-2 font-medium outline-none hover:bg-chart-1/25 focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {gap.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
       <details id={projectAnchor(item.id)} open={open} className="group scroll-mt-28">
         <summary className="flex cursor-pointer list-none items-center gap-2 p-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset [&::-webkit-details-marker]:hidden">
@@ -213,21 +230,6 @@ function Deliverable({
           <StatusChip status={item.status} />
         </summary>
         <div className="flex flex-col gap-3 border-t p-2.5">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-            <span className={LABEL}>Closes</span>
-            <ul role="list" aria-label="Gaps it closes" className="contents">
-              {gaps.map((gap) => (
-                <li key={gap.id}>
-                  <Link
-                    href={`/skills#gap-${gap.id}`}
-                    className="inline-flex h-6 items-center rounded-md bg-chart-1/15 px-2 text-xs font-medium outline-none hover:bg-chart-1/25 focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {gap.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
           <p className="text-sm">
             <span className="font-medium">Done when: </span>
             <span className="text-muted-foreground">{item.doneWhen}</span>
@@ -251,8 +253,10 @@ function Activity({
   readonly activityAvailable: boolean;
 }) {
   return (
-    <section aria-label={`Activity of ${title}`} className="flex min-w-0 flex-col gap-2">
-      <p className={LABEL}>Activity</p>
+    <section
+      aria-label={`Activity of ${title}`}
+      className="-mt-2 ml-12 flex min-w-0 flex-col gap-1"
+    >
       {repo ? null : (
         <p className="text-sm text-muted-foreground">
           No repo linked yet. Once it is, rumbo reads its pushes to find evidence.

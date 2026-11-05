@@ -248,7 +248,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **For:** follow the practice projects in the roadmap and what proves their progress.
 - **Shows:**
   - one card per project, in a single column so each reads whole, never per deliverable: a project is its repo, and a deliverable with no repo stands alone. Every card reads the same, with one deliverable or many;
-  - a deliverable per Roadmap station, folded with the current one open. The station's name, which links to it, and its lines (the target's color with its initials) always show, closed or not; inside are the gaps it closes (linked to Skills & gaps), `doneWhen` and its tasks. Tasks have no gaps of their own: they serve their deliverable's, which is how each one traces back to a skill, a gap and a station;
+  - a deliverable per Roadmap station, folded with the current one open. The station's name, which links to it, its lines (the target's color with its initials) and the gaps it closes (linked to Skills & gaps) always show, closed or not; inside are `doneWhen` and its tasks. Tasks have no gaps of their own: they serve their deliverable's, which is how each one traces back to a skill, a gap and a station;
   - a link to the repo on any host, under the title, with the host in its text; last activity and tasks with done state;
   - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject; approving it is what completes that task;
   - a completed section with approved evidence.

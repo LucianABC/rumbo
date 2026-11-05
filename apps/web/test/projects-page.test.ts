@@ -67,7 +67,8 @@ describe('ProjectsPage', () => {
     expect(html).toContain('>Build a public dashboard<');
     // Before the fold, so a closed deliverable still says where it belongs.
     expect(html).toMatch(/Build a public dashboard<\/a>.*?<details id="project-sales-dashboard"/);
-    expect(html).toContain('href="/skills#gap-data-visualization"');
+    // Before the fold too, so a closed deliverable still says what it closes.
+    expect(html).toMatch(/gap-data-visualization.*?<details id="project-sales-dashboard"/);
     expect(html).toContain('href="/roadmap?line=');
   });
 
