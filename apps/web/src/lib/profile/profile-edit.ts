@@ -410,20 +410,25 @@ export function applyDraft(draft: ProfileDraft, base: Profile, now: string): Pro
   const ids = (items: readonly { id: string }[]) => new Set(items.map((i) => i.id));
 
   const experienceIds = ids(base.experiences);
-  const experiences = kept('experiences').map(({ key, value }): Experience => ({
-    ...existing(base.experiences, key),
-    id: existing(base.experiences, key)?.id ?? uniqueId('experience', experienceIds),
-    title: text(value.title),
-    organization: text(value.organization),
-    start: text(value.start),
-    end: text(value.end) || null,
-    highlights: text(value.highlights)
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean),
-    ...optional('location', value.location),
-    ...optional('summary', value.summary),
-  }));
+  const experiences = kept('experiences').map(({ key, value }): Experience => {
+    const saved: Partial<Experience> = existing(base.experiences, key) ?? {};
+    // `optional` adds nothing for an empty field, so the saved value has to go first (#173).
+    const { location: _location, summary: _summary, ...rest } = saved;
+    return {
+      ...rest,
+      id: saved.id ?? uniqueId('experience', experienceIds),
+      title: text(value.title),
+      organization: text(value.organization),
+      start: text(value.start),
+      end: text(value.end) || null,
+      highlights: text(value.highlights)
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+      ...optional('location', value.location),
+      ...optional('summary', value.summary),
+    };
+  });
 
   const educationIds = ids(base.education);
   const education = kept('education').map(({ key, value }): Education => ({
