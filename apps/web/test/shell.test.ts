@@ -9,7 +9,15 @@ import JobsPage from '../src/app/(tabs)/jobs/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
 import { getRoadmap } from '../src/lib/data';
-import { getTab, isActiveTab, profileBadge, tabBadges, TABS } from '../src/lib/tabs';
+import {
+  badgeSummary,
+  countText,
+  getTab,
+  isActiveTab,
+  profileBadge,
+  tabBadges,
+  TABS,
+} from '../src/lib/tabs';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -155,6 +163,27 @@ describe('tab navigation', () => {
 
     expect(html).toContain('<span class="sr-only">, 3 open tasks, 1 awaiting approval</span>');
     expect(html).not.toContain('suggested changes');
+  });
+
+  it('shows a pill only for what waits on the user, and says both in the tooltip', () => {
+    const html = nav({
+      projects: {
+        count: { value: 3, label: 'open tasks' },
+        attention: { value: 1, label: 'awaiting approval' },
+      },
+    });
+
+    expect(html).toContain('title="3 open tasks, 1 awaiting approval"');
+    expect(html).toMatch(/bg-attention px-1\.5[^>]*>1<\/span>/);
+    expect(html).not.toMatch(/>3<\/span>/);
+  });
+
+  it('says a count of one in the singular and leaves an empty badge out', () => {
+    expect(countText({ value: 1, label: 'open tasks' })).toBe('1 open task');
+    expect(countText({ value: 2, label: 'open tasks' })).toBe('2 open tasks');
+    expect(countText({ value: 1, label: 'awaiting approval' })).toBe('1 awaiting approval');
+    expect(badgeSummary({ attention: { value: 0, label: 'awaiting approval' } })).toBeUndefined();
+    expect(badgeSummary(undefined)).toBeUndefined();
   });
 });
 

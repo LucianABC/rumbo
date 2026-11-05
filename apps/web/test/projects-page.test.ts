@@ -57,6 +57,21 @@ describe('ProjectsPage', () => {
     expect(html).toContain('Matched to: Clean and model the data');
   });
 
+  it('spells out what the tab badge counts', async () => {
+    const html = await page();
+
+    expect(html).toContain('4 open tasks');
+    expect(html).toContain('1 awaiting approval');
+  });
+
+  it('links each project to its repo', async () => {
+    const html = await page();
+
+    expect(html).toContain('href="https://github.com/example-user/sales-dashboard"');
+    expect(html).toContain('github.com/example-user/sales-dashboard</span>');
+    expect(html).toContain('href="https://github.com/example-user/practice-queries"');
+  });
+
   it('hints at a missing repo instead of showing activity', async () => {
     expect(await page()).toContain('No repo linked yet');
   });

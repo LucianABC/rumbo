@@ -45,12 +45,31 @@ const awaiting = {
   approvedAt: null,
 } as const;
 
+/** Two of the mock's projects on one repo, written two ways. */
+async function sharedRepo() {
+  const roadmap = await getRoadmap();
+  const repos: Readonly<Record<string, string>> = {
+    'practice-queries': 'https://github.com/example-user/work',
+    'sales-dashboard': 'https://GitHub.com/example-user/work.git',
+  };
+  return {
+    ...roadmap,
+    milestones: roadmap.milestones.map((m) => ({
+      ...m,
+      items: m.items.map((i) => {
+        const repo = repos[i.id];
+        return i.type === 'project' && repo ? { ...i, repo } : i;
+      }),
+    })),
+  };
+}
+
 describe('projectsView', () => {
   it('lists project items only, in plan order, with finished ones apart', async () => {
     const { active, completed } = await view();
 
-    expect(active.map((c) => c.item.id)).toEqual(['sales-dashboard', 'open-data-case']);
-    expect(completed.map((c) => c.item.id)).toEqual(['practice-queries']);
+    expect(active.map((c) => c.id)).toEqual(['sales-dashboard', 'open-data-case']);
+    expect(completed.map((c) => c.id)).toEqual(['practice-queries']);
   });
 
   it('names the gaps a project closes and the targets those gaps serve, primary first', async () => {
@@ -64,7 +83,7 @@ describe('projectsView', () => {
   it('links to the station of the project on Roadmap', async () => {
     const { active } = await view();
 
-    expect(active[0]?.stationHref).toContain('station=public-dashboard');
+    expect(active[0]?.stages[0]?.stationHref).toContain('station=public-dashboard');
   });
 
   it('takes the last activity from the repo when it is newer than the item', async () => {
@@ -72,7 +91,7 @@ describe('projectsView', () => {
 
     expect(active[0]?.lastActivity).toBe('2026-10-13T21:17:00.000Z');
     expect(active[0]?.commits[0]?.sha).toBe('a3f9c21');
-    expect(active[0]?.repoName).toBe('example-user/sales-dashboard');
+    expect(active[0]?.repoName).toBe('github.com/example-user/sales-dashboard');
   });
 
   it('falls back to what the roadmap holds without activity', async () => {
@@ -87,6 +106,77 @@ describe('projectsView', () => {
 
     expect(active[1]?.lastActivity).toBeNull();
     expect(active[1]?.repoName).toBeNull();
+  });
+
+  it('names a repo by its host, whichever it is', async () => {
+    const roadmap = await getRoadmap();
+    const elsewhere = {
+      ...roadmap,
+      milestones: roadmap.milestones.map((m) => ({
+        ...m,
+        items: m.items.map((i) =>
+          i.type === 'project' ? { ...i, repo: 'https://gitlab.com/team/sales/' } : i,
+        ),
+      })),
+    };
+
+    const { active } = projectsView(elsewhere, deriveRoadmapView(elsewhere), [], null);
+
+    expect(active[0]?.repoName).toBe('gitlab.com/team/sales');
+  });
+
+  it('makes one project of the items on one repo, and keeps items without a repo apart', async () => {
+    const shared = await sharedRepo();
+    const lanes = lanesOf(shared, getTargetColors(shared, null));
+    const commit = (sha: string, committedAt: string) => ({ sha, message: 'm', committedAt });
+    const activity = {
+      syncedAt: '2026-10-14T18:30:00.000Z',
+      projects: [
+        {
+          itemId: 'practice-queries',
+          lastPushAt: '2026-10-01T19:48:00.000Z',
+          commits: [commit('1111111', '2026-10-01T19:00:00.000Z')],
+        },
+        {
+          itemId: 'sales-dashboard',
+          lastPushAt: '2026-10-13T21:17:00.000Z',
+          commits: [
+            commit('2222222', '2026-10-13T21:00:00.000Z'),
+            commit('1111111', '2026-10-01T19:00:00.000Z'),
+          ],
+        },
+      ],
+    };
+
+    const { active, completed } = projectsView(shared, deriveRoadmapView(shared), lanes, activity);
+    const [project, alone] = active;
+
+    expect(completed).toEqual([]);
+    expect(active).toHaveLength(2);
+    expect(project?.id).toBe('practice-queries');
+    expect(project?.title).toBe('work');
+    expect(project?.status).toBe('in_progress');
+    expect(project?.expectedEnd).toBe('2026-11-27');
+    expect(project?.stages.map((s) => s.item.id)).toEqual(['practice-queries', 'sales-dashboard']);
+    expect(project?.gaps.map((g) => g.id)).toEqual(['sql', 'data-visualization']);
+    expect(project?.commits.map((c) => c.sha)).toEqual(['2222222', '1111111']);
+    expect(project?.lastActivity).toBe('2026-10-13T21:17:00.000Z');
+    expect(alone?.title).toBe('Open data case study');
+  });
+
+  it('is done only once every stage is', async () => {
+    const shared = await sharedRepo();
+    const roadmap = {
+      ...shared,
+      milestones: shared.milestones.map((m) => ({
+        ...m,
+        items: m.items.filter((i) => i.id !== 'sales-dashboard'),
+      })),
+    };
+
+    const { completed } = projectsView(roadmap, deriveRoadmapView(roadmap), [], null);
+
+    expect(completed.map((c) => c.title)).toEqual(['Practice query set']);
   });
 
   it('is empty for a roadmap without projects', async () => {
@@ -155,16 +245,17 @@ describe('evidenceRows', () => {
   it('never makes a link of a commit without a repo or of free text', async () => {
     const { active } = await view();
     const card = active[0] ?? expect.fail('no card');
-    const { repo: _repo, ...noRepo } = card.item;
+    const stage = card.stages[0] ?? expect.fail('no stage');
     const item: ProjectItem = {
-      ...noRepo,
+      ...stage.item,
       evidence: [
         awaiting,
         { id: 'e2', sourceType: 'manual', sourceRef: 'https://evil.example', approvedAt: null },
       ],
     };
+    const noRepo = { ...card, repo: null, stages: [{ ...stage, item }] };
 
-    expect(evidenceRows({ ...card, item }).map((r) => r.href)).toEqual([null, null]);
+    expect(evidenceRows(noRepo).map((r) => r.href)).toEqual([null, null]);
   });
 });
 

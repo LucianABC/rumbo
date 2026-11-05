@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { PageHeader } from '../../../components/page-header';
 import { tabMetadata } from '../../../components/planned';
 import { ProjectCard } from '../../../components/projects/project-card';
+import { ProjectsSummary } from '../../../components/projects/projects-summary';
 import { HEADING, LINK } from '../../../components/skills/shared';
 import {
   Empty,
@@ -17,6 +18,7 @@ import { getProgress, getRoadmap, getRoadmapLayout, getTargetColors } from '../.
 import { formatDay } from '../../../lib/format';
 import { type ProjectCard as Card, projectsView } from '../../../lib/projects/projects-view';
 import { lanesOf } from '../../../lib/roadmap/single-line';
+import { evidenceTasks, tabBadges } from '../../../lib/tabs';
 
 export const metadata = tabMetadata('projects');
 
@@ -39,6 +41,9 @@ export default async function ProjectsPage() {
           progress
             ? `Repo activity synced ${formatDay(progress.syncedAt)}`
             : 'Repo activity is unavailable right now'
+        }
+        action={
+          <ProjectsSummary badge={tabBadges(roadmap).projects} tasks={evidenceTasks(roadmap)} />
         }
       />
       {active.length + completed.length === 0 ? (
@@ -106,7 +111,7 @@ function ProjectSection({
       {cards.length > 0 ? (
         <ul role="list" className="grid items-start gap-4 lg:grid-cols-2">
           {cards.map((card) => (
-            <ProjectCard key={card.item.id} card={card} activityAvailable={activityAvailable} />
+            <ProjectCard key={card.id} card={card} activityAvailable={activityAvailable} />
           ))}
         </ul>
       ) : (

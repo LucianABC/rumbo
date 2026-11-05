@@ -92,6 +92,19 @@ export interface BadgeCount {
   readonly label: string;
 }
 
+/** "1 open task", "3 open tasks": every label is written in the plural. */
+export function countText({ value, label }: BadgeCount): string {
+  return `${String(value)} ${value === 1 ? label.replace(/s$/, '') : label}`;
+}
+
+/** The badge in words, for the tab's tooltip; undefined when there is nothing to say. */
+export function badgeSummary(badge: TabBadge | undefined): string | undefined {
+  const parts = [badge?.count, badge?.attention].flatMap((part) =>
+    part && part.value > 0 ? [countText(part)] : [],
+  );
+  return parts.length > 0 ? parts.join(', ') : undefined;
+}
+
 /** A neutral count for a collection, and a separate count of things waiting on the user. */
 export interface TabBadge {
   readonly count?: BadgeCount;

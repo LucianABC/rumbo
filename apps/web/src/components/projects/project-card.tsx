@@ -1,7 +1,17 @@
 'use client';
 
 import { cn } from 'cn';
-import { Check, CheckCircle2, Circle, ExternalLink, FolderGit2, Undo2, X } from 'lucide-react';
+import {
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Circle,
+  ExternalLink,
+  FolderGit2,
+  GitBranch,
+  Undo2,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 
@@ -13,6 +23,7 @@ import {
   type EvidenceRow,
   evidenceRows,
   type ProjectCard as ProjectCardView,
+  type ProjectStage,
   type TaskRow,
   taskRows,
 } from '../../lib/projects/projects-view';
@@ -27,8 +38,9 @@ const RECENT_COMMITS = 3;
 const LABEL = 'text-xs font-medium text-muted-foreground';
 
 /**
- * One project in the roadmap and what proves its progress (docs/product/views.md, #114). Skills &
- * gaps links here by `id`, so the sticky header must not cover the card when it lands.
+ * One project and what proves its progress (docs/product/views.md, #114). Roadmap items on the same
+ * repo show as stages inside it. Each item keeps its `project-<itemId>` anchor, so the sticky
+ * header must not cover what a link lands on.
  */
 export function ProjectCard({
   card,
@@ -38,13 +50,12 @@ export function ProjectCard({
   readonly activityAvailable: boolean;
 }) {
   const { decisions } = useEvidenceDecisions();
-  const { item, milestone, stationHref, gaps, lanes } = card;
-  const tasks = taskRows(item, decisions);
-  const finished = item.status === 'done';
+  const { id, title, status, repo, repoName, expectedEnd, stages, gaps, lanes } = card;
+  const only = stages.length === 1 ? stages[0] : undefined;
 
   return (
     <li
-      id={`project-${item.id}`}
+      id={`project-${id}`}
       className="@container flex min-w-0 scroll-mt-20 flex-col gap-4 rounded-xl border bg-card p-4 md:p-5"
     >
       <header className="flex items-start gap-3">
@@ -56,27 +67,43 @@ export function ProjectCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h3 className="font-semibold break-words">{item.title}</h3>
-            <StatusChip status={item.status} />
+            <h3 className="font-semibold break-words">{title}</h3>
+            <StatusChip status={status} />
           </div>
-          <Link href={stationHref} className={cn(LINK, 'text-xs text-muted-foreground')}>
-            {milestone.title}
-          </Link>
+          {only ? (
+            <Link href={only.stationHref} className={cn(LINK, 'text-xs text-muted-foreground')}>
+              {only.milestone.title}
+            </Link>
+          ) : null}
         </div>
-        {!finished && item.expectedEnd ? (
+        {status !== 'done' && expectedEnd ? (
           <p className="shrink-0 text-right text-xs text-muted-foreground">
             Expected
             <span className="block font-mono text-foreground tabular-nums">
-              {formatDay(item.expectedEnd)}
+              {formatDay(expectedEnd)}
             </span>
           </p>
         ) : null}
       </header>
 
-      <p className="text-sm">
-        <span className="font-medium">Done when: </span>
-        <span className="text-muted-foreground">{item.doneWhen}</span>
-      </p>
+      {repo ? (
+        <a
+          href={repo}
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            LINK,
+            '-mt-2 ml-12 flex w-fit max-w-[calc(100%-3rem)] items-center gap-1.5 text-sm',
+          )}
+        >
+          <GitBranch aria-hidden className="size-3.5 shrink-0 text-chart-1" />
+          <span className="min-w-0 truncate">{repoName}</span>
+          <ExternalLink aria-hidden className="size-3.5 shrink-0" />
+          <span className="sr-only"> (opens in a new tab)</span>
+        </a>
+      ) : null}
+
+      {only ? <DoneWhen text={only.item.doneWhen} /> : null}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         <ul role="list" aria-label="Gaps it closes" className="flex flex-wrap gap-1.5">
@@ -105,13 +132,98 @@ export function ProjectCard({
         </ul>
       </div>
 
-      <div className="grid gap-4 @lg:grid-cols-2">
-        <Tasks title={item.title} tasks={tasks} />
+      <div className={cn('grid gap-4', only ? '@lg:grid-cols-2' : '@lg:grid-cols-[3fr_2fr]')}>
+        {only ? (
+          <Tasks title={title} tasks={taskRows(only.item, decisions)} />
+        ) : (
+          <Stages title={title} stages={stages} />
+        )}
         <Activity card={card} activityAvailable={activityAvailable} />
       </div>
 
       <Evidence card={card} />
     </li>
+  );
+}
+
+function DoneWhen({ text }: { readonly text: string }) {
+  return (
+    <p className="text-sm">
+      <span className="font-medium">Done when: </span>
+      <span className="text-muted-foreground">{text}</span>
+    </p>
+  );
+}
+
+/** Stages of one repo, folded so a project stays one card's height: the current one is open. */
+function Stages({
+  title,
+  stages,
+}: {
+  readonly title: string;
+  readonly stages: readonly ProjectStage[];
+}) {
+  const { decisions } = useEvidenceDecisions();
+  const current = stages.find((s) => s.item.status !== 'done') ?? stages[0];
+
+  // Browsers do not open a closed <details> for a fragment, so a link to a stage would land on it
+  // shut. This module owns those anchors, so it opens the one the URL names.
+  useEffect(() => {
+    const openTarget = () => {
+      const target = document.getElementById(window.location.hash.slice(1));
+      if (!(target instanceof HTMLDetailsElement)) return;
+      target.open = true;
+      target.scrollIntoView();
+    };
+    openTarget();
+    window.addEventListener('hashchange', openTarget);
+    return () => {
+      window.removeEventListener('hashchange', openTarget);
+    };
+  }, []);
+
+  return (
+    <section aria-label={`Stages of ${title}`} className="flex min-w-0 flex-col gap-2">
+      <p className={LABEL}>Stages</p>
+      <ol className="flex flex-col gap-2">
+        {stages.map((stage, i) => {
+          const { item, milestone, stationHref } = stage;
+          const tasks = taskRows(item, decisions);
+          return (
+            <li key={item.id}>
+              <details
+                // The card holds the first stage's anchor.
+                id={i === 0 ? undefined : `project-${item.id}`}
+                open={stage === current}
+                className="group scroll-mt-20 rounded-lg border"
+              >
+                <summary className="flex cursor-pointer list-none items-center gap-2 rounded-lg p-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                  <ChevronRight
+                    aria-hidden
+                    className="size-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+                  />
+                  <span className="min-w-0 flex-1 font-medium break-words">{item.title}</span>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+                    {tasks.filter((t) => t.done).length}/{tasks.length}
+                  </span>
+                  <StatusChip status={item.status} />
+                </summary>
+                <div className="flex flex-col gap-2 border-t p-2.5">
+                  <Link
+                    href={stationHref}
+                    className={cn(LINK, 'w-fit text-xs text-muted-foreground')}
+                  >
+                    {milestone.title}
+                  </Link>
+                  <DoneWhen text={item.doneWhen} />
+                  <TaskList tasks={tasks} />
+                </div>
+              </details>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 
@@ -132,48 +244,43 @@ function Tasks({ title, tasks }: { readonly title: string; readonly tasks: reado
           style={{ width: `${String(percent)}%` }}
         />
       </div>
-      <ul role="list" className="flex flex-col gap-1.5 text-sm">
-        {tasks.map((task) => (
-          <li key={task.id} className="flex items-start gap-2">
-            {task.done ? (
-              <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
-            ) : (
-              <Circle aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-            )}
-            <span className={cn('min-w-0 break-words', task.done && 'text-muted-foreground')}>
-              <span className="sr-only">{task.done ? 'Done: ' : 'Open: '}</span>
-              {task.title}
-            </span>
-            {task.awaitingEvidence ? <DraftStatusChip status="awaiting" /> : null}
-          </li>
-        ))}
-      </ul>
+      <TaskList tasks={tasks} />
     </section>
   );
 }
 
+function TaskList({ tasks }: { readonly tasks: readonly TaskRow[] }) {
+  return (
+    <ul role="list" className="flex flex-col gap-1.5 text-sm">
+      {tasks.map((task) => (
+        <li key={task.id} className="flex items-start gap-2">
+          {task.done ? (
+            <CheckCircle2 aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
+          ) : (
+            <Circle aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+          )}
+          <span className={cn('min-w-0 break-words', task.done && 'text-muted-foreground')}>
+            <span className="sr-only">{task.done ? 'Done: ' : 'Open: '}</span>
+            {task.title}
+          </span>
+          {task.awaitingEvidence ? <DraftStatusChip status="awaiting" /> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Activity({
-  card: { item, repoName, lastActivity, commits },
+  card: { title, repo, lastActivity, commits },
   activityAvailable,
 }: {
   readonly card: ProjectCardView;
   readonly activityAvailable: boolean;
 }) {
   return (
-    <section aria-label={`Activity of ${item.title}`} className="flex min-w-0 flex-col gap-2">
+    <section aria-label={`Activity of ${title}`} className="flex min-w-0 flex-col gap-2">
       <p className={LABEL}>Activity</p>
-      {item.repo ? (
-        <a
-          href={item.repo}
-          target="_blank"
-          rel="noreferrer"
-          className={cn(LINK, 'inline-flex w-fit max-w-full items-center gap-1 text-sm')}
-        >
-          <span className="min-w-0 truncate">{repoName}</span>
-          <ExternalLink aria-hidden className="size-3.5 shrink-0" />
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
-      ) : (
+      {repo ? null : (
         <p className="text-sm text-muted-foreground">
           No repo linked yet. Once it is, rumbo reads its pushes to find evidence.
         </p>
@@ -184,7 +291,7 @@ function Activity({
           <span className="font-mono text-foreground tabular-nums">{formatDay(lastActivity)}</span>
         </p>
       ) : null}
-      {item.repo && !activityAvailable ? (
+      {repo && !activityAvailable ? (
         <p className="text-sm text-muted-foreground">Recent commits are unavailable right now.</p>
       ) : null}
       {commits.length > 0 ? (
@@ -212,14 +319,14 @@ function Evidence({ card }: { readonly card: ProjectCardView }) {
     return <p className="text-sm text-muted-foreground">No evidence yet.</p>;
   }
   return (
-    <section aria-label={`Evidence of ${card.item.title}`} className="flex flex-col gap-2">
+    <section aria-label={`Evidence of ${card.title}`} className="flex flex-col gap-2">
       <p className={LABEL}>Evidence</p>
       <ul role="list" className="flex flex-col gap-2">
         {rows.map((row) => (
           <EvidenceItem
             key={row.evidence.id}
             row={row}
-            project={card.item.title}
+            project={card.title}
             status={decisionOf(row.evidence, decisions)}
             onDecide={(decision) => {
               decide(row.evidence.id, decision);
