@@ -12,7 +12,7 @@ What the web app shows, tab by tab: what each view is for, what it shows, its st
 | **Projects**       | What am I building, and what proves it?              | F3, F5     | light                |
 | **Sources**        | Where does this data come from, and how fresh is it? | F1, F2     | light                |
 
-Five tabs, so the phone bottom bar fits all of them without a "More" menu. The tabs only exist after onboarding: a first-time user goes through the onboarding flow below, not through the tabs.
+Six tabs, so the phone bottom bar still fits all of them without a "More" menu. The tabs only exist after onboarding: a first-time user goes through the onboarding flow below, not through the tabs.
 
 ## Onboarding flow — F1 (#41), F2b (#63), F3 (#43)
 
@@ -55,20 +55,20 @@ The weekly recalculation (F5) recomputes the plan for the current targets (as in
 
 ## Shell
 
-| Breakpoint     | Navigation                        |
-| -------------- | --------------------------------- |
-| < `md` (phone) | Bottom tab bar with the five tabs |
-| ≥ `md`         | Side rail with the five tabs      |
+| Breakpoint     | Navigation                       |
+| -------------- | -------------------------------- |
+| < `md` (phone) | Bottom tab bar with the six tabs |
+| ≥ `md`         | Side rail with the six tabs      |
 
 - **Header:**
   - product name;
   - the primary target as context ("Toward Data Analyst");
   - a bell with suggested changes to review (#113);
   - a user menu with Settings and "Delete all my data" (`DELETE /api/v1/me`, #37).
-- **Order of tabs** follows the user's loop: see the plan, see who I am, see why, do the work, check the data.
+- **Order of tabs** follows the user's loop: see the plan, see who I am, see why, do the work, check the data, apply.
 - **Badges:** neutral **count** pills for collections (Projects: open tasks). A distinct **attention** badge for things waiting on the user (Projects: evidence awaiting approval; Profile: suggested changes to review, also on the header's bell).
 - **Routes:**
-  - `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`;
+  - `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`, `/jobs`;
   - `/onboarding`, outside the shell; a user with no profile or no active targets is sent there from any tab;
   - `/` opens Roadmap;
   - the status page lives at `/status`, outside the tabs.
@@ -262,6 +262,6 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **States:** empty means nothing imported or searched yet.
 - **Data:** `getSources()` → `SourceView[]`, provisional until the F2 spec. Profile sources come from `Profile`.
 
-## Later, not a tab yet
+## Jobs — #57
 
-**Jobs inbox and assisted apply** (#57): ranked postings the user can apply to now. It gets a tab when its spec is written. Until then it does not appear, not even as Planned, so the demo does not promise it.
+**Jobs inbox and assisted apply** (#57): ranked postings the user can apply to now. It lives in the **Jobs** tab, at `/jobs`, in the Planned state until its spec is written: this is what a job search ends in, so the app shows where it will be.

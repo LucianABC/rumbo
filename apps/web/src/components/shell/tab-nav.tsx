@@ -1,7 +1,15 @@
 'use client';
 
 import { cn } from 'cn';
-import { Database, FolderGit2, ListChecks, type LucideIcon, Route, UserRound } from 'lucide-react';
+import {
+  Briefcase,
+  Database,
+  FolderGit2,
+  ListChecks,
+  type LucideIcon,
+  Route,
+  UserRound,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, use } from 'react';
@@ -24,11 +32,12 @@ const ICONS: Readonly<Record<TabId, LucideIcon>> = {
   skills: ListChecks,
   projects: FolderGit2,
   sources: Database,
+  jobs: Briefcase,
 };
 
 /**
  * One navigation landmark for every breakpoint: a bottom bar on phones, a side rail from `md` up
- * (docs/product/views.md, #107). Five tabs fit the bar, so there is no "More" menu.
+ * (docs/product/views.md, #107). Six tabs fit the bar, so there is no "More" menu.
  */
 export function TabNav({
   badges,
@@ -43,7 +52,7 @@ export function TabNav({
       aria-label="Tabs"
       className="fixed inset-x-0 bottom-0 z-10 border-t bg-card pb-[env(safe-area-inset-bottom)] md:sticky md:top-14 md:h-[calc(100dvh-3.5rem)] md:w-56 md:shrink-0 md:self-start md:border-t-0 md:border-r md:bg-transparent md:p-3"
     >
-      <ul className="grid grid-cols-5 md:flex md:flex-col md:gap-1">
+      <ul className="grid grid-cols-6 md:flex md:flex-col md:gap-1">
         {TABS.map((tab) => (
           <li key={tab.id}>
             {tab.id === 'profile' && suggestedChanges ? (
@@ -99,7 +108,16 @@ function TabLink({ tab, badge }: { readonly tab: Tab; readonly badge: TabBadge |
         ) : null}
       </span>
       <span className="w-full truncate text-center md:w-auto md:flex-1 md:text-left">
-        {tab.label}
+        {tab.shortLabel ? (
+          <>
+            <span aria-hidden className="md:hidden">
+              {tab.shortLabel}
+            </span>
+            <span className="max-md:sr-only">{tab.label}</span>
+          </>
+        ) : (
+          tab.label
+        )}
       </span>
       <Badges badge={badge} />
     </Link>

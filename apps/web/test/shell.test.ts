@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import nextConfig from '../next.config';
 import TabsLayout from '../src/app/(tabs)/layout';
 import ProjectsPage from '../src/app/(tabs)/projects/page';
+import JobsPage from '../src/app/(tabs)/jobs/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
 import { getRoadmap } from '../src/lib/data';
@@ -30,14 +31,22 @@ function links(html: string): string[] {
 }
 
 describe('tabs', () => {
-  it('lists the five views in the order of the user loop', () => {
+  it('lists the six views in the order of the user loop', () => {
     expect(TABS.map((t) => t.href)).toEqual([
       '/roadmap',
       '/profile',
       '/skills',
       '/projects',
       '/sources',
+      '/jobs',
     ]);
+  });
+
+  it('shortens a long label on the phone bar, keeping the full name for assistive tech', () => {
+    const html = nav();
+
+    expect(html).toContain('<span aria-hidden="true" class="md:hidden">Skills</span>');
+    expect(html).toContain('<span class="max-md:sr-only">Skills &amp; gaps</span>');
   });
 
   it('treats pages inside a tab as that tab, and nothing else', () => {
@@ -170,6 +179,7 @@ describe('planned tabs', () => {
   it.each([
     ['projects', ProjectsPage, ['F3', 'F5']],
     ['sources', SourcesPage, ['F1', 'F2']],
+    ['jobs', JobsPage, ['#57']],
   ] as const)('%s shows its title and the Planned state naming its features', (id, Page, ids) => {
     const tab = getTab(id);
     const html = renderToStaticMarkup(createElement(Page));
