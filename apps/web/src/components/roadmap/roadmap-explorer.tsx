@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Lane, SingleLine, SingleLineRow } from '../../lib/roadmap/single-line';
 import type { SubwayMap } from '../../lib/roadmap/subway-map';
 import { LineSwitcher } from './line-switcher';
+import { StationProjects } from './project-link';
 import { SingleLineView } from './single-line-view';
 import { StationSheet } from './station-sheet';
 import { SubwayMapView } from './subway-map-view';
@@ -117,6 +118,7 @@ export function RoadmapExplorer({
               Choose a line, here or on the map, to see its stations.
             </p>
           </div>
+          <StationProjects stations={stations} className="hidden lg:flex" />
         </>
       ) : (
         <LineSwitcher lanes={lanes} selectedId={selectedId ?? primaryId} />

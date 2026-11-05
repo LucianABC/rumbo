@@ -3,7 +3,7 @@
 import { cn } from 'cn';
 
 import { completeness, type Suggestion } from '../../lib/profile/profile-view';
-import { useDraftDecisions } from './draft-decisions';
+import { useDraftDecisions } from '../../lib/store';
 
 /**
  * How complete the profile is, moving with the decisions on suggested changes

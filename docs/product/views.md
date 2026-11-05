@@ -44,11 +44,11 @@ Targets can change at any time from **Change targets** in the Roadmap summary ba
 1. **Steps 4–6 again:** previous answers and targets prefilled, with fresh suggestions.
 2. **Preview before applying.** Recalculation changes the user's plan visibly, so the user sees a preview and confirms it (AI rule 2). The preview shows, per target:
    - which gaps appear, stay or disappear, with their market numbers;
-   - which roadmap items are kept, added or dropped.
+   - which deliverables are kept, added or dropped.
 3. **Apply:**
    - targets that were removed are archived, not deleted (`Target.status = archived`, ADR 0004);
    - market snapshots, gaps and the roadmap are recalculated;
-   - approved evidence and completed items are never lost. The preview can drop only pending or in-progress items. A done item whose gap disappears stays in the roadmap, marked "not needed for current targets". Its evidence belongs to the profile, so it keeps counting toward any target that needs that skill.
+   - approved evidence and completed deliverables are never lost. The preview can drop only pending or in-progress deliverables. A done deliverable whose gap disappears stays in the roadmap, marked "not needed for current targets". Its evidence belongs to the profile, so it keeps counting toward any target that needs that skill.
 4. **History:** Roadmap shows "Targets changed on …" with a link to the previous version, read-only. This needs roadmap versions, which ADR 0004 does not model yet. The F3 spec decides them (#43).
 
 The weekly recalculation (F5) recomputes the plan for the current targets (as in onboarding step 7), then shows the same preview and waits for the user to apply it. It never asks for new targets, and nothing changes without that confirmation.
@@ -78,11 +78,25 @@ The weekly recalculation (F5) recomputes the plan for the current targets (as in
   - `aria-current="page"` on the active tab;
   - every tab reachable by keyboard.
 
+## Terminology
+
+These are the words the app uses, in every tab, label and message (#167). Don't use synonyms for them in the UI.
+
+| Term            | Meaning                                                                                     | Example                  | In code and ADRs |
+| --------------- | ------------------------------------------------------------------------------------------- | ------------------------ | ---------------- |
+| **Target**      | The role the user aims for                                                                  | Data Analyst             | `Target`         |
+| **Line**        | The route to a target on the map, ending at its terminal                                    | The Data Analyst line    | `line`, `lane`   |
+| **Station**     | One objective along a line                                                                  | Build a public dashboard | `Milestone`      |
+| **Deliverable** | What gets handed in to complete a station: a practice project, education or work experience | Sales dashboard project  | `RoadmapItem`    |
+| **Task**        | The work toward a deliverable                                                               | Clean and model the data | `Task`           |
+
+A deliverable's title has to add something to its station's: the station says what to reach, and the deliverable what proves it.
+
 ## Conventions every view follows
 
 - **A target looks the same everywhere.** Each active target has a color slot (`line-1…3`) that marks it on the map, on gap chips and in market bars. Every tab gets it from one function, `getTargetColors()` in `lib/data`: it reads the slots from `RoadmapLayout` when there is a valid layout, and otherwise assigns them in target order (primary first). A missing map never costs a target its color. Color is never the only cue: the target's name or initial always goes with it.
 - **Status vocabulary is shared:**
-  - items and milestones are `pending`, `in progress` or `done`;
+  - deliverables and milestones are `pending`, `in progress` or `done`;
   - gaps are `open`, `in progress` or `closed`;
   - evidence and suggested changes are `awaiting approval` or `approved`;
   - each status has one chip style, defined in tokens.
@@ -95,6 +109,7 @@ The weekly recalculation (F5) recomputes the plan for the current targets (as in
   - content.
 - **Planned state.** A tab whose view is not built yet shows a designed empty state naming the feature and its phase. It is the fallback for any tab the detour does not finish.
 - **Data comes only from `lib/data`** and has contract types. Views never import mocks.
+- **UI state more than one tab reads lives in one global store** (`lib/store.ts`, Zustand), never in tab-level state or a context of its own. Today that is the decisions on suggested changes and on evidence. State one component uses stays in it, and what a URL can hold stays in the URL.
 
 ## Look and feel: Field notes
 
@@ -137,7 +152,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - **one line at a time** (#148): a line switcher under the map, which is also its legend, picks the target whose line the station list shows. The choice lives in the URL (`?line=<targetId>`; anything unknown counts as no choice). The list shows the starting point, that target's milestones and its terminal, and choosing a line scrolls to it. Clicking a line or its terminal on the map selects it too, as a mouse shortcut to the switcher;
   - **nothing is selected by default.** On desktop the map shows the whole plan and the station list stays hidden until the user picks a line. Phones have no map, so their list shows the primary's line until another is chosen. Once a line is chosen, the map dims the others and hovering still previews any line;
   - "you are here" is per line: the first milestone on the shown route that is not done, on the list, the map and the station sheet. With no line chosen, the map marks the plan's first open milestone;
-  - the station sheet shows items, `doneWhen`, tasks (projects), evidence with approval state, and dates.
+  - the station sheet shows deliverables, `doneWhen`, tasks (projects), evidence with approval state, and dates.
 - **Analyze my progress:** a streamed summary, the suggested next milestone and one risk.
 - **Full feature adds:**
   - recalculation when targets change;
@@ -172,7 +187,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - **Link LinkedIn profile:** stores the public profile URL to show it and to open the right edit page later.
   - Each source shows when it was last imported.
 - **Completeness** (#113): a percentage of a fixed rubric, computed by code from the profile (`agents.md`), so it shows for any profile, with or without an analysis. Below the bar, the next thing the rubric misses. A profile under 100% always has suggestions: everything the rubric misses is listed with the notifications, with or without drafted text. It goes hand in hand with Suggested changes: each one says how many points it adds, approving it counts them at once, rejecting it takes them off what is reachable.
-- **Source consistency** (proposed, #113): when the CV and the LinkedIn export disagree (dates, titles, companies, claims), the Drafter's review mode flags each inconsistency as a notification beside Suggested changes, naming both versions, for the user to fix. rumbo does not choose: the user says which is right and corrects the other at its source.
+- **Source consistency** (proposed, #113, not the same as **differences from sources** below, which compares each source with the profile): when the CV and the LinkedIn export disagree (dates, titles, companies, claims), the Drafter's review mode flags each inconsistency as a notification beside Suggested changes, naming both versions, for the user to fix. rumbo does not choose: the user says which is right and corrects the other at its source.
 - **Suggested changes** (F4): proposed headline, about and per-position bullets as diffs (removed/added, not color alone). Each says which target it is written for and has Approve/Reject. Approved text has **Copy** and **Open on LinkedIn** (the matching edit page), because the user applies it there.
   - Every suggestion has passed the runtime fidelity check, so it claims nothing the profile lacks.
   - When a bullet needs a fact the profile does not have (a metric, the scope), the suggestion asks for it inline ("How many users did this serve?") instead of inventing one; the answer is a profile change to approve (Profile interviewer, draft mode).
@@ -182,9 +197,14 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - the analysis and each change's points are mocks; the bar's percentage is real.
 - **Full feature adds:**
   - extraction progress;
-  - editing and correcting the extracted profile;
+  - **editing** (F1): every section can be edited in place at any time, not only right after extraction. It applies at once, since the user's own edit needs no approval, and a skill added by hand carries `manual` evidence;
+  - **differences from sources** (F1): each source in the strip says whether it still matches the profile ("matches", or "3 differences"), and opens the list, field by field, with what rumbo has and what the file says. It is information, not an error: nothing blocks and no attention badge. A CV catches up with **Export**, and LinkedIn through Copy and Open on LinkedIn;
+  - **uploading a new version** (F1): rumbo extracts it and shows what differs from the profile, field by field. The user keeps either side, so an upload never silently overwrites an edit made in rumbo;
   - approving candidate skills;
-  - a ready-to-send CV per active target, exported to PDF and DOCX from one ATS-friendly template (F4).
+  - **Export** (F4), to PDF and DOCX from one ATS-friendly template, choosing what to export:
+    - **Base:** the approved profile as it is. Code alone renders it, so it never calls a model;
+    - **Tailored to a target:** the Drafter's propose mode, checked by the Fidelity checker. The user reviews it once as a diff against the base, and it is saved. Exporting it again calls no model;
+    - when the profile's content changes (skills, experience, education, certifications, about), a saved CV is marked out of date. It still exports, with a warning, and is regenerated only when the user asks. Market snapshots and prompt versions do not mark it out of date.
 - **States:**
   - empty: no profile yet, so the upload step is the whole page (plus the Profile interviewer as the no-CV path, pending #155);
   - extraction failed: retry, or enter the profile manually.
@@ -211,7 +231,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
     - per target, "asked in 64% of 140 Data Analyst postings";
     - "shared by N targets";
     - the model's rationale, styled as opinion and linked to the numbers;
-    - the roadmap items that close it, linking to their station on Roadmap.
+    - the deliverables that close it, linking to their station on Roadmap.
   - **Skills you have:** each with its evidence (source type, excerpt) and how often the market asks for it.
 - **Full feature adds:**
   - live snapshots and refresh;
@@ -223,7 +243,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - stale snapshot: a hint to refresh;
   - no gaps: "Your evidence covers what these postings ask for".
 - **Data:**
-  - `getRoadmap()` for gaps and the items that close them;
+  - `getRoadmap()` for gaps and the deliverables that close them;
   - `getProfile()` for skills and evidence;
   - `getMarket()` → `MarketSnapshotView[]` (provisional until the F2 spec).
   - Each `Gap` carries its demand per target (see spec 01).
@@ -232,19 +252,22 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 
 - **For:** follow the practice projects in the roadmap and what proves their progress.
 - **Shows:**
-  - one card per project, never per roadmap item: a project is its repo, so items on the same repo show as folded stages of one card, the current one open, and an item with no repo stands alone. Each card has its title, the gaps it closes and their targets, and each stage its `doneWhen`;
+  - one card per project, in a single column so each reads whole, never per deliverable: a project is its repo, and a deliverable with no repo stands alone. Every card reads the same, with one deliverable or many;
+  - a deliverable per Roadmap station, folded with the current one open. The station's name, which links to it, its lines (the target's color with its initials) and the gaps it closes (linked to Skills & gaps) always show, closed or not; inside are `doneWhen` and its tasks. Tasks have no gaps of their own: they serve their deliverable's, which is how each one traces back to a skill, a gap and a station;
   - a link to the repo on any host, under the title, with the host in its text; last activity and tasks with done state;
-  - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject; approving it is what completes that task;
+  - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject; approving it completes that task. Whether a clear match needs this too is open (`mvp-scope.md`, F5);
   - a completed section with approved evidence.
 - **Badges:** an attention badge for evidence awaiting approval. The header spells out open tasks and evidence awaiting approval.
-- **Demo interaction:** Approve/Reject is local state only.
+- **Same story as Roadmap:** both tabs read the same deliverables and tasks, and every practice project on Roadmap links to its deliverable here: in the station list, in the station's panel and, on desktop before a line is picked, in a list under the map. The decisions made here show on the station too.
+- **Demo interaction:** Approve/Reject is local state only. **Check repo now** shows on projects with a repo and only simulates a check, which its result says.
 - **Full feature adds:**
-  - GitHub App push analysis;
+  - GitHub App push analysis, and **Check repo now** on each project to run it on demand (`agents.md`);
+  - proposals for skills and objectives the repo shows and the plan lacks, with Approve/Reject;
   - linking a repo;
   - weekly recalculation summary;
   - application log (until the jobs inbox, #57, has its own place).
-- **States:** empty: no project items in the roadmap; repo not linked: a hint; activity unavailable: the cards still show everything the roadmap holds.
-- **Data:** `getRoadmap()` (project items, tasks, evidence) and `getProgress()` for activity (provisional until the F5 spec). Evidence reuses `EvidenceRef`, whose `taskId` names the task it proves.
+- **States:** empty: no practice projects in the roadmap; repo not linked: a hint; activity unavailable: the cards still show everything the roadmap holds.
+- **Data:** `getRoadmap()` (practice projects, tasks, evidence) and `getProgress()` for activity (provisional until the F5 spec). Evidence reuses `EvidenceRef`, whose `taskId` names the task it proves.
 
 ## Sources — F1 (#41), F2 (#42)
 
