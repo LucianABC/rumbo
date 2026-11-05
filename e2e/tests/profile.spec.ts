@@ -204,6 +204,39 @@ for (const [size, viewport] of SIZES) {
       ).toBeVisible();
     });
 
+    test('edit mode shows a change as a diff and Discard restores the page', async ({ page }) => {
+      await page.goto('/profile');
+      await page.getByRole('button', { name: 'Edit profile' }).click();
+
+      const name = page.getByRole('textbox', { name: /^Name/ }).first();
+      const original = await name.inputValue();
+      await expect(name).toBeFocused();
+      await name.fill('Someone else');
+
+      await expect(page.getByText('+ Added')).toBeVisible();
+      await expect(page.getByText('Editing: 1 change')).toBeVisible();
+
+      const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
+      expect(results.violations.map((v) => v.id)).toEqual([]);
+
+      await page.getByRole('button', { name: 'Discard' }).click();
+      await page.getByRole('button', { name: 'Discard changes' }).click();
+
+      await expect(page.getByRole('button', { name: 'Edit profile' })).toBeFocused();
+      await expect(page.getByRole('heading', { name: original, exact: true })).toBeVisible();
+    });
+
+    test('Save updates the page and says edits last for this visit', async ({ page }) => {
+      await page.goto('/profile');
+      await page.getByRole('button', { name: 'Edit profile' }).click();
+
+      await page.getByRole('textbox', { name: /^Name/ }).first().fill('Someone else');
+      await page.getByRole('button', { name: 'Save' }).click();
+
+      await expect(page.getByRole('heading', { name: 'Someone else' })).toBeVisible();
+      await expect(page.getByText('Your edits last for this visit')).toBeVisible();
+    });
+
     test('a source control says it is not available yet', async ({ page }) => {
       await page.goto('/profile');
 

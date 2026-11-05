@@ -15,6 +15,7 @@ import { Unavailable } from '../skills/shared';
 import { DraftStatusChip } from '../status-chip';
 import { CompletenessBar } from './completeness-bar';
 import { useDraftDecisions } from '../../lib/store';
+import { Added, Removed } from '../diff';
 
 /**
  * Suggested changes as notifications, in the app header so they reach the user from any tab
@@ -309,25 +310,6 @@ function Notification({
         </div>
       </details>
     </li>
-  );
-}
-
-/** Both sides say what they are in words and with a sign, so the diff never rests on color. */
-function Removed({ text }: { readonly text: string }) {
-  return (
-    <del className="block rounded-md border-l-2 border-destructive/60 bg-destructive/10 px-3 py-2 no-underline">
-      <span className="block text-2xs font-medium text-muted-foreground">− Removed</span>
-      {text}
-    </del>
-  );
-}
-
-function Added({ text }: { readonly text: string }) {
-  return (
-    <ins className="block rounded-md border-l-2 border-success bg-success/10 px-3 py-2 no-underline">
-      <span className="block text-2xs font-medium text-muted-foreground">+ Added</span>
-      {text}
-    </ins>
   );
 }
 

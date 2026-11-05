@@ -1,5 +1,6 @@
 'use client';
 
+import type { Profile } from '@rumbo/contracts';
 import { useCallback } from 'react';
 import { create } from 'zustand';
 
@@ -21,12 +22,19 @@ type Decisions = Readonly<Record<string, Decision>>;
 type DecisionKind = 'drafts' | 'evidence';
 
 interface AppState {
+  /** What the user saved on Profile, replacing the imported profile (#170); null until then. */
+  readonly editedProfile: Profile | null;
+  readonly saveProfile: (profile: Profile) => void;
   readonly decisions: Readonly<Record<DecisionKind, Decisions>>;
   /** Null takes the decision back. */
   readonly decide: (kind: DecisionKind, id: string, decision: Decision | null) => void;
 }
 
 export const useAppStore = create<AppState>()((set) => ({
+  editedProfile: null,
+  saveProfile: (profile) => {
+    set({ editedProfile: profile });
+  },
   decisions: { drafts: {}, evidence: {} },
   decide: (kind, id, decision) => {
     set(({ decisions }) => {
@@ -51,6 +59,13 @@ function useDecisions(kind: DecisionKind) {
     [decideKind, kind],
   );
   return { decisions, decide };
+}
+
+/** The saved edits, in memory only: a reload drops them until the API exists (#170). */
+export function useEditedProfile() {
+  const edited = useAppStore((state) => state.editedProfile);
+  const save = useAppStore((state) => state.saveProfile);
+  return { edited, save };
 }
 
 /** Suggested changes: Profile, the header's bell and the tab's badge (#113). */

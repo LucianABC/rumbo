@@ -10,7 +10,14 @@ import { Unavailable } from '../skills/shared';
  * in review mode, set apart and labeled as opinion, as gaps' rationale is. The analysis is
  * provisional until the F1 spec (#41).
  */
-export function ProfileReading({ analysis }: { readonly analysis: ProfileAnalysis | null }) {
+export function ProfileReading({
+  analysis,
+  outdated = false,
+}: {
+  readonly analysis: ProfileAnalysis | null;
+  /** The user edited the profile after this was written (#170). */
+  readonly outdated?: boolean;
+}) {
   if (!analysis) {
     return (
       <Unavailable title="Analysis unavailable">
@@ -31,6 +38,7 @@ export function ProfileReading({ analysis }: { readonly analysis: ProfileAnalysi
         <Feedback title="What to improve" items={improvements} icon={<ImproveIcon />} />
       </div>
       <p className="text-xs text-muted-foreground">
+        {outdated ? 'Written before your latest edits. ' : null}
         Sample analysis: the real one arrives with Profile (F1).
       </p>
     </figure>

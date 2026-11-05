@@ -27,11 +27,14 @@ import { ProfileReading } from './profile-reading';
 export function ProfileCv({
   profile,
   analysis,
+  edited = false,
   now,
 }: {
   readonly profile: Profile;
   /** Null when no analysis fits this profile. */
   readonly analysis: ProfileAnalysis | null;
+  /** The user changed the profile since the analysis read it (#170). */
+  readonly edited?: boolean;
   readonly now: Date;
 }) {
   const positions = timeline(profile.experiences, now);
@@ -48,7 +51,11 @@ export function ProfileCv({
           </span>
           <div className="flex min-w-0 flex-col gap-1">
             <h2 className="text-xl font-bold tracking-tight md:text-2xl">{profile.name}</h2>
-            <p>{profileSubtitle(analysis?.subtitle, positions, profile.headline)}</p>
+            <p>
+              {edited
+                ? profile.headline
+                : profileSubtitle(analysis?.subtitle, positions, profile.headline)}
+            </p>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {profile.location ? (
                 <span className="flex items-center gap-1.5">
@@ -71,7 +78,7 @@ export function ProfileCv({
             </div>
           </div>
         </div>
-        <ProfileReading analysis={analysis} />
+        <ProfileReading analysis={analysis} outdated={edited} />
       </header>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
