@@ -158,11 +158,12 @@ describe('subway map view', () => {
     expect(html).not.toMatch(/stroke-line-1 opacity-15/);
   });
 
-  it('shows on the roadmap page from lg, with the list dropping its lanes there', async () => {
+  it('shows on the roadmap page from lg, and the list keeps its line beside it', async () => {
     const html = renderToStaticMarkup(await RoadmapPage({ searchParams: Promise.resolve({}) }));
 
     expect(html).toContain('<div class="hidden lg:block"><svg');
-    expect(html).toContain('lg:grid-cols-1');
+    expect(html).toContain('grid-cols-[var(--gutter)_minmax(0,1fr)]');
+    expect(html).not.toContain('lg:grid-cols-1');
   });
 });
 

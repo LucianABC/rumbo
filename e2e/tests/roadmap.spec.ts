@@ -63,12 +63,13 @@ test.describe('on a wide screen', () => {
     await expect(page.getByRole('button', { name: /, you are here$/ })).toHaveCount(1);
   });
 
-  test('the map, not the list, shows the "you are here" pulse', async ({ page }) => {
+  test('the map and the list both pulse at "you are here"', async ({ page }) => {
     await openRoadmap(page);
 
     await expect(mapPulse(page)).toBeVisible();
     await expect(mapPulse(page)).not.toHaveCSS('animation-name', 'none');
-    await expect(listPulse(page)).toBeHidden();
+    await expect(listPulse(page)).toBeVisible();
+    await expect(listPulse(page)).not.toHaveCSS('animation-name', 'none');
   });
 });
 

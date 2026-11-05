@@ -1,11 +1,11 @@
 import type { Roadmap } from '@rumbo/contracts';
 
 /**
- * The app's five tabs, in the order of the user's loop: see the plan, see who I am, see why, do
- * the work, check the data (docs/product/views.md, #107).
+ * The app's six tabs, in the order of the user's loop: see the plan, see who I am, see why, do
+ * the work, check the data, apply (docs/product/views.md, #107).
  */
 
-export type TabId = 'roadmap' | 'profile' | 'skills' | 'projects' | 'sources';
+export type TabId = 'roadmap' | 'profile' | 'skills' | 'projects' | 'sources' | 'jobs';
 
 export interface Feature {
   readonly id: string;
@@ -16,6 +16,8 @@ export interface Tab {
   readonly id: TabId;
   readonly href: `/${string}`;
   readonly label: string;
+  /** What the phone bar shows when the label does not fit; assistive tech still reads `label`. */
+  readonly shortLabel?: string;
   /** The question the tab answers, shown by its Planned state until the view is built. */
   readonly answers: string;
   /** The features that fill the tab with real data (docs/product/mvp-scope.md). */
@@ -28,6 +30,7 @@ const F2B = { id: 'F2b', name: 'Target discovery' };
 const F3 = { id: 'F3', name: 'Gaps, target and roadmap' };
 const F4 = { id: 'F4', name: 'Drafting with human approval' };
 const F5 = { id: 'F5', name: 'Tracking and GitHub' };
+const INBOX = { id: '#57', name: 'Job matches and assisted apply' };
 
 export const TABS: readonly Tab[] = [
   {
@@ -48,6 +51,7 @@ export const TABS: readonly Tab[] = [
     id: 'skills',
     href: '/skills',
     label: 'Skills & gaps',
+    shortLabel: 'Skills',
     answers: 'What do I have, what is missing, and why?',
     features: [F1, F2, F3],
   },
@@ -64,6 +68,13 @@ export const TABS: readonly Tab[] = [
     label: 'Sources',
     answers: 'Where does this data come from, and how fresh is it?',
     features: [F1, F2],
+  },
+  {
+    id: 'jobs',
+    href: '/jobs',
+    label: 'Jobs',
+    answers: 'Which jobs can I apply to now, and why do they fit?',
+    features: [INBOX],
   },
 ];
 
@@ -89,7 +100,7 @@ export type TabBadges = Partial<Record<TabId, TabBadge>>;
 
 /**
  * Badges from the data every tab already shares. Projects counts open tasks and evidence awaiting
- * approval (AI rule 2); Profile's suggested changes join when its data exists (#113).
+ * approval (AI rule 2). Profile's badge streams in on its own: see profileBadge.
  */
 export function tabBadges(roadmap: Roadmap): TabBadges {
   const projects = roadmap.milestones
@@ -104,6 +115,12 @@ export function tabBadges(roadmap: Roadmap): TabBadges {
       attention: { value: awaiting, label: 'awaiting approval' },
     },
   };
+}
+
+/** Suggested changes left to review, minus those decided on this visit, so it never overstates. */
+export function profileBadge(suggestedChanges: number, reviewed: number): TabBadge {
+  const value = Math.max(suggestedChanges - reviewed, 0);
+  return { attention: { value, label: 'suggested changes' } };
 }
 
 /** Whether `pathname` is this tab or a page inside it. */

@@ -1,7 +1,12 @@
 import type { Gap, ItemStatus } from '@rumbo/contracts';
 import { cn } from 'cn';
 
-import { GAP_STATUS_LABEL, ITEM_STATUS_LABEL } from '../lib/labels';
+import {
+  DRAFT_STATUS_LABEL,
+  type DraftStatus,
+  GAP_STATUS_LABEL,
+  ITEM_STATUS_LABEL,
+} from '../lib/labels';
 
 const STYLE: Readonly<Record<ItemStatus, string>> = {
   done: 'border-success/40 text-success',
@@ -38,6 +43,17 @@ export function GapStatusChip({
   readonly className?: string;
 }) {
   return <Chip style={GAP_STYLE[status]} label={GAP_STATUS_LABEL[status]} className={className} />;
+}
+
+const DRAFT_STYLE: Readonly<Record<DraftStatus, string>> = {
+  awaiting: 'border-attention/40 text-attention',
+  approved: STYLE.done,
+  rejected: STYLE.pending,
+};
+
+/** A suggested change's status, in evidence's words where they share one (views.md, #113). */
+export function DraftStatusChip({ status }: { readonly status: DraftStatus }) {
+  return <Chip style={DRAFT_STYLE[status]} label={DRAFT_STATUS_LABEL[status]} />;
 }
 
 function Chip({

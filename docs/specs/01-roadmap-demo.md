@@ -22,7 +22,7 @@ A front-end-only slice that pulls the F3 roadmap view forward, inside an app she
 
 - **Local only.** Nothing is deployed to Vercel or exposed in any way (hard limit in `CLAUDE.md`: no public exposure before real auth). Each milestone is "done" when it is merged, tagged and runs locally with `pnpm --filter @rumbo/web build && pnpm --filter @rumbo/web start`.
 - **Lives in `apps/web`.**
-  - Each tab is a route: `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`. `/tokens` compared the two M1 directions and was removed once the owner picked one (#105, #106).
+  - Each tab is a route: `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`, and `/jobs` in the Planned state (#57, #113). `/tokens` compared the two M1 directions and was removed once the owner picked one (#105, #106).
   - `/` redirects to `/roadmap`, so the demo opens on the map.
   - The status page moves to `/status`, and the e2e smoke test follows it (#107).
 - **Route handlers under `/demo/*`**, not `/api/*`: `src/proxy.ts` forwards `/api/*` to the NestJS API (ADR 0002).

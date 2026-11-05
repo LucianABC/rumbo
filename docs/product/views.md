@@ -12,7 +12,7 @@ What the web app shows, tab by tab: what each view is for, what it shows, its st
 | **Projects**       | What am I building, and what proves it?              | F3, F5     | light                |
 | **Sources**        | Where does this data come from, and how fresh is it? | F1, F2     | light                |
 
-Five tabs, so the phone bottom bar fits all of them without a "More" menu. The tabs only exist after onboarding: a first-time user goes through the onboarding flow below, not through the tabs.
+Six tabs, so the phone bottom bar still fits all of them without a "More" menu. The tabs only exist after onboarding: a first-time user goes through the onboarding flow below, not through the tabs.
 
 ## Onboarding flow — F1 (#41), F2b (#63), F3 (#43)
 
@@ -55,19 +55,20 @@ The weekly recalculation (F5) recomputes the plan for the current targets (as in
 
 ## Shell
 
-| Breakpoint     | Navigation                        |
-| -------------- | --------------------------------- |
-| < `md` (phone) | Bottom tab bar with the five tabs |
-| ≥ `md`         | Side rail with the five tabs      |
+| Breakpoint     | Navigation                       |
+| -------------- | -------------------------------- |
+| < `md` (phone) | Bottom tab bar with the six tabs |
+| ≥ `md`         | Side rail with the six tabs      |
 
 - **Header:**
   - product name;
   - the primary target as context ("Toward Data Analyst");
+  - a bell with suggested changes to review (#113);
   - a user menu with Settings and "Delete all my data" (`DELETE /api/v1/me`, #37).
-- **Order of tabs** follows the user's loop: see the plan, see who I am, see why, do the work, check the data.
-- **Badges:** neutral **count** pills for collections (Projects: open tasks). A distinct **attention** badge for things waiting on the user (Projects: evidence awaiting approval; Profile: suggested changes to review).
+- **Order of tabs** follows the user's loop: see the plan, see who I am, see why, do the work, check the data, apply.
+- **Badges:** neutral **count** pills for collections (Projects: open tasks). A distinct **attention** badge for things waiting on the user (Projects: evidence awaiting approval; Profile: suggested changes to review, also on the header's bell).
 - **Routes:**
-  - `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`;
+  - `/roadmap`, `/profile`, `/skills`, `/projects`, `/sources`, `/jobs`;
   - `/onboarding`, outside the shell; a user with no profile or no active targets is sent there from any tab;
   - `/` opens Roadmap;
   - the status page lives at `/status`, outside the tabs.
@@ -156,24 +157,29 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 ## Profile — F1 (#41), F4 (#44)
 
 - **For:** the user's full professional profile, presented as well as a good CV, and where it came from.
+- **Layout:** one page that reads in about a screen on desktop. A strip of profile sources with their update links comes first, then the profile header with rumbo's analysis, then the CV. A bar in the page header shows the profile's completeness. Suggested changes live behind a bell in the app header, so they reach the user from any tab, as a panel of notifications that moves that bar (#113).
 - **Shows:**
-  - header: name, headline, location, linked LinkedIn URL;
-  - about;
+  - header: name, a short subtitle, location, linked LinkedIn URL. The subtitle comes from the analysis, or is the latest role without one; the imported headline is too long for this spot and shows only in Suggested changes;
+  - **rumbo's analysis** (proposed, #113): after a profile is imported, the Drafter's review mode writes the subtitle, a short summary and feedback, strengths and things to improve. It is labeled opinion, dated, and changes nothing in the profile;
+  - about, the user's own text;
   - experience as a timeline (role, organization, period, highlights);
   - education and certifications;
-  - skills grouped by category, each with an evidence count (details in Skills & gaps).
+  - skills in lines by category, best-backed first, with dots counting their evidence (details in Skills & gaps).
 - **Sources of the profile:**
   - **Upload CV** (PDF).
   - **Build by interview** (proposed, pending #155): for a user with no CV, the Profile interviewer (general mode) builds the profile from answers.
   - **Import from LinkedIn:** a short guide to LinkedIn's "Save to PDF" export, then upload. It is the only supported way to bring LinkedIn data in (see below).
   - **Link LinkedIn profile:** stores the public profile URL to show it and to open the right edit page later.
   - Each source shows when it was last imported.
+- **Completeness** (#113): a percentage of a fixed rubric, computed by code from the profile (`agents.md`), so it shows for any profile, with or without an analysis. Below the bar, the next thing the rubric misses. A profile under 100% always has suggestions: everything the rubric misses is listed with the notifications, with or without drafted text. It goes hand in hand with Suggested changes: each one says how many points it adds, approving it counts them at once, rejecting it takes them off what is reachable.
+- **Source consistency** (proposed, #113): when the CV and the LinkedIn export disagree (dates, titles, companies, claims), the Drafter's review mode flags each inconsistency as a notification beside Suggested changes, naming both versions, for the user to fix. rumbo does not choose: the user says which is right and corrects the other at its source.
 - **Suggested changes** (F4): proposed headline, about and per-position bullets as diffs (removed/added, not color alone). Each says which target it is written for and has Approve/Reject. Approved text has **Copy** and **Open on LinkedIn** (the matching edit page), because the user applies it there.
   - Every suggestion has passed the runtime fidelity check, so it claims nothing the profile lacks.
   - When a bullet needs a fact the profile does not have (a metric, the scope), the suggestion asks for it inline ("How many users did this serve?") instead of inventing one; the answer is a profile change to approve (Profile interviewer, draft mode).
 - **Demo interaction:**
   - upload, import and link controls render but do not process files;
-  - Approve/Reject in Suggested changes is local state only.
+  - Approve/Reject in Suggested changes is local state only, and so is the movement of the bar;
+  - the analysis and each change's points are mocks; the bar's percentage is real.
 - **Full feature adds:**
   - extraction progress;
   - editing and correcting the extracted profile;
@@ -182,7 +188,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **States:**
   - empty: no profile yet, so the upload step is the whole page (plus the Profile interviewer as the no-CV path, pending #155);
   - extraction failed: retry, or enter the profile manually.
-- **Data:** `getProfile()` → `Profile`, new in `packages/contracts/src/profile.ts`, from ADR 0004 (`ProfileSkill`, `Evidence`). Suggested changes use `DraftChange` in `@rumbo/contracts/provisional` until the F4 spec.
+- **Data:** `getProfile()` → `Profile`, new in `packages/contracts/src/profile.ts`, from ADR 0004 (`ProfileSkill`, `Evidence`). Suggested changes use `DraftChange` in `@rumbo/contracts/provisional` until the F4 spec, and the analysis `ProfileAnalysis` until the F1 spec.
 
 ### Why rumbo cannot write to LinkedIn
 
@@ -256,6 +262,6 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 - **States:** empty means nothing imported or searched yet.
 - **Data:** `getSources()` → `SourceView[]`, provisional until the F2 spec. Profile sources come from `Profile`.
 
-## Later, not a tab yet
+## Jobs — #57
 
-**Jobs inbox and assisted apply** (#57): ranked postings the user can apply to now. It gets a tab when its spec is written. Until then it does not appear, not even as Planned, so the demo does not promise it.
+**Jobs inbox and assisted apply** (#57): ranked postings the user can apply to now. It lives in the **Jobs** tab, at `/jobs`, in the Planned state until its spec is written: this is what a job search ends in, so the app shows where it will be.
