@@ -193,14 +193,23 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - When a bullet needs a fact the profile does not have (a metric, the scope), the suggestion asks for it inline ("How many users did this serve?") instead of inventing one; the answer is a profile change to approve (Profile interviewer, draft mode).
 - **Demo interaction:**
   - upload, import and link controls render but do not process files;
+  - **Edit profile** (#170) works in full, but the changes live in memory: a reload drops them, and the page says so;
+  - reviews are a sample: they run nothing, but the dates, the limit and its counter work;
   - Approve/Reject in Suggested changes is local state only, and so is the movement of the bar;
   - the analysis and each change's points are mocks; the bar's percentage is real.
 - **Full feature adds:**
   - extraction progress;
-  - **editing** (F1): every section can be edited in place at any time, not only right after extraction. It applies at once, since the user's own edit needs no approval, and a skill added by hand carries `manual` evidence;
+  - **editing** (F1, #170): **Edit profile** turns the whole page into edit mode, at any time. The header, about and every section can be edited, with add and delete per item; skills show as chips by category, and are only added or deleted, since a new name is another skill. Each changed field shows old beside new like a GitHub diff, stacked on phones. A bar counts the changes, with Discard and Save. Save applies at once, since the user's own edit needs no approval, and a skill added by hand carries `manual` evidence. Deleting an experience or certification removes the evidence pointing at it, and says so first;
   - **differences from sources** (F1): each source in the strip says whether it still matches the profile ("matches", or "3 differences"), and opens the list, field by field, with what rumbo has and what the file says. It is information, not an error: nothing blocks and no attention badge. A CV catches up with **Export**, and LinkedIn through Copy and Open on LinkedIn;
   - **uploading a new version** (F1): rumbo extracts it and shows what differs from the profile, field by field. The user keeps either side, so an upload never silently overwrites an edit made in rumbo;
   - approving candidate skills;
+  - **reviews** (owner, 2026-11-05, #170): the agent reviews the profile only when the user asks. It updates the analysis, and from F4 sends new suggestions to the bell. Nothing waits for it. Rules:
+    - edit mode has two buttons: **Save** only saves, with no model call, and **Save and review** saves and reviews;
+    - **Review my profile** reviews without editing;
+    - **Last edited** and **Last reviewed** always show, and the page says whether they match;
+    - each user has 5 reviews per rolling 7 days: each one frees up seven days after it ran, and the page shows how many are left. Without reviews left, Save still works and only the review waits. Failed runs and importing a profile do not count;
+    - suggested changes on text the user just edited are withdrawn at Save, by code and with no model call, and return if the edit is undone;
+    - approving a suggestion does not start a review, or each approval would produce more;
   - **Export** (F4), to PDF and DOCX from one ATS-friendly template, choosing what to export:
     - **Base:** the approved profile as it is. Code alone renders it, so it never calls a model;
     - **Tailored to a target:** the Drafter's propose mode, checked by the Fidelity checker. The user reviews it once as a diff against the base, and it is saved. Exporting it again calls no model;
