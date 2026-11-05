@@ -5,3 +5,4 @@
 export { checkAnalysis, ProfileAnalysis, ProfileFeedback } from './analysis.js';
 export { checkDrafts, DraftChange, Drafts } from './drafts.js';
 export { checkMarket, Market, MarketSnapshotView, SkillDemand } from './market.js';
+export { checkProgress, Progress, ProjectActivity, ProjectCommit } from './progress.js';
