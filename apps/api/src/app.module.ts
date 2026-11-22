@@ -49,6 +49,8 @@ export class AppModule {
 }
 
 /** Options for NestFactory.create, shared by main.ts and the e2e tests. */
+// Nest types its options bag as a class but takes plain literals (#187).
+// eslint-disable-next-line @typescript-eslint/no-unsafe-class-instance-assignment
 export const APP_OPTIONS = {
   // BodyParserModule parses bodies after the request logger instead (#23).
   bodyParser: false,

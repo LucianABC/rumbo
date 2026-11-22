@@ -46,5 +46,7 @@ export async function createTestApp({
     imports: [AppModule.forRoot(config, { logDestination: logs.destination })],
     controllers,
   }).compile();
+  // Nest types its options bag as a class but takes plain literals (#187).
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-class-instance-assignment
   return configureApp(moduleRef.createNestApplication<INestApplication<App>>(APP_OPTIONS));
 }
