@@ -9,6 +9,8 @@ import tseslint from 'typescript-eslint';
 export default defineConfig(
   {
     ignores: [
+      // Local git worktrees: ESLint does not read .git/info/exclude (#174).
+      '.claude/**',
       '**/node_modules/**',
       '**/dist/**',
       '**/build/**',
