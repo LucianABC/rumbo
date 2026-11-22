@@ -69,6 +69,23 @@ describe('toDraft and applyDraft', () => {
     expect(saved).not.toHaveProperty('about');
   });
 
+  it.each(['location', 'summary'])('drops an experience %s the user emptied', async (field) => {
+    const profile = await getProfile();
+    const [first, ...others] = profile.experiences;
+    if (!first) throw new Error('no experience');
+    const base = {
+      ...profile,
+      experiences: [{ ...first, location: 'Buenos Aires', summary: 'Led the team' }, ...others],
+    };
+    const start = toDraft(base);
+    const draft = setItemField(start, 'experiences', firstKey(start, 'experiences'), field, '  ');
+
+    const [position] = applyDraft(draft, base, NOW)?.experiences ?? [];
+
+    expect(position).not.toHaveProperty(field);
+    expect(position).toMatchObject({ id: first.id, title: first.title });
+  });
+
   it('reads an empty end as a position still held, and highlights one per line', async () => {
     const profile = await getProfile();
     const start = toDraft(profile);
