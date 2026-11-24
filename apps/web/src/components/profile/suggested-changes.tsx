@@ -1,5 +1,6 @@
 'use client';
 
+import type { DraftChange } from '@rumbo/contracts/provisional';
 import { cn } from 'cn';
 import { Bell, Check, ChevronRight, CircleHelp, Copy, Undo2, X } from 'lucide-react';
 import { Suspense, use, useEffect, useRef, useState } from 'react';
@@ -8,7 +9,8 @@ import { Button, buttonVariants } from '@/components/ui/button';
 
 import { type Decision, DRAFT_STATUS_LABEL, type DraftStatus } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
-import type { ProfileReview, ProfileTodo, Suggestion } from '../../lib/profile/profile-view';
+import type { ProfileTodo, Suggestion } from '../../lib/profile/profile-view';
+import { useProfileReview } from '../../lib/profile/review';
 import { LinkedInIcon } from '../linkedin-icon';
 import { ResponsiveSheet } from '../responsive-sheet';
 import { Unavailable } from '../skills/shared';
@@ -20,13 +22,19 @@ import { Added, Removed } from '../diff';
 /**
  * Suggested changes as notifications, in the app header so they reach the user from any tab
  * (docs/product/views.md, #113): a bell with what is left to review, opening a panel of short
- * rows next to the profile's completeness. The bell paints at once and its data streams in, so no
- * tab waits for it. The data is provisional until the F4 spec (#44).
+ * rows next to the profile's completeness. The bell paints at once and the drafts stream in, so no
+ * tab waits for them; completeness reads the profile in the store, so an edit moves it (#168). The
+ * data is provisional until the F4 spec (#44).
  */
-export function SuggestedChanges({ review }: { readonly review: Promise<ProfileReview> }) {
+export function SuggestedChanges({
+  changes,
+}: {
+  /** Null when there is no profile to draft against. */
+  readonly changes: Promise<readonly DraftChange[] | null> | null;
+}) {
   return (
     <Suspense fallback={<BellButton left={0} />}>
-      <LoadedChanges review={review} />
+      <LoadedChanges changes={changes} />
     </Suspense>
   );
 }
@@ -56,8 +64,12 @@ function BellButton({ left, onClick }: { readonly left: number; readonly onClick
   );
 }
 
-function LoadedChanges({ review }: { readonly review: Promise<ProfileReview> }) {
-  const { suggestions, completeness } = use(review);
+function LoadedChanges({
+  changes,
+}: {
+  readonly changes: Promise<readonly DraftChange[] | null> | null;
+}) {
+  const { suggestions, completeness } = useProfileReview(changes ? use(changes) : null);
   const [open, setOpen] = useState(false);
   const { decisions } = useDraftDecisions();
   const todos = completeness?.todos ?? [];

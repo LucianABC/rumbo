@@ -1,10 +1,9 @@
-import { deriveRoadmapView, type ProjectItem } from '@rumbo/contracts';
+import { deriveRoadmapView, type ProjectItem, type Roadmap } from '@rumbo/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getRoadmap, getTargetColors } from '../src/lib/data';
+import { decidePlan } from '../src/lib/progress';
 import {
-  decidedEvidence,
-  decisionOf,
   evidenceRows,
   lineInitials,
   projectsView,
@@ -12,7 +11,7 @@ import {
   taskRows,
 } from '../src/lib/projects/projects-view';
 import { lanesOf } from '../src/lib/roadmap/single-line';
-import { evidenceTasks, projectsBadge, tabBadges } from '../src/lib/tabs';
+import { tabBadges } from '../src/lib/tabs';
 import { progress } from '../src/mocks/progress';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -37,6 +36,19 @@ function project(over: Partial<ProjectItem> = {}): ProjectItem {
       { id: 't2', title: 'Two', done: true },
     ],
     ...over,
+  };
+}
+
+const NOW = '2026-11-24T12:00:00.000Z';
+
+/** A roadmap holding only this item, enough for the progress rule and the badge. */
+function roadmapOf(item: ProjectItem): Roadmap {
+  return {
+    from: 'Start',
+    targets: [],
+    gaps: [],
+    milestones: [{ id: 'm', title: 'M', items: [item] }],
+    updatedAt: NOW,
   };
 }
 
@@ -230,57 +242,32 @@ describe('lineInitials', () => {
 
 describe('taskRows', () => {
   it('flags an open task with evidence waiting for the user', () => {
-    const rows = taskRows(project({ evidence: [awaiting] }), {});
+    const rows = taskRows(project({ evidence: [awaiting] }));
 
     expect(rows[0]).toMatchObject({ id: 't1', done: false, awaitingEvidence: true });
     expect(rows[1]).toMatchObject({ id: 't2', done: true, awaitingEvidence: false });
   });
 
-  it('completes the task once its evidence is approved, never before', () => {
+  it('shows what the decided plan says: an approval completes the task (#168)', () => {
     const item = project({ evidence: [awaiting] });
+    const [approved] = decidePlan(roadmapOf(item), { e1: 'approved' }, NOW).milestones;
+    const [rejected] = decidePlan(roadmapOf(item), { e1: 'rejected' }, NOW).milestones;
 
-    expect(taskRows(item, { e1: 'approved' })[0]).toMatchObject({
+    expect(taskRows(approved?.items[0] as ProjectItem)[0]).toMatchObject({
       done: true,
       awaitingEvidence: false,
     });
-    expect(taskRows(item, { e1: 'rejected' })[0]).toMatchObject({
+    expect(taskRows(rejected?.items[0] as ProjectItem)[0]).toMatchObject({
       done: false,
       awaitingEvidence: false,
     });
   });
 });
 
-describe('decidedEvidence', () => {
-  const now = '2026-11-05T12:00:00.000Z';
-
-  it('counts an approval from now and drops a rejection', () => {
-    expect(decidedEvidence([awaiting], { e1: 'approved' }, now)).toEqual([
-      { ...awaiting, approvedAt: now },
-    ]);
-    expect(decidedEvidence([awaiting], { e1: 'rejected' }, now)).toEqual([]);
-  });
-
-  it('leaves undecided and stored evidence as it is', () => {
-    const stored = { ...awaiting, id: 'e2', approvedAt: '2026-10-01T00:00:00.000Z' };
-
-    expect(decidedEvidence([awaiting, stored], {}, now)).toEqual([awaiting, stored]);
-  });
-});
-
-describe('decisionOf', () => {
-  it('keeps a stored approval whatever was decided on this visit', () => {
-    const approved = { ...awaiting, approvedAt: '2026-10-01T00:00:00.000Z' };
-
-    expect(decisionOf(approved, { e1: 'rejected' })).toBe('approved');
-    expect(decisionOf(awaiting, {})).toBe('awaiting');
-    expect(decisionOf(awaiting, { e1: 'rejected' })).toBe('rejected');
-  });
-});
-
 describe('evidenceRows', () => {
   it('puts what awaits the user first and links a commit to its repo', async () => {
     const { active } = await view();
-    const rows = evidenceRows(active[0] ?? expect.fail('no card'));
+    const rows = evidenceRows(active[0] ?? expect.fail('no card'), await getRoadmap());
 
     expect(rows.map((r) => r.evidence.id)).toEqual(['ev-sales-model', 'ev-sales-questions']);
     expect(rows[0]).toMatchObject({
@@ -289,6 +276,20 @@ describe('evidenceRows', () => {
       message: 'model sales export into fact and dimension tables',
       taskTitle: 'Clean and model the data',
     });
+  });
+
+  it('lists the evidence as stored, so a rejection still shows to be taken back (#168)', async () => {
+    const roadmap = await getRoadmap();
+    const decided = decidePlan(roadmap, { 'ev-sales-model': 'rejected' }, NOW);
+    const lanes = lanesOf(decided, getTargetColors(decided, null));
+    const { active } = projectsView(decided, deriveRoadmapView(decided), lanes, progress);
+
+    const rows = evidenceRows(active[0] ?? expect.fail('no card'), roadmap);
+
+    expect(rows.map((r) => [r.evidence.id, r.evidence.approvedAt])).toEqual([
+      ['ev-sales-model', null],
+      ['ev-sales-questions', '2026-10-09T16:40:00.000Z'],
+    ]);
   });
 
   it('never makes a link of a commit without a repo or of free text', async () => {
@@ -304,7 +305,7 @@ describe('evidenceRows', () => {
     };
     const noRepo = { ...card, repo: null, deliverables: [{ ...deliverable, item }] };
 
-    expect(evidenceRows(noRepo).map((r) => r.href)).toEqual([null, null]);
+    expect(evidenceRows(noRepo, roadmapOf(item)).map((r) => r.href)).toEqual([null, null]);
   });
 });
 
@@ -318,38 +319,24 @@ describe('Projects badge', () => {
 
   it('drops the attention count on any decision and the open tasks only on approval', async () => {
     const roadmap = await getRoadmap();
-    const badge = tabBadges(roadmap).projects;
-    const tasks = evidenceTasks(roadmap);
+    const approved = tabBadges(decidePlan(roadmap, { 'ev-sales-model': 'approved' }, NOW));
+    const rejected = tabBadges(decidePlan(roadmap, { 'ev-sales-model': 'rejected' }, NOW));
 
-    const approved = projectsBadge(badge, { 'ev-sales-model': 'approved' }, tasks);
-    const rejected = projectsBadge(badge, { 'ev-sales-model': 'rejected' }, tasks);
-
-    expect(approved?.count?.value).toBe(3);
-    expect(approved?.attention?.value).toBe(0);
-    expect(rejected?.count?.value).toBe(4);
-    expect(rejected?.attention?.value).toBe(0);
+    expect(approved.projects?.count?.value).toBe(3);
+    expect(approved.projects?.attention?.value).toBe(0);
+    expect(rejected.projects?.count?.value).toBe(4);
+    expect(rejected.projects?.attention?.value).toBe(0);
   });
 
   it('completes a task once however many commits prove it', () => {
-    const badge = {
-      count: { value: 2, label: 'open tasks' },
-      attention: { value: 2, label: 'awaiting approval' },
-    };
-    const tasks = { e1: 'p/t1', e2: 'p/t1' };
+    const item = project({ evidence: [awaiting, { ...awaiting, id: 'e2', sourceRef: 'def5678' }] });
+    const before = tabBadges(roadmapOf(item)).projects;
+    const after = tabBadges(
+      decidePlan(roadmapOf(item), { e1: 'approved', e2: 'approved' }, NOW),
+    ).projects;
 
-    const result = projectsBadge(badge, { e1: 'approved', e2: 'approved' }, tasks);
-
-    expect(result?.count?.value).toBe(1);
-    expect(result?.attention?.value).toBe(0);
-  });
-
-  it('leaves no badge when there was none', () => {
-    expect(projectsBadge(undefined, {}, {})).toBeUndefined();
-  });
-
-  it('only maps awaiting evidence with an open task', async () => {
-    expect(evidenceTasks(await getRoadmap())).toEqual({
-      'ev-sales-model': 'sales-dashboard/model-data',
-    });
+    expect(before?.count?.value).toBe(1);
+    expect(after?.count?.value).toBe(0);
+    expect(after?.attention?.value).toBe(0);
   });
 });

@@ -204,12 +204,12 @@ apps/web/src/
     drafts.ts               suggested changes  (F4, provisional)
     progress.ts             project activity   (F5, provisional)
   lib/data/                 the only thing components import
-    index.ts                getRoadmap(), getRoadmapLayout(), getProfile(), getProfileSummary(),
-                            getMarket(), getSources(), getDrafts(), getProgress()
+    index.ts                getRoadmap(), getRoadmapLayout(), getProfile(), getProfileOrNull(),
+                            getMarket(), getMarketOrNull(), getSources(), getDrafts(), getProgress()
 ```
 
 - **Typed at compile time and checked at runtime.** Each mock is a `.ts` object declared with `satisfies` its contract type. A test parses every mock with its schema and runs `checkLayout`.
-- **Client state more than one tab reads lives in `src/lib/store.ts` (Zustand).** Server data does not: it stays in `lib/data`.
+- **State more than one tab reads lives in `src/lib/store.ts` (Zustand), one store per request (#168).** The tabs layout reads the roadmap, its layout and the profile through `lib/data` and hydrates the store; Roadmap, Projects, Skills & gaps, the tab badges and the bell read the plan and the profile from it. Pages read through `lib/data` only what is their own (market, repo activity) and the URL. The progress rule lives in `src/lib/progress.ts` (ADR 0007).
 - **Components never import from `mocks/`.** An ESLint `no-restricted-imports` rule enforces it outside `lib/data`.
 - **`lib/data` functions are async and return contract types.** Swapping a mock for the typed API client (#79) changes only that function.
 - **Contracts that ADRs already back** (`Roadmap`, `RoadmapLayout`, `Profile`) live in `packages/contracts/src/`.

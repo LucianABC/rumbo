@@ -1,5 +1,4 @@
 import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ProfilePage from '../src/app/(tabs)/profile/page';
@@ -14,6 +13,7 @@ import {
 import { logger } from '../src/lib/logger';
 import { profileCompleteness, suggestions } from '../src/lib/profile/profile-view';
 import type { Lane } from '../src/lib/roadmap/single-line';
+import { renderTab } from './support/store';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 async function render() {
-  return renderToStaticMarkup(await ProfilePage());
+  return renderTab(await ProfilePage());
 }
 
 /** The panel's list: a closed sheet renders nothing, so the page's markup does not have it. */
@@ -52,7 +52,7 @@ async function renderNotifications() {
   const [profile, roadmap] = await Promise.all([getProfile(), getRoadmap()]);
   const { changes } = await getDrafts(profile, roadmap);
   const lanes = roadmap.targets.map((target): Lane => ({ target, color: 'line-1' }));
-  return renderToStaticMarkup(
+  return renderTab(
     createElement(NotificationList, { suggestions: suggestions(changes, profile, lanes) }),
   );
 }
@@ -149,10 +149,10 @@ describe('Profile (#113)', () => {
     expect(html).toContain('Next: put numbers on at least half of your bullets.');
   });
 
-  it('keeps the bell disabled until its data arrives, so no click is lost', () => {
+  it('keeps the bell disabled until its data arrives, so no click is lost', async () => {
     const pending = new Promise<never>(() => undefined);
 
-    const html = renderToStaticMarkup(createElement(SuggestedChanges, { review: pending }));
+    const html = await renderTab(createElement(SuggestedChanges, { changes: pending }));
 
     expect(html).toMatch(/<button[^>]*disabled/);
   });
@@ -161,7 +161,7 @@ describe('Profile (#113)', () => {
     const profile = await getProfile();
     const { todos } = profileCompleteness(profile);
 
-    const html = renderToStaticMarkup(createElement(NotificationList, { suggestions: [], todos }));
+    const html = await renderTab(createElement(NotificationList, { suggestions: [], todos }));
 
     expect(todos.length).toBeGreaterThan(0);
     for (const { todo, points } of todos) {
@@ -223,8 +223,8 @@ describe('Profile (#113)', () => {
     expect(fields.err).toBeInstanceOf(Error);
   });
 
-  it('says so when there is nothing to review', () => {
-    expect(renderToStaticMarkup(createElement(NotificationList, { suggestions: [] }))).toContain(
+  it('says so when there is nothing to review', async () => {
+    expect(await renderTab(createElement(NotificationList, { suggestions: [] }))).toContain(
       'Nothing to review',
     );
   });

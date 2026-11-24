@@ -1,4 +1,7 @@
-import type { Experience, PartialDate, Profile, SkillRef } from '@rumbo/contracts';
+import type { Experience, PartialDate, Profile, Roadmap, SkillRef } from '@rumbo/contracts';
+import type { Market } from '@rumbo/contracts/provisional';
+
+import { skillsAskedForMost } from './coverage';
 
 /**
  * Who the user is, in one line, for the Roadmap summary band (docs/product/views.md, #145):
@@ -100,4 +103,21 @@ export function summarize(
     ),
     strongestSkills,
   };
+}
+
+/**
+ * Who the user is in one line, for the Roadmap summary band. Relevance comes from what the
+ * roadmap's targets ask for most in the market (#145).
+ */
+export function profileSummary(
+  profile: Profile,
+  market: Market,
+  roadmap: Roadmap,
+  now: Date,
+): ProfileSummary {
+  const relevant = skillsAskedForMost(
+    market,
+    roadmap.targets.map((t) => t.id),
+  );
+  return summarize(profile, now, relevant);
 }

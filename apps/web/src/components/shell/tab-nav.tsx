@@ -1,5 +1,6 @@
 'use client';
 
+import type { DraftChange } from '@rumbo/contracts/provisional';
 import { cn } from 'cn';
 import {
   Briefcase,
@@ -14,17 +15,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, use } from 'react';
 
-import { useDraftDecisions, useEvidenceDecisions } from '../../lib/store';
+import { suggestionCount } from '../../lib/profile/profile-view';
+import { useProfileReview } from '../../lib/profile/review';
+import { useDraftDecisions, usePlan } from '../../lib/store';
 import {
   badgeSummary,
   type BadgeCount,
   countText,
   isActiveTab,
   profileBadge,
-  projectsBadge,
   type Tab,
   type TabBadge,
-  type TabBadges,
+  tabBadges,
   TABS,
   type TabId,
 } from '../../lib/tabs';
@@ -40,19 +42,16 @@ const ICONS: Readonly<Record<TabId, LucideIcon>> = {
 
 /**
  * One navigation landmark for every breakpoint: a bottom bar on phones, a side rail from `md` up
- * (docs/product/views.md, #107). Six tabs fit the bar, so there is no "More" menu.
+ * (docs/product/views.md, #107). Six tabs fit the bar, so there is no "More" menu. Badges read the
+ * plan in the store, so a decision on any tab moves them at once (#168).
  */
 export function TabNav({
-  badges,
-  suggestedChanges,
-  tasksByEvidence = {},
+  suggestedChanges = null,
 }: {
-  readonly badges: TabBadges;
-  /** Suggested changes to review, in flight so the tabs paint without waiting for it (#113). */
-  readonly suggestedChanges?: Promise<number>;
-  /** The open task each awaiting piece of evidence completes when approved (#114). */
-  readonly tasksByEvidence?: Readonly<Record<string, string>>;
+  /** Drafts to review, in flight so the tabs paint without waiting for them (#113). */
+  readonly suggestedChanges?: Promise<readonly DraftChange[] | null> | null;
 }) {
+  const badges = tabBadges(usePlan().roadmap);
   return (
     <nav
       aria-label="Tabs"
@@ -61,12 +60,10 @@ export function TabNav({
       <ul className="grid grid-cols-6 md:flex md:flex-col md:gap-1">
         {TABS.map((tab) => (
           <li key={tab.id}>
-            {tab.id === 'profile' && suggestedChanges ? (
+            {tab.id === 'profile' ? (
               <Suspense fallback={<TabLink tab={tab} badge={badges[tab.id]} />}>
                 <ProfileTabLink tab={tab} suggestedChanges={suggestedChanges} />
               </Suspense>
-            ) : tab.id === 'projects' ? (
-              <ProjectsTabLink tab={tab} badge={badges[tab.id]} tasks={tasksByEvidence} />
             ) : (
               <TabLink tab={tab} badge={badges[tab.id]} />
             )}
@@ -82,23 +79,11 @@ function ProfileTabLink({
   suggestedChanges,
 }: {
   readonly tab: Tab;
-  readonly suggestedChanges: Promise<number>;
+  readonly suggestedChanges: Promise<readonly DraftChange[] | null> | null;
 }) {
+  const review = useProfileReview(suggestedChanges ? use(suggestedChanges) : null);
   const reviewed = Object.keys(useDraftDecisions().decisions).length;
-  return <TabLink tab={tab} badge={profileBadge(use(suggestedChanges), reviewed)} />;
-}
-
-function ProjectsTabLink({
-  tab,
-  badge,
-  tasks,
-}: {
-  readonly tab: Tab;
-  readonly badge: TabBadge | undefined;
-  readonly tasks: Readonly<Record<string, string>>;
-}) {
-  const { decisions } = useEvidenceDecisions();
-  return <TabLink tab={tab} badge={projectsBadge(badge, decisions, tasks)} />;
+  return <TabLink tab={tab} badge={profileBadge(suggestionCount(review), reviewed)} />;
 }
 
 function TabLink({ tab, badge }: { readonly tab: Tab; readonly badge: TabBadge | undefined }) {

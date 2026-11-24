@@ -26,9 +26,7 @@ import { profile } from '../../mocks/profile';
 import { progress as bundledProgress } from '../../mocks/progress';
 import { roadmap } from '../../mocks/roadmap';
 import { roadmapLayout } from '../../mocks/roadmap-layout';
-import { skillsAskedForMost } from '../coverage';
 import { logger } from '../logger';
-import { type ProfileSummary, summarize } from '../profile-summary';
 import { type LocalMockName, readLocalMock } from './local-mocks';
 
 /**
@@ -68,23 +66,6 @@ export async function getProfile(): Promise<Profile> {
 }
 
 /**
- * Who the user is in one line: current role, years of relevant experience, strongest skills.
- * Relevance comes from what the roadmap's targets ask for most in the market (#145). Takes the
- * data the view already loaded instead of reading and parsing it again, like getTargetColors.
- */
-export function getProfileSummary(
-  forProfile: Profile,
-  market: Market,
-  forRoadmap: Roadmap,
-): ProfileSummary {
-  const relevant = skillsAskedForMost(
-    market,
-    forRoadmap.targets.map((t) => t.id),
-  );
-  return summarize(forProfile, new Date(), relevant);
-}
-
-/**
  * One market snapshot per active target of this roadmap; provisional until the F2 spec (#42).
  * A market that does not fit the roadmap rejects like invalid data: a target without numbers is a
  * data error, not a state to render around (#145).
@@ -98,51 +79,31 @@ export async function getMarket(forRoadmap: Roadmap): Promise<Market> {
 }
 
 /**
- * Profile and market for the Roadmap summary band, or null when either is invalid or does not fit
- * the roadmap: the map does not need them, so only the band degrades (#112). Takes the profile
- * already in flight so the page can start it before the roadmap resolves. Each failure is logged
- * as `{ err }`, its type and code only: the message lists data paths (AI rule 5).
+ * The profile for the tabs layout, or null when it is invalid: the map and Projects do not need
+ * it, so only what reads it degrades (#112, #168). Logged as `{ err }`, its type and code only:
+ * the message lists data paths (AI rule 5).
  */
-export async function getSummaryData(
-  pendingProfile: Promise<Profile>,
-  forRoadmap: Roadmap,
-): Promise<{ profile: Profile; market: Market } | null> {
-  const [profile, market] = await Promise.allSettled([pendingProfile, getMarket(forRoadmap)]);
-  if (profile.status === 'fulfilled' && market.status === 'fulfilled') {
-    return { profile: profile.value, market: market.value };
+export async function getProfileOrNull(): Promise<Profile | null> {
+  try {
+    return await getProfile();
+  } catch (err) {
+    logger.warn({ err, source: 'profile' }, 'profile unavailable');
+    return null;
   }
-  for (const [source, result] of [
-    ['profile', profile],
-    ['market', market],
-  ] as const) {
-    if (result.status === 'rejected') {
-      logger.warn({ err: result.reason, source }, 'roadmap summary unavailable');
-    }
-  }
-  return null;
 }
 
 /**
- * Profile and market for Skills & gaps, each null when it is invalid or does not fit the roadmap:
- * gaps carry their own numbers, so each section degrades on its own instead of the whole tab
- * failing (#111). Failures are logged like getSummaryData's.
+ * The market for Roadmap's summary band and Skills & gaps, or null when it is invalid or does not
+ * fit the roadmap: gaps carry their own numbers, so only what reads it degrades (#111, #112).
+ * Logged like getProfileOrNull's failures.
  */
-export async function getSkillsData(
-  forRoadmap: Roadmap,
-): Promise<{ profile: Profile | null; market: Market | null }> {
-  const [profile, market] = await Promise.allSettled([getProfile(), getMarket(forRoadmap)]);
-  for (const [source, result] of [
-    ['profile', profile],
-    ['market', market],
-  ] as const) {
-    if (result.status === 'rejected') {
-      logger.warn({ err: result.reason, source }, 'skills data unavailable');
-    }
+export async function getMarketOrNull(forRoadmap: Roadmap): Promise<Market | null> {
+  try {
+    return await getMarket(forRoadmap);
+  } catch (err) {
+    logger.warn({ err, source: 'market' }, 'market unavailable');
+    return null;
   }
-  return {
-    profile: profile.status === 'fulfilled' ? profile.value : null,
-    market: market.status === 'fulfilled' ? market.value : null,
-  };
 }
 
 /**
@@ -161,7 +122,7 @@ export async function getDrafts(forProfile: Profile, forRoadmap: Roadmap): Promi
 /**
  * The changes for the Profile tab and its badge, or null when the profile or the drafts cannot be
  * read: the tab still shows the profile, and no other tab needs them (#113). Logged like
- * getSummaryData's failures. Takes the profile in flight, like getSummaryData.
+ * getProfileOrNull's failures. Takes the profile in flight, so it can start before it resolves.
  */
 export async function getSuggestedChanges(
   pendingProfile: Promise<Profile>,
@@ -178,7 +139,7 @@ export async function getSuggestedChanges(
 /**
  * What rumbo says about this profile, or null when it cannot be read or read another version of
  * the profile: the tab still shows the profile itself (#113). Provisional until the F1 spec (#41).
- * Logged like getSummaryData's failures.
+ * Logged like getProfileOrNull's failures.
  */
 export async function getProfileAnalysis(
   pendingProfile: Promise<Profile>,
@@ -199,7 +160,7 @@ export async function getProfileAnalysis(
 /**
  * What happened in each project's repo, or null when it cannot be read or does not fit this
  * roadmap: the cards still show what the roadmap holds. Provisional until the F5 spec (#45).
- * Logged like getSummaryData's failures.
+ * Logged like getProfileOrNull's failures.
  */
 export async function getProgress(forRoadmap: Roadmap): Promise<Progress | null> {
   try {

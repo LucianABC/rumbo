@@ -1,7 +1,7 @@
 import { Profile as ProfileSchema } from '@rumbo/contracts';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ProfileEditor } from '../src/components/profile/profile-editor';
 import { getProfile } from '../src/lib/data';
@@ -21,7 +21,6 @@ import {
   skillsLosingEvidence,
   toDraft,
 } from '../src/lib/profile/profile-edit';
-import { useAppStore } from '../src/lib/store';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -268,23 +267,5 @@ describe('the editor', () => {
     expect(html).toContain(`aria-label="Delete: ${first?.skill.name ?? ''}"`);
     expect(html).toContain(`<dt class="text-xs font-medium text-primary">${first?.category ?? ''}`);
     expect(html).not.toContain('edit-skills.');
-  });
-});
-
-describe('the saved profile in the store', () => {
-  beforeEach(() => {
-    useAppStore.setState(useAppStore.getInitialState(), true);
-  });
-
-  it('starts empty, so the server never renders anyone else’s edits', () => {
-    expect(useAppStore.getInitialState().editedProfile).toBeNull();
-  });
-
-  it('keeps what was saved', async () => {
-    const profile = await getProfile();
-
-    useAppStore.getState().saveProfile(profile);
-
-    expect(useAppStore.getState().editedProfile).toBe(profile);
   });
 });

@@ -9,7 +9,7 @@ import type {
 } from '@rumbo/contracts';
 import type { Progress, ProjectCommit } from '@rumbo/contracts/provisional';
 
-import { EVIDENCE_SOURCE_LABEL, type Decision } from '../labels';
+import { EVIDENCE_SOURCE_LABEL } from '../labels';
 import type { Lane } from '../roadmap/single-line';
 import { stationHref } from '../skills/skills-view';
 
@@ -168,19 +168,13 @@ export interface TaskRow extends Task {
   readonly awaitingEvidence: boolean;
 }
 
-export function taskRows(
-  item: ProjectItem,
-  decisions: Readonly<Record<string, Decision>>,
-): TaskRow[] {
-  return item.tasks.map((task) => {
-    const proof = item.evidence.filter((e) => e.taskId === task.id);
-    const done = task.done || proof.some((e) => decisionOf(e, decisions) === 'approved');
-    return {
-      ...task,
-      done,
-      awaitingEvidence: !done && proof.some((e) => decisionOf(e, decisions) === 'awaiting'),
-    };
-  });
+/** Takes an item of the decided plan (lib/progress.ts), so done already counts approvals. */
+export function taskRows(item: ProjectItem): TaskRow[] {
+  return item.tasks.map((task) => ({
+    ...task,
+    awaitingEvidence:
+      !task.done && item.evidence.some((e) => e.taskId === task.id && e.approvedAt === null),
+  }));
 }
 
 /** "AE" for AI Engineer: goes with a line's color, so color is never the only cue (views.md). */
@@ -210,32 +204,6 @@ export function projectHref(itemId: string): string {
   return `/projects#${projectAnchor(itemId)}`;
 }
 
-/**
- * Evidence after this visit's decisions, so Roadmap says what Projects says: an approval counts
- * from now and a rejection stops being evidence. `approvedAt` is the decision's stand-in until the
- * feature stores one.
- */
-export function decidedEvidence(
-  evidence: readonly EvidenceRef[],
-  decisions: Readonly<Record<string, Decision>>,
-  now: string,
-): EvidenceRef[] {
-  return evidence.flatMap((e) => {
-    const decision = decisionOf(e, decisions);
-    if (decision === 'rejected') return [];
-    return [decision === 'approved' && e.approvedAt === null ? { ...e, approvedAt: now } : e];
-  });
-}
-
-/** Stored approval first: it is the record; a decision on this visit only covers the rest. */
-export function decisionOf(
-  evidence: EvidenceRef,
-  decisions: Readonly<Record<string, Decision>>,
-): Decision | 'awaiting' {
-  if (evidence.approvedAt !== null) return 'approved';
-  return decisions[evidence.id] ?? 'awaiting';
-}
-
 export interface EvidenceRow {
   readonly evidence: EvidenceRef;
   /** "Commit a3f9c21": names it for the buttons, so each reads alone. */
@@ -246,12 +214,18 @@ export interface EvidenceRow {
   readonly taskTitle: string | null;
 }
 
-/** Awaiting first, then in the order the agent found it: what needs the user stays on top. */
-export function evidenceRows(card: ProjectCard): EvidenceRow[] {
+/**
+ * Awaiting first, then in the order the agent found it: what needs the user stays on top. Reads
+ * each item's evidence as stored, not as decided: a rejection must still show, to be taken back.
+ */
+export function evidenceRows(card: ProjectCard, source: Roadmap): EvidenceRow[] {
   const { deliverables, repo, commits } = card;
+  const stored = new Map(
+    source.milestones.flatMap((m) => m.items).map((item) => [item.id, item.evidence]),
+  );
   return deliverables
     .flatMap(({ item }) =>
-      item.evidence.map((evidence) => ({
+      (stored.get(item.id) ?? item.evidence).map((evidence) => ({
         evidence,
         name: evidenceName(evidence),
         href: evidenceHref(evidence, repo),
