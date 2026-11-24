@@ -8,8 +8,8 @@ import { useEffect, useRef } from 'react';
 import { formatDay } from '../../lib/format';
 import { DRAFT_STATUS_LABEL, type Decision } from '../../lib/labels';
 import { LINE_BG, LINE_TINT } from '../../lib/line-colors';
+import { decisionOf } from '../../lib/progress';
 import {
-  decisionOf,
   type EvidenceRow,
   evidenceRows,
   lineInitials,
@@ -23,7 +23,7 @@ import { DraftStatusChip, StatusChip } from '../status-chip';
 import { TaskList } from '../task-list';
 import { Button } from '../ui/button';
 import { CheckRepo } from './check-repo';
-import { useEvidenceDecisions } from '../../lib/store';
+import { useEvidenceDecisions, useSourceRoadmap } from '../../lib/store';
 
 /** How many commits a card lists: the repo holds the rest. */
 const RECENT_COMMITS = 3;
@@ -34,7 +34,8 @@ const LABEL = 'text-xs font-medium text-muted-foreground';
 const FIELD = 'text-2xs font-semibold tracking-wide text-primary uppercase';
 
 /**
- * One project and what proves its progress (docs/product/views.md, #114). Every project shows the
+ * One project and what proves its progress (docs/product/views.md, #114). The card comes from the
+ * decided plan (lib/progress.ts, #168), so tasks and statuses already count this visit's approvals. Every project shows the
  * same way, whether it has one deliverable or several: a deliverable is the project's part in one Roadmap
  * station, so each task reads under its station and the gaps that station's item closes.
  */
@@ -120,9 +121,8 @@ function Deliverables({
   readonly title: string;
   readonly deliverables: readonly ProjectDeliverable[];
 }) {
-  const { decisions } = useEvidenceDecisions();
   const current = deliverables.find((s) => s.item.status !== 'done') ?? deliverables[0];
-  const tasks = deliverables.flatMap((s) => taskRows(s.item, decisions));
+  const tasks = deliverables.flatMap((s) => taskRows(s.item));
   const done = tasks.filter((t) => t.done).length;
   const percent = tasks.length > 0 ? Math.round((done / tasks.length) * 100) : 0;
 
@@ -174,8 +174,7 @@ function Deliverable({
   readonly deliverable: ProjectDeliverable;
   readonly open: boolean;
 }) {
-  const { decisions } = useEvidenceDecisions();
-  const tasks = taskRows(item, decisions);
+  const tasks = taskRows(item);
   return (
     <div className="overflow-hidden rounded-lg border">
       {/* Outside the fold: where a deliverable belongs and what it closes must show while it is
@@ -306,7 +305,8 @@ function Activity({
 
 function Evidence({ card }: { readonly card: ProjectCardView }) {
   const { decisions, decide } = useEvidenceDecisions();
-  const rows = evidenceRows(card);
+  // As stored, not as decided: a rejected piece still shows, so it can be taken back (#168).
+  const rows = evidenceRows(card, useSourceRoadmap());
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">No evidence yet.</p>;
   }

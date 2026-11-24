@@ -5,9 +5,8 @@ import { ChevronRight } from 'lucide-react';
 import { formatDay } from '../../lib/format';
 import { EVIDENCE_SOURCE_LABEL, evidenceStatusLabel, itemKindLabel } from '../../lib/labels';
 import { LINE_BG } from '../../lib/line-colors';
-import { decidedEvidence, type TaskRow, taskRows } from '../../lib/projects/projects-view';
+import { type TaskRow, taskRows } from '../../lib/projects/projects-view';
 import type { SingleLineRow } from '../../lib/roadmap/single-line';
-import { useEvidenceDecisions } from '../../lib/store';
 import { StatusChip } from '../status-chip';
 import { TaskList } from '../task-list';
 import { ITEM_ICON } from './item-icon';
@@ -19,7 +18,8 @@ type MilestoneRow = Extract<SingleLineRow, { kind: 'milestone' }>;
  * What a station holds (spec 01, M2, #109): the targets it advances, then each item with its
  * type, status, `doneWhen`, the gaps it closes, tasks, evidence with its approval state, and
  * dates, with an explicit state wherever something is missing. A project links to its place on
- * Projects and reads the decisions made there, so both tabs tell the same story (#114).
+ * Projects. The row comes from the decided plan (lib/progress.ts), so a decision made there shows
+ * here as well (#114, #168).
  */
 export function StationDetail({
   row,
@@ -87,7 +87,6 @@ function Item({
   readonly item: RoadmapItem;
   readonly gapNames: Readonly<Record<string, string>>;
 }) {
-  const { decisions } = useEvidenceDecisions();
   const Icon = ITEM_ICON[item.type];
   const kind =
     item.type === 'education' ? `${itemKindLabel(item)} · ${item.provider}` : itemKindLabel(item);
@@ -149,14 +148,8 @@ function Item({
         ) : null}
       </dl>
 
-      {item.type === 'project' ? <Tasks tasks={taskRows(item, decisions)} /> : null}
-      <Evidence
-        evidence={
-          item.type === 'project'
-            ? decidedEvidence(item.evidence, decisions, new Date().toISOString())
-            : item.evidence
-        }
-      />
+      {item.type === 'project' ? <Tasks tasks={taskRows(item)} /> : null}
+      <Evidence evidence={item.evidence} />
     </article>
   );
 }

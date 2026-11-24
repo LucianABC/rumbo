@@ -1,8 +1,13 @@
 import type { Experience } from '@rumbo/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
-import { getMarket, getProfile, getProfileSummary, getRoadmap } from '../src/lib/data';
-import { monthsWorked, relevantExperiences, summarize } from '../src/lib/profile-summary';
+import { getMarket, getProfile, getRoadmap } from '../src/lib/data';
+import {
+  monthsWorked,
+  profileSummary,
+  relevantExperiences,
+  summarize,
+} from '../src/lib/profile-summary';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -106,7 +111,7 @@ describe('summarize (#145)', () => {
   it('serves the summary of the loaded profile', async () => {
     const roadmap = await getRoadmap();
     const [profile, market] = await Promise.all([getProfile(), getMarket(roadmap)]);
-    const summary = getProfileSummary(profile, market, roadmap);
+    const summary = profileSummary(profile, market, roadmap, NOW);
 
     expect(summary.name).toBe(profile.name);
     expect(summary.yearsOfExperience).toBeGreaterThan(0);

@@ -94,7 +94,7 @@ A deliverable's title has to add something to its station's: the station says wh
 
 ## Conventions every view follows
 
-- **A target looks the same everywhere.** Each active target has a color slot (`line-1…3`) that marks it on the map, on gap chips and in market bars. Every tab gets it from one function, `getTargetColors()` in `lib/data`: it reads the slots from `RoadmapLayout` when there is a valid layout, and otherwise assigns them in target order (primary first). A missing map never costs a target its color. Color is never the only cue: the target's name or initial always goes with it.
+- **A target looks the same everywhere.** Each active target has a color slot (`line-1…3`) that marks it on the map, on gap chips and in market bars. Every tab gets it from one function, `targetColors()` in `packages/contracts`, through the store's plan (`getTargetColors()` in `lib/data` wraps it on the server): it reads the slots from `RoadmapLayout` when there is a valid layout, and otherwise assigns them in target order (primary first). A missing map never costs a target its color. Color is never the only cue: the target's name or initial always goes with it.
 - **Status vocabulary is shared:**
   - deliverables and milestones are `pending`, `in progress` or `done`;
   - gaps are `open`, `in progress` or `closed`;
@@ -109,7 +109,14 @@ A deliverable's title has to add something to its station's: the station says wh
   - content.
 - **Planned state.** A tab whose view is not built yet shows a designed empty state naming the feature and its phase. It is the fallback for any tab the detour does not finish.
 - **Data comes only from `lib/data`** and has contract types. Views never import mocks.
-- **UI state more than one tab reads lives in one global store** (`lib/store.ts`, Zustand), never in tab-level state or a context of its own. Today that is the decisions on suggested changes and on evidence. State one component uses stays in it, and what a URL can hold stays in the URL.
+- **State more than one tab reads lives in one global store** (`lib/store.ts`, Zustand), never in tab-level state or a context of its own: the plan's progress (targets, lines, stations, deliverables, tasks, evidence), the profile the user edits, and the decisions on suggested changes and on evidence (#168). The store is filled from `lib/data`, one per request. A decision or an edit shows at once on every view that reads it. State one component uses stays in it, and what a URL can hold stays in the URL.
+- **Progress follows one rule**, derived by code in one place (`lib/progress.ts`, #168), and every view reads the result:
+  - approving the evidence matched to a task completes that task; taking the approval back undoes it;
+  - a deliverable with tasks is `done` when all of them are and `in progress` when at least one is. With none done, it keeps its status from the data;
+  - a deliverable without tasks (education, work experience) keeps its status from the data: nothing completes it yet;
+  - a station is `done` when all its deliverables are, `in progress` when any has started, otherwise `pending`;
+  - a gap keeps its status from the data. What closes a gap is open for the F3 spec (#43);
+  - `doneWhen` is shown, not checked. How it gets verified, and whether a clear match needs approval, stay open for F5 (#45).
 
 ## Look and feel: Field notes
 
@@ -164,10 +171,10 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - no layout: single-line view only;
   - analysis: idle, thinking, streaming, done, error with retry.
 - **Data:**
-  - `getRoadmap()` → `Roadmap` and `getRoadmapLayout()` → `RoadmapLayout` (spec 01, ADR 0004);
-  - `getProfileSummary()` → derived from `Profile`;
-  - `getMarket()` for the coverage numbers;
-  - `getTargetColors()` for target identity.
+  - the plan, its layout and the profile from the store (#168), which the tabs layout fills with `getRoadmap()` → `Roadmap`, `getRoadmapLayout()` → `RoadmapLayout` (spec 01, ADR 0004) and `getProfileOrNull()`;
+  - `profileSummary()` → derived from the profile the user edits;
+  - `getMarketOrNull()` for the coverage numbers;
+  - the plan's colors for target identity.
 
 ## Profile — F1 (#41), F4 (#44)
 
@@ -267,7 +274,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - **evidence awaiting approval** (e.g. a commit the tracking agent matched to a task), with Approve/Reject; approving it completes that task. Whether a clear match needs this too is open (`mvp-scope.md`, F5);
   - a completed section with approved evidence.
 - **Badges:** an attention badge for evidence awaiting approval. The header spells out open tasks and evidence awaiting approval.
-- **Same story as Roadmap:** both tabs read the same deliverables and tasks, and every practice project on Roadmap links to its deliverable here: in the station list, in the station's panel and, on desktop before a line is picked, in a list under the map. The decisions made here show on the station too.
+- **Same story as Roadmap:** both tabs read the same deliverables and tasks, and every practice project on Roadmap links to its deliverable here: in the station list, in the station's panel and, on desktop before a line is picked, in a list under the map. The decisions made here show on the station, the map and the badges too, through the progress rule.
 - **Demo interaction:** Approve/Reject is local state only. **Check repo now** shows on projects with a repo and only simulates a check, which its result says.
 - **Full feature adds:**
   - GitHub App push analysis, and **Check repo now** on each project to run it on demand (`agents.md`);

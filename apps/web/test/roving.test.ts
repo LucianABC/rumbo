@@ -1,8 +1,8 @@
-import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 import RoadmapPage from '../src/app/(tabs)/roadmap/page';
 import { rovingIndex } from '../src/lib/roadmap/roving';
+import { renderTab } from './support/store';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -33,7 +33,7 @@ describe('rovingIndex (#110)', () => {
 
 describe('station list tab stop', () => {
   it('makes the list one Tab stop, entered at "you are here", with instructions', async () => {
-    const html = renderToStaticMarkup(await RoadmapPage({ searchParams: Promise.resolve({}) }));
+    const html = await renderTab(await RoadmapPage({ searchParams: Promise.resolve({}) }));
     const buttons = [...html.matchAll(/<button[^>]*data-station-id[^>]*>/g)].map((m) => m[0]);
     const tabbable = buttons.filter((b) => b.includes('tabindex="0"'));
 

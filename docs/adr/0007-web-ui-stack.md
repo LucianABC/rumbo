@@ -1,6 +1,6 @@
 # ADR 0007 — Web UI stack
 
-- **Status:** Accepted (2026-10-16)
+- **Status:** Accepted (2026-10-16; revision 1, 2026-11-24: shared client state in a per-request Zustand store, #168)
 - **Date:** 2026-10-16
 
 ## Context
@@ -45,6 +45,7 @@ Headless base for option 2: Radix is the lightest but has no Combobox, which F2b
 | Forms                | `react-hook-form` + `@hookform/resolvers`            | Schemas from `packages/contracts`; shadcn `Field` wires labels and errors                                      |
 | Client server state  | `@tanstack/react-query` (+ devtools in dev only)     | Mutations, invalidation, retries, run-status polling, optimistic approvals                                     |
 | URL state            | `nuqs`                                               | Filters, path comparison, in-view tabs                                                                         |
+| Shared client state  | `zustand`                                            | One store per request for state more than one tab reads (#114, #168)                                           |
 | File upload          | `react-dropzone`                                     | F1                                                                                                             |
 | Charts               | `recharts` through shadcn's chart component          | Loaded lazily, only on the views that chart                                                                    |
 | API client (#79)     | `openapi-typescript` + `openapi-fetch`               | Types generated from the API's OpenAPI document (#25), itself generated from `packages/contracts`              |
@@ -54,6 +55,9 @@ Rules:
 
 - **Hand-made on purpose:** the subway map SVG, the single-line roadmap view and the station panel content. No library draws an authored octilinear layout, and they are the demo's showcase.
 - **Reads** stay in Server Components through `lib/data`, which calls the API client server-side when a feature goes live. TanStack Query owns client-side reads that change while the page is open (polling, after mutations) and every mutation.
+- **State more than one tab reads lives in one Zustand store** (`apps/web/src/lib/store.ts`, #168): the plan's progress, the profile the user edits and their decisions. The tabs layout reads the data through `lib/data` in a Server Component and hydrates the store with it, so `lib/data` stays the only way to fetch and real data changes that one layer. Views derive what they show from the store, not from page props.
+- **One store per request**, created by `StoreProvider` in the tabs layout. A module-level store would be shared between requests on the server, and with real data one user could see another's.
+- **Progress is derived in one place:** `decidePlan()` (`apps/web/src/lib/progress.ts`) applies the decisions to the roadmap and returns a roadmap, so the map, the station list, Projects, Skills & gaps and the badges all derive from the same result. The store recomputes it on each evidence decision. The rule is in `docs/product/views.md`.
 - **No Server Actions.** Mutations go through the typed client and the `/api/*` proxy, so the API stays the only write surface: auth, validation and ownership are enforced and tested in one place (ADR 0002 §5, ADR 0006).
 - **Validation errors** from the API are mapped from `code` to text in one web module (ADR 0006); forms show them through `Field`, never the API's message.
 - **Responses that feed logic** are still parsed with their `packages/contracts` schema; `openapi-fetch` types do not validate at runtime.
@@ -65,5 +69,6 @@ Rules:
 - **Generic look.** shadcn apps tend to look alike. Mitigation: our own tokens, type and motion (M1, #105–#106), and hand-made signature views.
 - **Generated code is ours to maintain.** Upstream fixes to shadcn components do not arrive with `pnpm update`; Base UI fixes do, through the dependency.
 - **Bundle:** about 30 kB (Base UI) + 12.5 kB (forms) + 10 kB (TanStack Query) gzip on top of React, plus Recharts on chart views only. Acceptable for an app shell; the Lighthouse ≥ 95 target (#119) checks it.
+- **Derivations ship to the browser.** Since views read the store, the roadmap, map and projects derivations run on the client as well as the server. The bundle cost is checked by the Lighthouse pass (#119).
 - **Two read paths** (Server Components and TanStack Query) need one rule per feature on who owns a piece of data; the default is Server Components.
 - **Forms and data fetching** are decided before any screen exercises them: the demo uses mock reads and no real forms. F1 is where they are validated; revisit there if they fight the flows.

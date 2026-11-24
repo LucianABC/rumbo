@@ -23,7 +23,7 @@ export function SummaryBand({
 }: {
   readonly who: ProfileSummary;
   readonly targets: readonly TargetSummary[];
-  /** The Change targets control; a client component, so the band stays on the server. */
+  /** The Change targets control. */
   readonly changeTargets: ReactNode;
 }) {
   return (

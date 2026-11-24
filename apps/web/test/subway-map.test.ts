@@ -15,6 +15,7 @@ import {
   subwayMap,
   UNIT,
 } from '../src/lib/roadmap/subway-map';
+import { renderTab } from './support/store';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -159,7 +160,7 @@ describe('subway map view', () => {
   });
 
   it('shows on the roadmap page from lg, and the list keeps its line beside it', async () => {
-    const html = renderToStaticMarkup(await RoadmapPage({ searchParams: Promise.resolve({}) }));
+    const html = await renderTab(await RoadmapPage({ searchParams: Promise.resolve({}) }));
 
     expect(html).toContain('<div class="hidden lg:block"><svg');
     expect(html).toContain('grid-cols-[var(--gutter)_minmax(0,1fr)]');

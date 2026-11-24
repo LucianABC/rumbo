@@ -8,7 +8,9 @@ import TabsLayout from '../src/app/(tabs)/layout';
 import JobsPage from '../src/app/(tabs)/jobs/page';
 import SourcesPage from '../src/app/(tabs)/sources/page';
 import { TabNav } from '../src/components/shell/tab-nav';
-import { getRoadmap } from '../src/lib/data';
+import { getDrafts, getRoadmap } from '../src/lib/data';
+import { profileCompleteness, suggestionCount, suggestions } from '../src/lib/profile/profile-view';
+import type { AppStore } from '../src/lib/store.types';
 import {
   badgeSummary,
   countText,
@@ -18,6 +20,7 @@ import {
   tabBadges,
   TABS,
 } from '../src/lib/tabs';
+import { inStore, testStore } from './support/store';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -28,8 +31,10 @@ beforeEach(() => {
   pathname.current = '/roadmap';
 });
 
-function nav(badges = {}): string {
-  return renderToStaticMarkup(createElement(TabNav, { badges }));
+/** The nav under a store of the mocks; with no profile, Profile has nothing to count. */
+async function nav(store?: AppStore): Promise<string> {
+  const using = store ?? (await testStore({}, { profile: null }));
+  return renderToStaticMarkup(inStore(using, createElement(TabNav)));
 }
 
 /** The opening tag of each link in the tab navigation, in order. */
@@ -49,8 +54,8 @@ describe('tabs', () => {
     ]);
   });
 
-  it('shortens a long label on the phone bar, keeping the full name for assistive tech', () => {
-    const html = nav();
+  it('shortens a long label on the phone bar, keeping the full name for assistive tech', async () => {
+    const html = await nav();
 
     expect(html).toContain('<span aria-hidden="true" class="md:hidden">Skills</span>');
     expect(html).toContain('<span class="max-md:sr-only">Skills &amp; gaps</span>');
@@ -97,24 +102,54 @@ describe('tabs', () => {
     expect(profileBadge(3, 9).attention?.value).toBe(0);
   });
 
-  it('paints every tab without waiting for the Profile badge', () => {
-    const pending = new Promise<number>(() => undefined);
+  it('paints every tab without waiting for the Profile badge', async () => {
+    const pending = new Promise<null>(() => undefined);
 
     const html = renderToStaticMarkup(
-      createElement(TabNav, { badges: {}, suggestedChanges: pending }),
+      inStore(await testStore(), createElement(TabNav, { suggestedChanges: pending })),
     );
 
     expect(links(html)).toHaveLength(TABS.length);
     expect(html).not.toContain('suggested changes');
   });
 
-  it('streams the Profile badge in once its data arrives', async () => {
+  it('streams the Profile badge in once its data arrives: drafts plus what the rubric misses', async () => {
+    const store = await testStore();
+    const { source, plan } = store.getState();
+    const profile = source.profile ?? expect.fail('no profile');
+    const { changes } = await getDrafts(profile, source.roadmap);
+    const expected = suggestionCount({
+      suggestions: suggestions(changes, profile, plan.lanes),
+      completeness: profileCompleteness(profile),
+    });
+
     const stream = await renderToReadableStream(
-      createElement(TabNav, { badges: {}, suggestedChanges: Promise.resolve(3) }),
+      inStore(store, createElement(TabNav, { suggestedChanges: Promise.resolve(changes) })),
     );
     await stream.allReady;
 
-    expect(await new Response(stream).text()).toContain('3 suggested changes');
+    expect(expected).toBeGreaterThan(0);
+    expect(await new Response(stream).text()).toContain(`${String(expected)} suggested changes`);
+  });
+
+  it('counts the profile the user saved, so an edit moves the badge (#168)', async () => {
+    const store = await testStore();
+    const profile = store.getState().source.profile ?? expect.fail('no profile');
+    const before = profileCompleteness(profile).todos.length;
+    const edited = await testStore({ editedProfile: { ...profile, languages: [] } });
+    const after = profileCompleteness({ ...profile, languages: [] }).todos.length;
+
+    const html = async (using: AppStore) => {
+      const stream = await renderToReadableStream(
+        inStore(using, createElement(TabNav, { suggestedChanges: Promise.resolve([]) })),
+      );
+      await stream.allReady;
+      return new Response(stream).text();
+    };
+
+    expect(after).toBe(before + 1);
+    expect(await html(store)).toContain(`${String(before)} suggested changes`);
+    expect(await html(edited)).toContain(`${String(after)} suggested changes`);
   });
 
   it('counts nothing when the roadmap has no projects', async () => {
@@ -132,50 +167,51 @@ describe('tabs', () => {
 });
 
 describe('tab navigation', () => {
-  it('links every tab inside one labelled nav landmark', () => {
-    const html = nav();
+  it('links every tab inside one labelled nav landmark', async () => {
+    const html = await nav();
 
     expect(html).toMatch(/^<nav aria-label="Tabs"/);
     expect(links(html).map((a) => /href="([^"]+)"/.exec(a)?.[1])).toEqual(TABS.map((t) => t.href));
   });
 
-  it('marks only the current tab with aria-current, also on pages inside it', () => {
+  it('marks only the current tab with aria-current, also on pages inside it', async () => {
     pathname.current = '/projects/p-1';
 
-    const current = links(nav()).filter((a) => a.includes('aria-current="page"'));
+    const current = links(await nav()).filter((a) => a.includes('aria-current="page"'));
 
     expect(current).toHaveLength(1);
     expect(current[0]).toContain('href="/projects"');
   });
 
-  it('gives every link a visible focus ring', () => {
-    for (const a of links(nav())) expect(a).toContain('focus-visible:ring-2');
+  it('gives every link a visible focus ring', async () => {
+    for (const a of links(await nav())) expect(a).toContain('focus-visible:ring-2');
   });
 
-  it('reads badges to screen readers after the label and hides the empty ones', () => {
-    const html = nav({
-      projects: {
-        count: { value: 3, label: 'open tasks' },
-        attention: { value: 1, label: 'awaiting approval' },
-      },
-      profile: { attention: { value: 0, label: 'suggested changes' } },
-    });
+  it('reads badges to screen readers after the label and hides the empty ones', async () => {
+    const html = await nav();
 
-    expect(html).toContain('<span class="sr-only">, 3 open tasks, 1 awaiting approval</span>');
+    expect(html).toContain('<span class="sr-only">, 4 open tasks, 1 awaiting approval</span>');
     expect(html).not.toContain('suggested changes');
   });
 
-  it('shows a pill only for what waits on the user, and says both in the tooltip', () => {
-    const html = nav({
-      projects: {
-        count: { value: 3, label: 'open tasks' },
-        attention: { value: 1, label: 'awaiting approval' },
-      },
-    });
+  it('shows a pill only for what waits on the user, and says both in the tooltip', async () => {
+    const html = await nav();
 
-    expect(html).toContain('title="3 open tasks, 1 awaiting approval"');
+    expect(html).toContain('title="4 open tasks, 1 awaiting approval"');
     expect(html).toMatch(/bg-attention px-1\.5[^>]*>1<\/span>/);
-    expect(html).not.toMatch(/>3<\/span>/);
+    expect(html).not.toMatch(/>4<\/span>/);
+  });
+
+  it('moves the Projects badge with a decision on evidence (#168)', async () => {
+    const approved = await testStore(
+      { decisions: { drafts: {}, evidence: { 'ev-sales-model': 'approved' } } },
+      { profile: null },
+    );
+
+    const html = await nav(approved);
+
+    expect(html).toContain('title="3 open tasks"');
+    expect(html).not.toContain('awaiting approval');
   });
 
   it('says a count of one in the singular and leaves an empty badge out', () => {

@@ -1,8 +1,8 @@
-import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ProjectsPage from '../src/app/(tabs)/projects/page';
 import { logger } from '../src/lib/logger';
+import { renderTab } from './support/store';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 async function page(): Promise<string> {
-  return renderToStaticMarkup(await ProjectsPage());
+  return renderTab(await ProjectsPage());
 }
 
 describe('ProjectsPage', () => {

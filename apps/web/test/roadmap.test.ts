@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import RoadmapPage from '../src/app/(tabs)/roadmap/page';
 import { GET } from '../src/app/demo/health/route';
 import { getRoadmap } from '../src/lib/data';
+import { renderTab } from './support/store';
 
 // connection() only opts the page out of prerendering; outside a Next request it has nothing to do.
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
@@ -17,7 +18,7 @@ function escaped(text: string): string {
 
 async function render(line?: string | string[]): Promise<string> {
   const searchParams = Promise.resolve(line === undefined ? {} : { line });
-  return renderToStaticMarkup(await RoadmapPage({ searchParams }));
+  return renderTab(await RoadmapPage({ searchParams }));
 }
 
 /** The starting point, the target's milestones in plan order, then its terminal (#148). */

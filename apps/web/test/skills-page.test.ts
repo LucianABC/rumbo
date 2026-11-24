@@ -1,9 +1,9 @@
-import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import SkillsPage from '../src/app/(tabs)/skills/page';
 import { getRoadmap } from '../src/lib/data';
 import { logger } from '../src/lib/logger';
+import { renderTab } from './support/store';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -34,9 +34,7 @@ afterEach(() => {
 });
 
 async function render(target?: string) {
-  return renderToStaticMarkup(
-    await SkillsPage({ searchParams: Promise.resolve(target ? { target } : {}) }),
-  );
+  return renderTab(await SkillsPage({ searchParams: Promise.resolve(target ? { target } : {}) }));
 }
 
 describe('Skills & gaps (#111)', () => {
@@ -95,7 +93,7 @@ describe('Skills & gaps (#111)', () => {
     // One trace naming the source, with the error under `err` (AI rule 5).
     expect(warn).toHaveBeenCalledOnce();
     const [fields, message] = warn.mock.calls[0] as unknown as [Record<string, unknown>, string];
-    expect(message).toBe('skills data unavailable');
+    expect(message).toBe('market unavailable');
     expect(fields.source).toBe('market');
     expect(fields.err).toBeInstanceOf(Error);
   });
