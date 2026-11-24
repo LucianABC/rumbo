@@ -3,7 +3,7 @@
 import { cn } from 'cn';
 import { Check, ChevronRight, ExternalLink, FolderGit2, GitBranch, Undo2, X } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { createContext, type RefObject, useContext, useEffect, useRef } from 'react';
 
 import { formatDay } from '../../lib/format';
 import { DRAFT_STATUS_LABEL, type Decision } from '../../lib/labels';
@@ -25,6 +25,13 @@ import { Button } from '../ui/button';
 import { CheckRepo } from './check-repo';
 import { useEvidenceDecisions, useSourceRoadmap } from '../../lib/store';
 
+/**
+ * The evidence the user just decided on. Finishing or reopening a project moves its card to the
+ * other section, which mounts it anew, so the decision's own row cannot tell it was just pressed:
+ * the new row reads this to take the focus (#168).
+ */
+export const DecidedEvidence = createContext<RefObject<string | null> | null>(null);
+
 /** How many commits a card lists: the repo holds the rest. */
 const RECENT_COMMITS = 3;
 
@@ -35,9 +42,10 @@ const FIELD = 'text-2xs font-semibold tracking-wide text-primary uppercase';
 
 /**
  * One project and what proves its progress (docs/product/views.md, #114). The card comes from the
- * decided plan (lib/progress.ts, #168), so tasks and statuses already count this visit's approvals. Every project shows the
- * same way, whether it has one deliverable or several: a deliverable is the project's part in one Roadmap
- * station, so each task reads under its station and the gaps that station's item closes.
+ * decided plan (lib/progress.ts, #168), so tasks and statuses already count this visit's
+ * approvals. Every project shows the same way, whether it has one deliverable or several: a
+ * deliverable is the project's part in one Roadmap station, so each task reads under its station
+ * and the gaps that station's item closes.
  */
 export function ProjectCard({
   card,
@@ -305,6 +313,7 @@ function Activity({
 
 function Evidence({ card }: { readonly card: ProjectCardView }) {
   const { decisions, decide } = useEvidenceDecisions();
+  const decidedRef = useContext(DecidedEvidence);
   // As stored, not as decided: a rejected piece still shows, so it can be taken back (#168).
   const rows = evidenceRows(card, useSourceRoadmap());
   if (rows.length === 0) {
@@ -321,6 +330,7 @@ function Evidence({ card }: { readonly card: ProjectCardView }) {
             project={card.title}
             status={decisionOf(row.evidence, decisions)}
             onDecide={(decision) => {
+              if (decidedRef) decidedRef.current = row.evidence.id;
               decide(row.evidence.id, decision);
             }}
           />
@@ -343,17 +353,21 @@ function EvidenceItem({
 }) {
   const actions = useRef<HTMLDivElement>(null);
   const shown = useRef(status);
+  const decidedRef = useContext(DecidedEvidence);
   const place = `${name}, ${project}`;
   // Stored approvals are the record; only what was decided on this visit can be taken back.
   const undoable = evidence.approvedAt === null && status !== 'awaiting';
 
   // Deciding removes the button that was just pressed: focus moves to the next action, so a
   // keyboard user does not fall back to the top of the page (same as suggested changes, #113).
+  // A row mounted anew because its card changed section takes it too (#168).
   useEffect(() => {
-    if (shown.current === status) return;
+    const movedHere = decidedRef?.current === evidence.id;
+    if (shown.current === status && !movedHere) return;
     shown.current = status;
+    if (decidedRef && movedHere) decidedRef.current = null;
     actions.current?.querySelector<HTMLElement>('button')?.focus();
-  }, [status]);
+  }, [status, decidedRef, evidence.id]);
 
   return (
     <li

@@ -3,20 +3,22 @@
 import type { Progress } from '@rumbo/contracts/provisional';
 import { FolderGit2 } from 'lucide-react';
 import Link from 'next/link';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useMemo, useRef } from 'react';
 
 import { type ProjectCard as Card, projectsView } from '../../lib/projects/projects-view';
 import { usePlan } from '../../lib/store';
 import { HEADING, LINK } from '../skills/shared';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '../ui/empty';
-import { ProjectCard } from './project-card';
+import { DecidedEvidence, ProjectCard } from './project-card';
 
 /**
  * The Projects cards from the plan in the store, so a decision here moves Roadmap and the badges
- * too, and one made elsewhere shows here (#168).
+ * too, and one made elsewhere shows here (#168). A decision that finishes or reopens a project
+ * moves its card between sections; DecidedEvidence keeps the focus on it.
  */
 export function ProjectsTab({ progress }: { readonly progress: Progress | null }) {
   const { roadmap, view, lanes } = usePlan();
+  const decidedRef = useRef<string | null>(null);
   const { active, completed } = useMemo(
     () => projectsView(roadmap, view, lanes, progress),
     [roadmap, view, lanes, progress],
@@ -39,30 +41,32 @@ export function ProjectsTab({ progress }: { readonly progress: Progress | null }
     );
   }
   return (
-    <div className="flex flex-col gap-8">
-      <ProjectSection
-        id="active"
-        title="Active"
-        cards={active}
-        activityAvailable={progress !== null}
-        empty={
-          <>
-            Every project is done.{' '}
-            <Link className={LINK} href="/roadmap">
-              See what is next
-            </Link>
-            .
-          </>
-        }
-      />
-      <ProjectSection
-        id="completed"
-        title="Completed"
-        cards={completed}
-        activityAvailable={progress !== null}
-        empty="Nothing finished yet. A project is done once its evidence is approved."
-      />
-    </div>
+    <DecidedEvidence value={decidedRef}>
+      <div className="flex flex-col gap-8">
+        <ProjectSection
+          id="active"
+          title="Active"
+          cards={active}
+          activityAvailable={progress !== null}
+          empty={
+            <>
+              Every project is done.{' '}
+              <Link className={LINK} href="/roadmap">
+                See what is next
+              </Link>
+              .
+            </>
+          }
+        />
+        <ProjectSection
+          id="completed"
+          title="Completed"
+          cards={completed}
+          activityAvailable={progress !== null}
+          empty="Nothing finished yet. A project is done once its evidence is approved."
+        />
+      </div>
+    </DecidedEvidence>
   );
 }
 

@@ -1,3 +1,4 @@
+import type { Roadmap } from '@rumbo/contracts';
 import { createElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -9,6 +10,22 @@ import type { AppStore, InitialState, PlanData } from '../../src/lib/store.types
 export async function planData(): Promise<PlanData> {
   const roadmap = await getRoadmap();
   return { roadmap, layout: await getRoadmapLayout(roadmap), profile: await getProfileOrNull() };
+}
+
+/** The mock with "Clean and model the data" as the dashboard's last open task. */
+export async function lastTaskOpen(): Promise<Roadmap> {
+  const roadmap = await getRoadmap();
+  return {
+    ...roadmap,
+    milestones: roadmap.milestones.map((m) => ({
+      ...m,
+      items: m.items.map((i) =>
+        i.id === 'sales-dashboard' && i.type === 'project'
+          ? { ...i, tasks: i.tasks.map((t) => (t.id === 'publish' ? { ...t, done: true } : t)) }
+          : i,
+      ),
+    })),
+  };
 }
 
 /** A store as one request gets it, optionally past some decisions or edits. */

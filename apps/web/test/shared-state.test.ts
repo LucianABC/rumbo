@@ -1,4 +1,3 @@
-import type { Roadmap } from '@rumbo/contracts';
 import { createElement } from 'react';
 import { renderToReadableStream } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -9,32 +8,16 @@ import RoadmapPage from '../src/app/(tabs)/roadmap/page';
 import SkillsPage from '../src/app/(tabs)/skills/page';
 import { SuggestedChanges } from '../src/components/profile/suggested-changes';
 import { TabNav } from '../src/components/shell/tab-nav';
-import { getDrafts, getRoadmap } from '../src/lib/data';
+import { getDrafts } from '../src/lib/data';
 import { profileCompleteness, suggestions } from '../src/lib/profile/profile-view';
 import type { AppStore } from '../src/lib/store.types';
-import { inStore, renderTab, testStore } from './support/store';
+import { inStore, lastTaskOpen, renderTab, testStore } from './support/store';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 vi.mock('next/navigation', () => ({
   usePathname: () => '/roadmap',
   useRouter: () => ({ replace: () => undefined }),
 }));
-
-/** The mock with "Clean and model the data" as the dashboard's last open task. */
-async function lastTaskOpen(): Promise<Roadmap> {
-  const roadmap = await getRoadmap();
-  return {
-    ...roadmap,
-    milestones: roadmap.milestones.map((m) => ({
-      ...m,
-      items: m.items.map((i) =>
-        i.id === 'sales-dashboard' && i.type === 'project'
-          ? { ...i, tasks: i.tasks.map((t) => (t.id === 'publish' ? { ...t, done: true } : t)) }
-          : i,
-      ),
-    })),
-  };
-}
 
 /** Renders with Suspense resolved, as the browser ends up showing it. */
 async function streamed(store: AppStore, node: React.ReactNode): Promise<string> {

@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { getRoadmap } from '../src/lib/data';
 import { decidedEvidence, decidePlan, decisionOf } from '../src/lib/progress';
 import { tabBadges } from '../src/lib/tabs';
+import { lastTaskOpen } from './support/store';
 
 vi.mock('next/server', () => ({ connection: () => Promise.resolve() }));
 
@@ -24,22 +25,6 @@ function project(roadmap: Roadmap, id: string): ProjectItem {
   const found = item(roadmap, id);
   if (found.type !== 'project') throw new Error(`${id} is not a project`);
   return found;
-}
-
-/** The mock with "Clean and model the data" as the dashboard's last open task. */
-async function lastTaskOpen(): Promise<Roadmap> {
-  const roadmap = await getRoadmap();
-  return {
-    ...roadmap,
-    milestones: roadmap.milestones.map((m) => ({
-      ...m,
-      items: m.items.map((i) =>
-        i.id === 'sales-dashboard' && i.type === 'project'
-          ? { ...i, tasks: i.tasks.map((t) => (t.id === 'publish' ? { ...t, done: true } : t)) }
-          : i,
-      ),
-    })),
-  };
 }
 
 describe('decidePlan: the progress rule (#168)', () => {
