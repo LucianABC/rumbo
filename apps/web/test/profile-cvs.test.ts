@@ -110,6 +110,31 @@ describe('Profile sub-tabs (#191)', () => {
     expect(html).toContain('Regenerate');
     expect(html).toContain('Download PDF');
   });
+
+  it('keeps a CV from an older profile, out of date, beside a current one', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const current = await cvFor('data-analyst');
+    const old = {
+      ...(await cvFor('business-analyst')),
+      profileUpdatedAt: '2026-09-01T00:00:00.000Z',
+      // The profile has dropped both since this CV was written.
+      positions: [{ experienceId: 'experience-gone', highlights: ['A bullet from back then.'] }],
+      skillIds: ['ps-requirements-analysis', 'ps-gone'],
+    };
+    cvs.override = { cvs: [current, old] };
+
+    const oldHtml = await render('business-analyst');
+    expect(oldHtml).toContain('Out of date.');
+    expect(oldHtml).toContain('Regenerate');
+    expect(oldHtml).toContain(old.headline);
+    expect(oldHtml).toContain('Requirements analysis');
+    expect(oldHtml).not.toContain('A bullet from back then.');
+
+    const currentHtml = await render('data-analyst');
+    expect(currentHtml).toContain(current.headline);
+    expect(currentHtml).not.toContain('Out of date.');
+    expect(warn).not.toHaveBeenCalled();
+  });
 });
 
 describe('a CV against Base (#191)', () => {
@@ -169,9 +194,18 @@ describe('a CV against Base (#191)', () => {
 
   it('goes out of date on content edits, not on the headline the CV rewrites anyway', async () => {
     const profile = await getProfile();
+    const cv = await cvFor('data-analyst');
 
-    expect(cvOutdated(profile, { ...profile, headline: 'Another headline' })).toBe(false);
-    expect(cvOutdated(profile, { ...profile, about: 'Another about' })).toBe(true);
-    expect(cvOutdated(profile, { ...profile, skills: profile.skills.slice(1) })).toBe(true);
+    expect(cvOutdated(cv, profile, profile)).toBe(false);
+    expect(cvOutdated(cv, profile, { ...profile, headline: 'Another headline' })).toBe(false);
+    expect(cvOutdated(cv, profile, { ...profile, about: 'Another about' })).toBe(true);
+    expect(cvOutdated(cv, profile, { ...profile, skills: profile.skills.slice(1) })).toBe(true);
+  });
+
+  it('is out of date when written from an earlier version of the profile', async () => {
+    const profile = await getProfile();
+    const cv = { ...(await cvFor('data-analyst')), profileUpdatedAt: '2026-09-01T00:00:00.000Z' };
+
+    expect(cvOutdated(cv, profile, profile)).toBe(true);
   });
 });

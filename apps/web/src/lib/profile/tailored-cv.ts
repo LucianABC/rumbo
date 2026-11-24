@@ -59,9 +59,14 @@ export function cvChanges(base: Profile, cv: TailoredCv): CvChange[] {
  * Whether the profile's content changed since the CV was written from it (docs/product/views.md,
  * Profile, CV per target): skills, experience, education, certifications or about. Name, contact
  * and headline edits do not count, since the CV writes its own headline.
+ *
+ * `imported` is the profile as loaded, before this visit's edits. A CV written from an earlier
+ * version of it is out of date as a whole: that version is gone, so which fields changed cannot be
+ * told, and saying it is current could hand the user a CV that contradicts Base.
  */
-export function cvOutdated(writtenFrom: Profile, current: Profile): boolean {
+export function cvOutdated(cv: TailoredCv, imported: Profile, current: Profile): boolean {
+  if (cv.profileUpdatedAt !== imported.updatedAt) return true;
   const content = (p: Profile) =>
     JSON.stringify([p.skills, p.experiences, p.education, p.certifications, p.about ?? null]);
-  return content(writtenFrom) !== content(current);
+  return content(imported) !== content(current);
 }

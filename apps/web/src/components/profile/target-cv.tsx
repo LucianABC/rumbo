@@ -38,7 +38,7 @@ export function TargetCv({
   readonly cv: TailoredCv | null;
   /** The CVs could not be read: unlike "none yet", nothing can be said about this one. */
   readonly unavailable: boolean;
-  /** The profile the CVs were written from. */
+  /** The profile as loaded, before this visit's edits. */
   readonly imported: Profile;
   /** The profile as the user last saved it, which is Base. */
   readonly current: Profile;
@@ -86,7 +86,7 @@ export function TargetCv({
     );
   }
 
-  const outdated = cvOutdated(imported, current);
+  const outdated = cvOutdated(cv, imported, current);
   const changes = cvChanges(current, cv);
   return (
     <div className="flex flex-col gap-4">

@@ -41,8 +41,11 @@ export const TailoredCvs = z.object({ cvs: z.array(TailoredCv) }).superRefine((t
 export type TailoredCvs = z.infer<typeof TailoredCvs>;
 
 /**
- * Problems tying the CVs to this profile and roadmap; empty when they fit. A CV that names a
- * position or skill the profile lacks would claim something rumbo cannot back.
+ * Problems tying the CVs to this profile and roadmap; empty when they fit. A CV written from this
+ * version of the profile that names a position or skill it lacks would claim something rumbo
+ * cannot back. A CV written from an earlier version is out of date, not invalid: it still shows,
+ * with Regenerate, and may name what the profile has since dropped (docs/product/views.md,
+ * Profile, CV per target).
  */
 export function checkCvs(tailored: TailoredCvs, profile: Profile, roadmap: Roadmap): string[] {
   const targets = new Set(roadmap.targets.map((t) => t.id));
@@ -50,14 +53,21 @@ export function checkCvs(tailored: TailoredCvs, profile: Profile, roadmap: Roadm
   const skills = new Set(profile.skills.map((s) => s.id));
   return tailored.cvs.flatMap((cv) => [
     ...(targets.has(cv.targetId) ? [] : [`CV for unknown target "${cv.targetId}"`]),
-    ...(cv.profileUpdatedAt === profile.updatedAt
-      ? []
-      : [`CV for "${cv.targetId}" was written from another version of the profile`]),
+    ...(cv.profileUpdatedAt !== profile.updatedAt ? [] : unknownRefs(cv, positions, skills)),
+  ]);
+}
+
+function unknownRefs(
+  cv: TailoredCv,
+  positions: ReadonlySet<string>,
+  skills: ReadonlySet<string>,
+): string[] {
+  return [
     ...cv.positions
       .filter((p) => !positions.has(p.experienceId))
       .map((p) => `CV for "${cv.targetId}" names unknown position "${p.experienceId}"`),
     ...cv.skillIds
       .filter((id) => !skills.has(id))
       .map((id) => `CV for "${cv.targetId}" names unknown skill "${id}"`),
-  ]);
+  ];
 }
