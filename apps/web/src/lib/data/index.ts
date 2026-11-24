@@ -8,6 +8,7 @@ import {
 } from '@rumbo/contracts';
 import {
   checkAnalysis,
+  checkCvs,
   checkDrafts,
   checkMarket,
   checkProgress,
@@ -15,11 +16,14 @@ import {
   Market,
   ProfileAnalysis,
   Progress,
+  type TailoredCv,
+  TailoredCvs,
 } from '@rumbo/contracts/provisional';
 import { connection } from 'next/server';
 import type { z } from 'zod';
 
 import { analysis as bundledAnalysis } from '../../mocks/analysis';
+import { cvs as bundledCvs } from '../../mocks/cvs';
 import { drafts as bundledDrafts } from '../../mocks/drafts';
 import { market as bundledMarket } from '../../mocks/market';
 import { profile } from '../../mocks/profile';
@@ -132,6 +136,34 @@ export async function getSuggestedChanges(
     return (await getDrafts(await pendingProfile, forRoadmap)).changes;
   } catch (err) {
     logger.warn({ err }, 'suggested changes unavailable');
+    return null;
+  }
+}
+
+/**
+ * The CV saved for each target that has one, for Profile's sub-tabs (#191), or null when they
+ * cannot be read or do not fit this profile and roadmap: Base still shows the profile. Provisional
+ * until the F4 spec (#44). Logged like getProfileOrNull's failures.
+ *
+ * The bundled CVs were written for the fictional profile, so a local profile without a local
+ * `cvs.json` has no CV yet: every target offers to generate one, which is what the owner would
+ * see before F4 (#191).
+ */
+export async function getTailoredCvs(
+  pendingProfile: Promise<Profile>,
+  forRoadmap: Roadmap,
+): Promise<TailoredCv[] | null> {
+  try {
+    const forProfile = await pendingProfile;
+    await connection();
+    const local = await readLocalMock('cvs');
+    if (!local.found && (await readLocalMock('profile')).found) return [];
+    const tailored = parse(TailoredCvs, local.found ? local.data : bundledCvs, 'cvs');
+    const problems = checkCvs(tailored, forProfile, forRoadmap);
+    if (problems.length > 0) throw new Error(`Invalid CVs:\n${problems.join('\n')}`);
+    return tailored.cvs;
+  } catch (err) {
+    logger.warn({ err }, 'tailored CVs unavailable');
     return null;
   }
 }

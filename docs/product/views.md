@@ -179,7 +179,7 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
 ## Profile — F1 (#41), F4 (#44)
 
 - **For:** the user's full professional profile, presented as well as a good CV, and where it came from.
-- **Layout:** one page that reads in about a screen on desktop. A strip of profile sources with their update links comes first, then the profile header with rumbo's analysis, then the CV. A bar in the page header shows the profile's completeness. Suggested changes live behind a bell in the app header, so they reach the user from any tab, as a panel of notifications that moves that bar (#113).
+- **Layout:** one page that reads in about a screen on desktop. A strip of profile sources with their update links comes first, then the profile header with rumbo's analysis, then the CV. A bar in the page header shows the profile's completeness. Suggested changes live behind a bell in the app header, so they reach the user from any tab, as a panel of notifications that moves that bar (#113). From F4 the page has sub-tabs: **Base**, which is everything below, and one CV per active target (see **CV per target**).
 - **Shows:**
   - header: name, a short subtitle, location, linked LinkedIn URL. The subtitle comes from the analysis, or is the latest role without one; the imported headline is too long for this spot and shows only in Suggested changes;
   - **rumbo's analysis** (proposed, #113): after a profile is imported, the Drafter's review mode writes the subtitle, a short summary and feedback, strengths and things to improve. It is labeled opinion, dated, and changes nothing in the profile;
@@ -203,7 +203,8 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - **Edit profile** (#170) works in full, but the changes live in memory: a reload drops them, and the page says so;
   - reviews are a sample: they run nothing, but the dates, the limit and its counter work;
   - Approve/Reject in Suggested changes is local state only, and so is the movement of the bar;
-  - the analysis and each change's points are mocks; the bar's percentage is real.
+  - the analysis and each change's points are mocks; the bar's percentage is real;
+  - **CV per target** (#191): the sub-tabs, Show changes from Base and the out-of-date mark work on mock CVs; Generate, Regenerate and the downloads render and say they arrive with F4. A local profile without its own `cvs.json` has no CV yet for any target.
 - **Full feature adds:**
   - extraction progress;
   - **editing** (F1, #170): **Edit profile** turns the whole page into edit mode, at any time. The header, about and every section can be edited, with add and delete per item; skills show as chips by category, and are only added or deleted, since a new name is another skill. Each changed field shows old beside new like a GitHub diff, stacked on phones. A bar counts the changes, with Discard and Save. Save applies at once, since the user's own edit needs no approval, and a skill added by hand carries `manual` evidence. Deleting an experience or certification removes the evidence pointing at it, and says so first;
@@ -217,14 +218,21 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
     - each user has 5 reviews per rolling 7 days: each one frees up seven days after it ran, and the page shows how many are left. Without reviews left, Save still works and only the review waits. Failed runs and importing a profile do not count;
     - suggested changes on text the user just edited are withdrawn at Save, by code and with no model call, and return if the edit is undone;
     - approving a suggestion does not start a review, or each approval would produce more;
-  - **Export** (F4), to PDF and DOCX from one ATS-friendly template, choosing what to export:
-    - **Base:** the approved profile as it is. Code alone renders it, so it never calls a model;
-    - **Tailored to a target:** the Drafter's propose mode, checked by the Fidelity checker. The user reviews it once as a diff against the base, and it is saved. Exporting it again calls no model;
-    - when the profile's content changes (skills, experience, education, certifications, about), a saved CV is marked out of date. It still exports, with a warning, and is regenerated only when the user asks. Market snapshots and prompt versions do not mark it out of date.
+  - **Export** (F4), to PDF and DOCX from one ATS-friendly template:
+    - **Base:** the approved profile as it is, from the Base sub-tab. Code alone renders it, so it never calls a model;
+    - **Tailored to a target:** from that target's sub-tab (**CV per target**).
+- **CV per target** (F4, owner, 2026-11-24): sub-tabs under the page header (`?target=`, like Skills & gaps), **Base** first, then one per active target, primary first.
+  - Base is the profile above, and the only place where facts are edited.
+  - Each target sub-tab shows the CV tailored to that target, laid out as a CV, with **Download PDF** and **Download DOCX**.
+  - A target with no CV yet shows **Generate CV for this target** instead. It is one run of the Drafter's propose mode, checked by the Fidelity checker, and never starts on its own when a target is chosen. The user reviews it once and it is saved; downloading it again calls no model.
+  - **Show changes from Base** marks what was added and removed, not by color alone.
+  - The sub-tab only accepts or rejects what was written for the target. A wrong fact (a date, a title) is fixed in Base, with a link there, so the CVs never contradict each other.
+  - When the profile's content changes (skills, experience, education, certifications, about), the sub-tab says the CV is out of date and offers **Regenerate**. The old one still downloads, with a warning. Market snapshots and prompt versions do not mark it out of date.
+  - CVs for one posting are not sub-tabs, since there would be too many: they live in Jobs, with their application (#57).
 - **States:**
   - empty: no profile yet, so the upload step is the whole page (plus the Profile interviewer as the no-CV path, pending #155);
   - extraction failed: retry, or enter the profile manually.
-- **Data:** `getProfile()` → `Profile`, new in `packages/contracts/src/profile.ts`, from ADR 0004 (`ProfileSkill`, `Evidence`). Suggested changes use `DraftChange` in `@rumbo/contracts/provisional` until the F4 spec, and the analysis `ProfileAnalysis` until the F1 spec.
+- **Data:** `getProfile()` → `Profile`, new in `packages/contracts/src/profile.ts`, from ADR 0004 (`ProfileSkill`, `Evidence`). Suggested changes use `DraftChange` in `@rumbo/contracts/provisional` until the F4 spec, and the analysis `ProfileAnalysis` until the F1 spec. The CVs per target get their contract in the F4 spec.
 
 ### Why rumbo cannot write to LinkedIn
 
