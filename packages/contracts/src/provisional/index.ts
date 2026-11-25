@@ -3,7 +3,7 @@
  * them. ESLint keeps them out of every package but apps/web.
  */
 export { checkAnalysis, ProfileAnalysis, ProfileFeedback } from './analysis.js';
-export { checkCvs, TailoredCv, TailoredCvPosition, TailoredCvs } from './cvs.js';
+export { checkCvs, sameValue, TailoredCv, TailoredCvs } from './cvs.js';
 export { checkDrafts, DraftChange, Drafts } from './drafts.js';
 export { checkMarket, Market, MarketSnapshotView, SkillDemand } from './market.js';
 export { checkProgress, Progress, ProjectActivity, ProjectCommit } from './progress.js';

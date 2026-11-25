@@ -9,7 +9,7 @@ import { type ReactNode, useState } from 'react';
 import { formatDay } from '../../lib/format';
 import type { Lane } from '../../lib/roadmap/single-line';
 import { applyCv, cvChanges, cvOutdated } from '../../lib/profile/tailored-cv';
-import type { CvChange } from '../../lib/profile/tailored-cv.types';
+import type { CvChange, CvEntryChange } from '../../lib/profile/tailored-cv.types';
 import { Added, Removed } from '../diff';
 import { LINK, Unavailable } from '../skills/shared';
 import { Button } from '../ui/button';
@@ -52,7 +52,7 @@ export function TargetCv({
   if (unavailable) {
     return (
       <Unavailable title="CV unavailable">
-        It could not be read, or it is from an older version of your profile. Base still has your
+        It could not be read, or it claims something your profile does not hold. Base still has your
         whole profile.
       </Unavailable>
     );
@@ -209,31 +209,57 @@ function ChangeDetail({ change }: { readonly change: CvChange }) {
       return (
         <>
           <h3 className="font-semibold">{change.title}</h3>
-          {change.omitted ? (
+          {change.status === 'omitted' ? (
             <p className="text-muted-foreground">Left out of this CV.</p>
-          ) : (
-            <>
-              {change.removed.map((text) => (
-                <Removed key={`removed-${text}`} text={text} />
-              ))}
-              {change.added.map((text) => (
-                <Added key={`added-${text}`} text={text} />
-              ))}
-            </>
-          )}
+          ) : null}
+          {change.status === 'notInBase' ? (
+            <p className="text-attention">No longer in Base. Regenerate to drop it.</p>
+          ) : null}
+          {change.status === 'changedInBase' ? (
+            <p className="text-attention">
+              Base changed its details since this CV was written. Regenerate to update it.
+            </p>
+          ) : null}
+          {change.removed.map((text) => (
+            <Removed key={`removed-${text}`} text={text} />
+          ))}
+          {change.added.map((text) => (
+            <Added key={`added-${text}`} text={text} />
+          ))}
         </>
       );
     case 'skills':
-      return (
-        <>
-          <h3 className="font-semibold">Skills</h3>
-          <p>
-            <span className="text-muted-foreground">Left out of this CV: </span>
-            {change.omitted.join(', ')}
-          </p>
-        </>
-      );
+    case 'education':
+    case 'certifications':
+      return <EntryChangeDetail change={change} />;
   }
+}
+
+const ENTRY_TITLES: Record<CvEntryChange['section'], string> = {
+  skills: 'Skills',
+  education: 'Education',
+  certifications: 'Certifications',
+};
+
+function EntryChangeDetail({ change }: { readonly change: CvEntryChange }) {
+  const rows: [string, readonly string[], boolean][] = [
+    ['Left out of this CV: ', change.omitted, false],
+    ['No longer in Base: ', change.notInBase, true],
+    ['Changed in Base since: ', change.changedInBase, true],
+  ];
+  return (
+    <>
+      <h3 className="font-semibold">{ENTRY_TITLES[change.section]}</h3>
+      {rows
+        .filter(([, names]) => names.length > 0)
+        .map(([label, names, stale]) => (
+          <p key={label}>
+            <span className={stale ? 'text-attention' : 'text-muted-foreground'}>{label}</span>
+            {names.join(', ')}
+          </p>
+        ))}
+    </>
+  );
 }
 
 /** A control the demo renders but cannot run: a click says when it arrives (#191). */

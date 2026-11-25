@@ -227,7 +227,8 @@ The subway map is the metaphor for the plan, not the theme for every pixel. The 
   - A target with no CV yet shows **Generate CV for this target** instead. It is one run of the Drafter's propose mode, checked by the Fidelity checker, and never starts on its own when a target is chosen. The user reviews it once and it is saved; downloading it again calls no model.
   - **Show changes from Base** marks what was added and removed, not by color alone.
   - The sub-tab only accepts or rejects what was written for the target. A wrong fact (a date, a title) is fixed in Base, with a link there, so the CVs never contradict each other.
-  - When the profile's content changes (skills, experience, education, certifications, about), the sub-tab says the CV is out of date and offers **Regenerate**. The old one still downloads, with a warning. Market snapshots and prompt versions do not mark it out of date.
+  - A saved CV keeps its own copy of the facts it was written from, so editing Base never changes it: deleting a position in Base leaves that position, and its bullets, in the CV until **Regenerate**.
+  - When the profile's content changes (skills, experience, education, certifications, about), the sub-tab says the CV is out of date and offers **Regenerate**. The old one still shows and downloads as it was, with a warning, and **Show changes from Base** names what Base has dropped or changed since. Market snapshots and prompt versions do not mark it out of date.
   - CVs for one posting are not sub-tabs, since there would be too many: they live in Jobs, with their application (#57).
 - **States:**
   - empty: no profile yet, so the upload step is the whole page (plus the Profile interviewer as the no-CV path, pending #155);

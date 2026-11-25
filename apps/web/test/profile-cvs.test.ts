@@ -94,11 +94,42 @@ describe('Profile sub-tabs (#191)', () => {
   it('says the CVs are unavailable when they do not fit the profile, and keeps Base', async () => {
     const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
     const real = await cvFor('data-analyst');
-    cvs.override = { cvs: [{ ...real, skillIds: ['ps-not-in-profile'] }] };
+    const [skill] = real.skills;
+    if (!skill) throw new Error('the mock CV lists no skill');
+    cvs.override = { cvs: [{ ...real, skills: [{ ...skill, id: 'ps-not-in-profile' }] }] };
 
     expect(await render('data-analyst')).toContain('CV unavailable');
     expect(await render()).toContain('Edit profile');
     expect(warn.mock.calls.some((call) => call[1] === 'tailored CVs unavailable')).toBe(true);
+  });
+
+  it('says the CV is unavailable when it changes a fact of the profile it was written from', async () => {
+    const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const real = await cvFor('data-analyst');
+    const [first, ...others] = real.experiences;
+    if (!first) throw new Error('the mock CV keeps no position');
+    cvs.override = {
+      cvs: [{ ...real, experiences: [{ ...first, title: 'Head of Data' }, ...others] }],
+    };
+
+    expect(await render('data-analyst')).toContain('CV unavailable');
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it('keeps the saved CV as it was when Base drops a position, until Regenerate', async () => {
+    const profile = await getProfile();
+    const cv = await cvFor('data-analyst');
+    const edited = {
+      ...profile,
+      experiences: profile.experiences.filter((e) => e.id !== 'experience-call-center'),
+    };
+    const html = await render('data-analyst', await testStore({ editedProfile: edited }));
+
+    expect(html).toContain('Out of date.');
+    expect(html).toContain('Handled billing and plan changes by phone and chat.');
+    expect(cvChanges(edited, cv)).toContainEqual(
+      expect.objectContaining({ experienceId: 'experience-call-center', status: 'notInBase' }),
+    );
   });
 
   it('marks the CV out of date once Base changes, and still offers its download', async () => {
@@ -118,8 +149,24 @@ describe('Profile sub-tabs (#191)', () => {
       ...(await cvFor('business-analyst')),
       profileUpdatedAt: '2026-09-01T00:00:00.000Z',
       // The profile has dropped both since this CV was written.
-      positions: [{ experienceId: 'experience-gone', highlights: ['A bullet from back then.'] }],
-      skillIds: ['ps-requirements-analysis', 'ps-gone'],
+      experiences: [
+        {
+          id: 'experience-gone',
+          title: 'Front desk assistant',
+          organization: 'A shop from back then',
+          start: '2015',
+          end: '2016',
+          highlights: ['A bullet from back then.'],
+        },
+      ],
+      skills: [
+        {
+          id: 'ps-gone',
+          skill: { id: 'skill-gone', name: 'Cash handling' },
+          category: 'Retail',
+          evidence: [],
+        },
+      ],
     };
     cvs.override = { cvs: [current, old] };
 
@@ -127,8 +174,9 @@ describe('Profile sub-tabs (#191)', () => {
     expect(oldHtml).toContain('Out of date.');
     expect(oldHtml).toContain('Regenerate');
     expect(oldHtml).toContain(old.headline);
-    expect(oldHtml).toContain('Requirements analysis');
-    expect(oldHtml).not.toContain('A bullet from back then.');
+    expect(oldHtml).toContain('Cash handling');
+    expect(oldHtml).toContain('A bullet from back then.');
+    expect(oldHtml).not.toContain('Requirements analysis');
 
     const currentHtml = await render('data-analyst');
     expect(currentHtml).toContain(current.headline);
@@ -138,15 +186,15 @@ describe('Profile sub-tabs (#191)', () => {
 });
 
 describe('a CV against Base (#191)', () => {
-  it('keeps the profile facts and takes the CV text', async () => {
+  it("lays out the CV's own copy, with the name from Base", async () => {
     const profile = await getProfile();
     const cv = await cvFor('business-analyst');
     const laid = applyCv(profile, cv);
 
     expect(laid.name).toBe(profile.name);
     expect(laid.headline).toBe(cv.headline);
-    expect(laid.experiences.map((e) => e.id)).toEqual(['experience-current-job']);
-    expect(laid.skills.map((s) => s.id).sort()).toEqual([...cv.skillIds].sort());
+    expect(laid.experiences).toEqual(cv.experiences);
+    expect(laid.skills).toEqual(cv.skills);
   });
 
   it('lists each change in words: headline, bullets, positions and skills left out', async () => {
@@ -164,16 +212,18 @@ describe('a CV against Base (#191)', () => {
       (c) => c.section === 'position' && c.experienceId === 'experience-current-job',
     );
     expect(current).toMatchObject({
-      omitted: false,
+      status: 'reworded',
       removed: ['Triage about 60 tickets a day and route bugs with reproduction steps.'],
       added: ['Route bugs to the product team with reproduction steps, about 60 tickets a day.'],
     });
     expect(changes).toContainEqual(
-      expect.objectContaining({ experienceId: 'experience-call-center', omitted: true }),
+      expect.objectContaining({ experienceId: 'experience-call-center', status: 'omitted' }),
     );
     expect(changes.at(-1)).toEqual({
       section: 'skills',
       omitted: ['Ticket triage', 'Help desk tools', 'SQL'],
+      notInBase: [],
+      changedInBase: [],
     });
   });
 
@@ -185,8 +235,10 @@ describe('a CV against Base (#191)', () => {
       profileUpdatedAt: profile.updatedAt,
       headline: profile.headline,
       about: profile.about ?? null,
-      positions: profile.experiences.map((e) => ({ experienceId: e.id, highlights: e.highlights })),
-      skillIds: profile.skills.map((s) => s.id),
+      experiences: profile.experiences,
+      education: profile.education,
+      certifications: profile.certifications,
+      skills: profile.skills,
     };
 
     expect(cvChanges(profile, same)).toEqual([]);
