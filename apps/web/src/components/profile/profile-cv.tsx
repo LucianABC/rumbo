@@ -3,6 +3,7 @@ import type { ProfileAnalysis } from '@rumbo/contracts/provisional';
 import { cn } from 'cn';
 import { Briefcase, GraduationCap, Languages, ListChecks, MapPin, UserRound } from 'lucide-react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { formatPartialDate } from '../../lib/format';
 import { evidenceStatusLabel } from '../../lib/labels';
@@ -29,6 +30,8 @@ export function ProfileCv({
   analysis,
   edited = false,
   analysisOutdated = false,
+  reading,
+  label = 'Your profile',
   now,
 }: {
   readonly profile: Profile;
@@ -38,12 +41,19 @@ export function ProfileCv({
   readonly edited?: boolean;
   /** The last review read an earlier version of the profile (#170). */
   readonly analysisOutdated?: boolean;
+  /**
+   * What shows beside the header instead of rumbo's reading: a target's CV (#191) carries its own
+   * headline and controls, and an analysis of the profile does not describe it.
+   */
+  readonly reading?: ReactNode;
+  /** Names the article for screen readers. */
+  readonly label?: string;
   readonly now: Date;
 }) {
   const positions = timeline(profile.experiences, now);
   const groups = skillGroups(profile.skills);
   return (
-    <article aria-label="Your profile" className="flex min-w-0 flex-col gap-4">
+    <article aria-label={label} className="flex min-w-0 flex-col gap-4">
       <header className="grid gap-x-8 gap-y-3 rounded-xl border border-chart-1/30 bg-chart-1/15 p-4 md:p-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
         <div className="flex min-w-0 gap-4">
           <span
@@ -55,7 +65,7 @@ export function ProfileCv({
           <div className="flex min-w-0 flex-col gap-1">
             <h2 className="text-xl font-bold tracking-tight md:text-2xl">{profile.name}</h2>
             <p>
-              {edited
+              {edited || reading !== undefined
                 ? profile.headline
                 : profileSubtitle(analysis?.subtitle, positions, profile.headline)}
             </p>
@@ -81,7 +91,7 @@ export function ProfileCv({
             </div>
           </div>
         </div>
-        <ProfileReading analysis={analysis} outdated={analysisOutdated} />
+        {reading ?? <ProfileReading analysis={analysis} outdated={analysisOutdated} />}
       </header>
 
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">

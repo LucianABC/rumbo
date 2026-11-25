@@ -4,8 +4,15 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getMarket, getProfile, getRoadmap, getRoadmapLayout } from '../src/lib/data';
+import {
+  getMarket,
+  getProfile,
+  getRoadmap,
+  getRoadmapLayout,
+  getTailoredCvs,
+} from '../src/lib/data';
 import { readLocalMock } from '../src/lib/data/local-mocks';
+import { cvs as bundledCvs } from '../src/mocks/cvs';
 import { market as bundledMarket } from '../src/mocks/market';
 import { profile as bundledProfile } from '../src/mocks/profile';
 import { roadmap as bundled } from '../src/mocks/roadmap';
@@ -65,6 +72,16 @@ describe('local mocks (#137)', () => {
 
     await write('market.json', { snapshots: [{ ...first, postingCount: 0 }, ...rest] });
     await expect(getMarket(roadmap)).rejects.toThrow(/Invalid market:/);
+  });
+
+  it('gives a local profile no CVs until it has its own, instead of the fictional ones (#191)', async () => {
+    await write('profile.json', { ...bundledProfile, name: 'Local Name' });
+    const roadmap = await getRoadmap();
+
+    expect(await getTailoredCvs(getProfile(), roadmap)).toEqual([]);
+
+    await write('cvs.json', bundledCvs);
+    expect(await getTailoredCvs(getProfile(), roadmap)).toHaveLength(bundledCvs.cvs.length);
   });
 
   it('rejects a local market that leaves an active target without numbers (#145)', async () => {
