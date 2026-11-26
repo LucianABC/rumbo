@@ -40,12 +40,5 @@ export {
   milestoneStatus,
   type RoadmapView,
 } from './roadmap-derive.js';
-export {
-  checkLayout,
-  GridPoint,
-  isOctilinear,
-  LineColorToken,
-  RoadmapLayout,
-  routePoints,
-  targetColors,
-} from './roadmap-layout.js';
+export { GridPoint, LineColorToken, RoadmapLayout } from './roadmap-layout.js';
+export { checkLayout, isOctilinear, routePoints, targetColors } from './roadmap-layout-rules.js';
